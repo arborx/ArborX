@@ -175,6 +175,14 @@ struct PredicateWithAttachment : Predicate
       : Predicate(std::forward<Predicate>(pred))
       , _data(std::forward<Data>(data))
   {}
+#if defined(KOKKOS_ENABLE_CUDA) && defined(KOKKOS_COMPILER_CLANG) &&           \
+    (KOKKOS_COMPILER_CLANG < 1500)
+  // FIXME_NVCC, FIXME_CLANG: Without explicit destructor, it causes misaligned
+  // address in local write when running query tests with double precision, and
+  // errors at least Clang 14 and CUDA 11.0.3. No idea why that happens.
+  KOKKOS_FUNCTION ~PredicateWithAttachment() {}
+#endif
+
   Data _data;
 };
 

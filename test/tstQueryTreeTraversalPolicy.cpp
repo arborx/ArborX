@@ -37,18 +37,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
 
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   auto const bvh =
-      make<Tree>(ExecutionSpace{}, {
-                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                                       {{{1., 0., 0.}}, {{1., 0., 0.}}},
-                                       {{{2., 0., 0.}}, {{2., 0., 0.}}},
-                                       {{{3., 0., 0.}}, {{3., 0., 0.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                            {{{1., 0., 0.}}, {{1., 0., 0.}}},
+                                            {{{2., 0., 0.}}, {{2., 0., 0.}}},
+                                            {{{3., 0., 0.}}, {{3., 0., 0.}}},
+                                        });
 
-  auto const queries = makeIntersectsBoxQueries<DeviceType>({
+  auto const queries = makeIntersectsQueries<DeviceType, Box>({
       {},
       {{{0., 0., 0.}}, {{3., 3., 3.}}},
       {},
@@ -128,16 +130,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
 
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   auto const bvh =
-      make<Tree>(ExecutionSpace{}, {
-                                       {{{0., 0., 0.}}, {{0., 0., 0.}}},
-                                       {{{1., 1., 1.}}, {{1., 1., 1.}}},
-                                       {{{2., 2., 2.}}, {{2., 2., 2.}}},
-                                       {{{3., 3., 3.}}, {{3., 3., 3.}}},
-                                   });
+      make<Tree, Box>(ExecutionSpace{}, {
+                                            {{{0., 0., 0.}}, {{0., 0., 0.}}},
+                                            {{{1., 1., 1.}}, {{1., 1., 1.}}},
+                                            {{{2., 2., 2.}}, {{2., 2., 2.}}},
+                                            {{{3., 3., 3.}}, {{3., 3., 3.}}},
+                                        });
 
   using ViewType = Kokkos::View<int *, DeviceType>;
   ViewType indices("indices", 0);
@@ -157,7 +162,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
   };
 
   {
-    auto const queries = makeIntersectsBoxQueries<DeviceType>({
+    auto const queries = makeIntersectsQueries<DeviceType, Box>({
         {{{2., 2., 2.}}, {{3., 3., 3.}}},
         {{{0., 0., 0.}}, {{1., 1., 1.}}},
     });
@@ -175,7 +180,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
 
   indices_ref = {2, 3, 0, 1};
   {
-    auto queries = makeNearestQueries<DeviceType>({
+    auto queries = makeNearestQueries<DeviceType, Point>({
         {{{2.5, 2.5, 2.5}}, 2},
         {{{0.5, 0.5, 0.5}}, 2},
     });

@@ -79,9 +79,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_execution_space_instance, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
+  using Box = ArborX::Box<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
   auto exec = Kokkos::Experimental::partition_space(ExecutionSpace{}, 1)[0];
   arborx_test_set_tools_callbacks(exec);
@@ -91,20 +92,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_execution_space_instance, DeviceType,
   }
 
   { // empty
-    auto tree = make<Tree>(exec, {});
+    auto tree = make<Tree, Box>(exec, {});
   }
 
   { // one leaf
-    auto tree = make<Tree>(exec, {
-                                     {{{0, 0, 0}}, {{1, 1, 1}}},
-                                 });
+    auto tree = make<Tree, Box>(exec, {
+                                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                                      });
   }
 
   { // two leaves
-    auto tree = make<Tree>(exec, {
-                                     {{{0, 0, 0}}, {{1, 1, 1}}},
-                                     {{{0, 0, 0}}, {{1, 1, 1}}},
-                                 });
+    auto tree = make<Tree, Box>(exec, {
+                                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                                          {{{0, 0, 0}}, {{1, 1, 1}}},
+                                      });
   }
 
   arborx_test_unset_tools_callbacks();
@@ -115,28 +116,30 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_execution_space_instance, DeviceType,
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
+  using Box = ArborX::Box<3>;
+  using Point = ArborX::Point<3>;
+  using Tree =
+      LegacyTree<ArborX::BoundingVolumeHierarchy<MemorySpace,
+                                                 ArborX::PairValueIndex<Box>>>;
 
-  using Tree = LegacyTree<ArborX::BoundingVolumeHierarchy<
-      MemorySpace, ArborX::PairValueIndex<ArborX::Box<3>>>>;
-
-  auto tree = make<Tree>(ExecutionSpace{}, {
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                               {{{0, 0, 0}}, {{1, 1, 1}}},
-                                           });
+  auto tree = make<Tree, Box>(ExecutionSpace{}, {
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                    {{{0, 0, 0}}, {{1, 1, 1}}},
+                                                });
 
   auto exec = Kokkos::Experimental::partition_space(ExecutionSpace{}, 1)[0];
   arborx_test_set_tools_callbacks(exec);
 
   // spatial predicates
   query(exec, tree,
-        makeIntersectsBoxQueries<DeviceType>({
+        makeIntersectsQueries<DeviceType, Box>({
             {{{0, 0, 0}}, {{1, 1, 1}}},
             {{{0, 0, 0}}, {{1, 1, 1}}},
         }));
 
   // nearest predicates
   query(exec, tree,
-        makeNearestQueries<DeviceType>({
+        makeNearestQueries<DeviceType, Point>({
             {{{0, 0, 0}}, 1},
             {{{0, 0, 0}}, 2},
         }));
