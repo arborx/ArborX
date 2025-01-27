@@ -42,6 +42,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         std::regex re("^(Testing::"
                       "|ArborX::DistributedTree::"
                       "|ArborX::BVH::"
+                      "|ArborX::SpaceFillingCurve::"
                       "|ArborX::Sorting::"
                       ").*");
         BOOST_TEST(std::regex_match(label, re),
@@ -79,6 +80,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
          void const * /*ptr*/, uint64_t /*size*/) {
         std::regex re("^(Testing::"
                       "|ArborX::DistributedTree::query::"
+                      "|ArborX::SpaceFillingCurve::"
                       "|ArborX::Distributor::"
                       "|ArborX::BVH::query::"
                       "|ArborX::NearestBufferProvider::"

@@ -12,11 +12,11 @@
 #ifndef ARBORX_SPACE_FILLING_CURVES_HPP
 #define ARBORX_SPACE_FILLING_CURVES_HPP
 
-#include <ArborX_Box.hpp>
-#include <ArborX_Point.hpp>
+#include <ArborX_GeometryTraits.hpp>
 #include <algorithms/ArborX_Centroid.hpp>
 #include <algorithms/ArborX_TranslateAndScale.hpp>
 #include <detail/ArborX_MortonCode.hpp>
+#include <misc/ArborX_SortUtils.hpp>
 
 #include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>
@@ -30,20 +30,11 @@ namespace Experimental
 
 struct Morton32
 {
-  template <typename Box, typename Point,
-            std::enable_if_t<GeometryTraits::is_box_v<Box> &&
-                             GeometryTraits::is_point_v<Point>> * = nullptr>
-  KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
-  {
-    Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton32(p);
-  }
-  template <typename Box, typename Geometry,
-            std::enable_if_t<GeometryTraits::is_box_v<Box> &&
-                             !GeometryTraits::is_point_v<Geometry>> * = nullptr>
+  template <typename Box, typename Geometry>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
+    static_assert(GeometryTraits::is_box_v<Box>);
     using Details::returnCentroid;
     auto p = returnCentroid(geometry);
     Details::translateAndScale(p, p, scene_bounding_box);
@@ -53,20 +44,11 @@ struct Morton32
 
 struct Morton64
 {
-  template <typename Box, typename Point,
-            std::enable_if_t<GeometryTraits::is_box_v<Box> &&
-                             GeometryTraits::is_point_v<Point>> * = nullptr>
-  KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box, Point p) const
-  {
-    Details::translateAndScale(p, p, scene_bounding_box);
-    return Details::morton64(p);
-  }
-  template <typename Box, class Geometry,
-            std::enable_if_t<GeometryTraits::is_box_v<Box> &&
-                             !GeometryTraits::is_point_v<Geometry>> * = nullptr>
+  template <typename Box, typename Geometry>
   KOKKOS_FUNCTION auto operator()(Box const &scene_bounding_box,
                                   Geometry const &geometry) const
   {
+    static_assert(GeometryTraits::is_box_v<Box>);
     using Details::returnCentroid;
     auto p = returnCentroid(geometry);
     Details::translateAndScale(p, p, scene_bounding_box);
@@ -78,6 +60,48 @@ struct Morton64
 
 namespace Details
 {
+
+template <typename ExecutionSpace, typename Values, typename SpaceFillingCurve,
+          typename Box, typename LinearOrdering>
+inline void
+projectOntoSpaceFillingCurve(ExecutionSpace const &space, Values const &values,
+                             SpaceFillingCurve const &curve,
+                             Box const &scene_bounding_box,
+                             LinearOrdering &linear_ordering_indices)
+{
+  using Point = std::decay_t<decltype(returnCentroid(values(0)))>;
+  static_assert(GeometryTraits::is_point_v<Point>);
+  static_assert(GeometryTraits::is_box_v<Box>);
+  ARBORX_ASSERT(linear_ordering_indices.size() == values.size());
+  static_assert(std::is_same_v<typename LinearOrdering::value_type,
+                               decltype(curve(scene_bounding_box, values(0)))>);
+
+  Kokkos::parallel_for(
+      "ArborX::SpaceFillingCurve::project_onto_space_filling_curve",
+      Kokkos::RangePolicy(space, 0, values.size()), KOKKOS_LAMBDA(int i) {
+        linear_ordering_indices(i) = curve(scene_bounding_box, values(i));
+      });
+}
+
+template <typename ExecutionSpace, typename Values, typename SpaceFillingCurve,
+          typename Box>
+inline auto computeSpaceFillingCurvePermutation(ExecutionSpace const &space,
+                                                Values const &values,
+                                                SpaceFillingCurve const &curve,
+                                                Box const &scene_bounding_box)
+{
+  using Point = std::decay_t<decltype(returnCentroid(values(0)))>;
+  using LinearOrderingValueType =
+      std::invoke_result_t<SpaceFillingCurve, Box, Point>;
+  Kokkos::View<LinearOrderingValueType *, typename Values::memory_space>
+      linear_ordering_indices(
+          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                             "ArborX::SpaceFillingCurve::linear_ordering"),
+          values.size());
+  projectOntoSpaceFillingCurve(space, values, curve, scene_bounding_box,
+                               linear_ordering_indices);
+  return sortObjects(space, linear_ordering_indices);
+}
 
 template <int DIM, class SpaceFillingCurve>
 void check_valid_space_filling_curve(SpaceFillingCurve const &)

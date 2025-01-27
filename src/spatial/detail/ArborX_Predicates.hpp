@@ -147,6 +147,11 @@ getGeometry(Nearest<Geometry> const &pred)
 {
   return pred._geometry;
 }
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry getGeometry(Nearest<Geometry> &&pred)
+{
+  return pred._geometry;
+}
 
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION Geometry const &
@@ -154,10 +159,21 @@ getGeometry(Intersects<Geometry> const &pred)
 {
   return pred._geometry;
 }
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry getGeometry(Intersects<Geometry> &&pred)
+{
+  return pred._geometry;
+}
 
 template <typename Geometry>
 KOKKOS_INLINE_FUNCTION Geometry const &
 getGeometry(Experimental::OrderedSpatial<Geometry> const &pred)
+{
+  return pred._geometry;
+}
+template <typename Geometry>
+KOKKOS_INLINE_FUNCTION Geometry
+getGeometry(Experimental::OrderedSpatial<Geometry> &&pred)
 {
   return pred._geometry;
 }
@@ -206,6 +222,24 @@ KOKKOS_INLINE_FUNCTION constexpr auto attach(Predicate &&pred, Data &&data)
   return PredicateWithAttachment<std::decay_t<Predicate>, std::decay_t<Data>>{
       std::forward<Predicate>(pred), std::forward<Data>(data)};
 }
+
+namespace Details
+{
+template <typename Predicates>
+struct PredicateIndexables
+{
+  Predicates _predicates;
+
+  using memory_space = typename Predicates::memory_space;
+
+  KOKKOS_FUNCTION decltype(auto) operator()(int i) const
+  {
+    return getGeometry(_predicates(i));
+  }
+
+  KOKKOS_FUNCTION auto size() const { return _predicates.size(); }
+};
+} // namespace Details
 
 } // namespace ArborX
 

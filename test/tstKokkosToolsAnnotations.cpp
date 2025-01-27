@@ -47,6 +47,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
         std::regex re("^(Testing::"
                       "|ArborX::BVH::"
                       "|ArborX::Sorting::"
+                      "|ArborX::SpaceFillingCurve::"
                       "|Kokkos::SortImpl::BinSortFunctor::"
                       "|Kokkos::Serial::" // unsure what's going on
                       ").*");
@@ -101,6 +102,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
          void const * /*ptr*/, uint64_t /*size*/) {
         std::regex re("^(Testing::"
                       "|ArborX::BVH::query::"
+                      "|ArborX::SpaceFillingCurve::"
                       "|ArborX::NearestBufferProvider::"
                       "|ArborX::TreeTraversal::spatial::"
                       "|ArborX::TreeTraversal::nearest::"
