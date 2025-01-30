@@ -164,7 +164,7 @@ public:
   decltype(auto) operator()(int i) const { return Access::get(_values, i); }
 
   KOKKOS_FUNCTION
-  auto size() const { return Access::size(_values); }
+  std::size_t size() const { return Access::size(_values); }
 
   using self_type = AccessValuesI<Values>;
 };
@@ -198,7 +198,7 @@ struct AccessTraits<Details::AccessValuesI<Values>>
   }
 
   KOKKOS_FUNCTION
-  static decltype(auto) size(AccessValues const &w) { return w.size(); }
+  static auto size(AccessValues const &w) { return w.size(); }
 };
 
 } // namespace ArborX
