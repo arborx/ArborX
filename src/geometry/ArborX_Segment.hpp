@@ -22,8 +22,8 @@ namespace ArborX::Experimental
 template <int DIM, typename Coordinate = float>
 struct Segment
 {
-  ArborX::Point<DIM, Coordinate> _start;
-  ArborX::Point<DIM, Coordinate> _end;
+  ArborX::Point<DIM, Coordinate> a;
+  ArborX::Point<DIM, Coordinate> b;
 };
 
 template <int DIM, typename Coordinate>

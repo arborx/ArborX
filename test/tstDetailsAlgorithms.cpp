@@ -313,6 +313,20 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(!intersects(Point{0, 0, 1.1}, tet));
   BOOST_TEST(!intersects(Point{0.5, 0.5, 0.5}, tet));
   BOOST_TEST(!intersects(Point{-0.5, 0.5, 0.5}, tet));
+
+  // segment
+  using Segment2 = ArborX::Experimental::Segment<2>;
+  constexpr Segment2 seg{{1, 1}, {2, 2}};
+  BOOST_TEST(intersects(Segment2{{2, 2}, {3, 3}}, seg));
+  BOOST_TEST(intersects(Segment2{{1.5, 1.5}, {1.7, 1.7}}, seg));
+  BOOST_TEST(intersects(Segment2{{0, 0}, {1, 1}}, seg));
+  BOOST_TEST(intersects(Segment2{{1, 2}, {2, 1}}, seg));
+  BOOST_TEST(intersects(Segment2{{2, 0}, {0, 2}}, seg));
+  BOOST_TEST(intersects(Segment2{{1, 3}, {3, 1}}, seg));
+  BOOST_TEST(!intersects(Segment2{{0, 0}, {0.9, 0.9}}, seg));
+  BOOST_TEST(!intersects(Segment2{{1.1, 1}, {2, 1}}, seg));
+  BOOST_TEST(!intersects(Segment2{{1, 0}, {2, 1}}, seg));
+  BOOST_TEST(!intersects(Segment2{{1, 3}, {3, 1.1}}, seg));
 }
 
 BOOST_AUTO_TEST_CASE(equals)

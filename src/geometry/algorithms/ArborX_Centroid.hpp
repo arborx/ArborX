@@ -119,7 +119,7 @@ struct centroid<SegmentTag, Segment>
     // WARNING implicit requirement on KDOP first DIM directions
     Point<DIM, Coordinate> point;
     for (int d = 0; d < DIM; ++d)
-      point[d] = (segment._start[d] + segment._end[d]) / 2;
+      point[d] = (segment.a[d] + segment.b[d]) / 2;
     return point;
   }
 };

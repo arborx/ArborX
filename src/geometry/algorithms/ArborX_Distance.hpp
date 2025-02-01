@@ -255,20 +255,20 @@ struct distance<PointTag, SegmentTag, Point, Segment>
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
     using Coordinate = GeometryTraits::coordinate_type_t<Point>;
 
-    if (Details::equals(segment._start, segment._end))
-      return Details::distance(point, segment._start);
+    if (Details::equals(segment.a, segment.b))
+      return Details::distance(point, segment.a);
 
-    auto const dir = segment._end - segment._start;
+    auto const dir = segment.b - segment.a;
 
     // The line of the segment [a,b] is parametrized as a + t * (b - a).
     // Find the projection of the point to that line, and clamp it.
     auto t =
-        Kokkos::clamp(dir.dot(point - segment._start) / dir.dot(dir),
+        Kokkos::clamp(dir.dot(point - segment.a) / dir.dot(dir),
                       static_cast<Coordinate>(0), static_cast<Coordinate>(1));
 
     Point projection;
     for (int d = 0; d < DIM; ++d)
-      projection[d] = segment._start[d] + t * dir[d];
+      projection[d] = segment.a[d] + t * dir[d];
 
     return Details::distance(point, projection);
   }
