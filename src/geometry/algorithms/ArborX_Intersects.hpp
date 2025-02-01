@@ -476,6 +476,42 @@ struct intersects<SegmentTag, SegmentTag, Segment, Segment>
   }
 };
 
+template <typename Segment, typename Box>
+struct intersects<SegmentTag, BoxTag, Segment, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Segment const &segment,
+                                              Box const &box)
+  {
+    static_assert(GeometryTraits::dimension_v<Segment> == 2);
+
+    if (Details::intersects(segment.a, box) ||
+        Details::intersects(segment.b, box))
+      return true;
+
+    using Point = std::decay_t<decltype(box.minCorner())>;
+
+    auto const &bottom_left = box.minCorner();
+    auto const &top_right = box.maxCorner();
+    auto const top_left = Point{bottom_left[0], top_right[1]};
+    auto const bottom_right = Point{top_right[0], bottom_left[1]};
+
+    return Details::intersects(segment, Segment{bottom_left, top_left}) ||
+           Details::intersects(segment, Segment{bottom_left, bottom_right}) ||
+           Details::intersects(segment, Segment{top_right, top_left}) ||
+           Details::intersects(segment, Segment{top_right, bottom_right});
+  }
+};
+
+template <typename Box, typename Segment>
+struct intersects<BoxTag, SegmentTag, Box, Segment>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &box,
+                                              Segment const &segment)
+  {
+    return Details::intersects(segment, box);
+  }
+};
+
 } // namespace Dispatch
 
 } // namespace ArborX::Details
