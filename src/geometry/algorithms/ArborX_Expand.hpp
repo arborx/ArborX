@@ -230,8 +230,8 @@ struct expand<BoxTag, SegmentTag, Box, Segment>
 {
   KOKKOS_FUNCTION static void apply(Box &box, Segment const &segment)
   {
-    Details::expand(box, segment._start);
-    Details::expand(box, segment._end);
+    Details::expand(box, segment.a);
+    Details::expand(box, segment.b);
   }
 };
 
