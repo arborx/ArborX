@@ -412,6 +412,70 @@ struct intersects<PointTag, TetrahedronTag, Point, Tetrahedron>
   }
 };
 
+template <typename Segment>
+struct intersects<SegmentTag, SegmentTag, Segment, Segment>
+{
+  // The algorithm is described in
+  // https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
+
+  // Given a segment and a collinear point, check if the point lies on the
+  // segment
+  template <typename Point>
+  KOKKOS_FUNCTION static bool on_segment(Segment const &segment, Point const &p)
+  {
+    using Kokkos::max;
+    using Kokkos::min;
+    auto const &a = segment.a;
+    auto const &b = segment.b;
+    return (p[0] >= min(a[0], b[0]) && p[0] <= max(a[0], b[0])) &&
+           (p[1] >= min(a[1], b[1]) && p[1] <= max(a[1], b[1]));
+  }
+
+  // Find orientation of an ordered tuple (a, b, c)
+  // -  0: points are collinear
+  // -  1: clockwise
+  // - -1: counter-clockwise
+  template <typename Point>
+  KOKKOS_FUNCTION static int orientation(Point const &a, Point const &b,
+                                         Point const &c)
+  {
+    auto x = (b[1] - a[1]) * (c[0] - b[0]) - (b[0] - a[0]) * (c[1] - b[1]);
+    return (0 < x) - (x < 0); // sgn
+  }
+
+  KOKKOS_FUNCTION static constexpr bool apply(Segment const &segment1,
+                                              Segment const &segment2)
+  {
+    static_assert(GeometryTraits::dimension_v<Segment> == 2);
+
+    int o1 = orientation(segment1.a, segment1.b, segment2.a);
+    int o2 = orientation(segment1.a, segment1.b, segment2.b);
+    int o3 = orientation(segment2.a, segment2.b, segment1.a);
+    int o4 = orientation(segment2.a, segment2.b, segment1.b);
+
+    // General case (no collinearity)
+    if (o1 != o2 && o3 != o4)
+      return true;
+
+    // Special cases
+
+    // segment2.a is collinear to segment1 and is within
+    if (o1 == 0 && on_segment(segment1, segment2.a))
+      return true;
+    // segment2.b is collinear to segment1 and is within
+    if (o2 == 0 && on_segment(segment1, segment2.b))
+      return true;
+    // segment1.a is collinear to segment2 and is within
+    if (o3 == 0 && on_segment(segment2, segment1.a))
+      return true;
+    // segment1.b is collinear to segment2 and is within
+    if (o4 == 0 && on_segment(segment2, segment1.b))
+      return true;
+
+    return false;
+  }
+};
+
 } // namespace Dispatch
 
 } // namespace ArborX::Details
