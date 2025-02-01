@@ -327,6 +327,20 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(!intersects(Segment2{{1.1, 1}, {2, 1}}, seg));
   BOOST_TEST(!intersects(Segment2{{1, 0}, {2, 1}}, seg));
   BOOST_TEST(!intersects(Segment2{{1, 3}, {3, 1.1}}, seg));
+
+  constexpr ArborX::Box<2> box2{{{0.0, 0.0}}, {{1.0, 1.0}}};
+  BOOST_TEST(intersects(Segment2{{0, 0}, {0, 0}}, box2));
+  BOOST_TEST(intersects(Segment2{{-1, 1}, {1, -1}}, box2));
+  BOOST_TEST(intersects(Segment2{{-1, 0}, {2, 0}}, box2));
+  BOOST_TEST(intersects(Segment2{{-1, 0.5}, {0.5, 0.5}}, box2));
+  BOOST_TEST(intersects(Segment2{{0.5, 0.5}, {0.5, 2}}, box2));
+  BOOST_TEST(intersects(Segment2{{-1, 2}, {2, -1}}, box2));
+  BOOST_TEST(intersects(Segment2{{0.5, 2}, {0.5, -1}}, box2));
+  BOOST_TEST(intersects(Segment2{{0.4, 0.4}, {0.6, 0.6}}, box2));
+  BOOST_TEST(!intersects(Segment2{{0, -1}, {1, -1}}, box2));
+  BOOST_TEST(!intersects(Segment2{{0.5, 1.6}, {2, 0}}, box2));
+  BOOST_TEST(intersects(box2, Segment2{{-1, 2}, {2, -1}}));
+  BOOST_TEST(!intersects(Segment2{{0.5, 1.6}, {2, 0}}, box2));
 }
 
 BOOST_AUTO_TEST_CASE(equals)
