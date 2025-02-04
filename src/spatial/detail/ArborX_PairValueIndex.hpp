@@ -12,9 +12,9 @@
 #ifndef ARBORX_PAIR_VALUE_INDEX_HPP
 #define ARBORX_PAIR_VALUE_INDEX_HPP
 
-#include <detail/ArborX_AccessTraits.hpp>
-
 #include <Kokkos_Macros.hpp>
+
+#include <type_traits>
 
 namespace ArborX
 {
