@@ -27,29 +27,30 @@ struct DefaultIndexableGetter
   KOKKOS_DEFAULTED_FUNCTION
   DefaultIndexableGetter() = default;
 
-  template <typename Geometry, typename Enable = std::enable_if_t<
-                                   GeometryTraits::is_valid_geometry<Geometry>>>
+  template <typename Geometry>
   KOKKOS_FUNCTION auto const &operator()(Geometry const &geometry) const
   {
     return geometry;
   }
 
-  template <typename Geometry, typename Enable = std::enable_if_t<
-                                   GeometryTraits::is_valid_geometry<Geometry>>>
+  template <typename Geometry,
+            typename Enable = std::enable_if_t<
+                !Details::is_pair_value_index_v<std::decay_t<Geometry>>>>
   KOKKOS_FUNCTION auto operator()(Geometry &&geometry) const
   {
     return geometry;
   }
 
-  template <typename Value, typename Index>
-  KOKKOS_FUNCTION Value const &
-  operator()(PairValueIndex<Value, Index> const &pair) const
+  template <typename Geometry, typename Index>
+  KOKKOS_FUNCTION Geometry const &
+  operator()(PairValueIndex<Geometry, Index> const &pair) const
   {
     return pair.value;
   }
 
-  template <typename Value, typename Index>
-  KOKKOS_FUNCTION Value operator()(PairValueIndex<Value, Index> &&pair) const
+  template <typename Geometry, typename Index>
+  KOKKOS_FUNCTION Geometry
+  operator()(PairValueIndex<Geometry, Index> &&pair) const
   {
     return pair.value;
   }
