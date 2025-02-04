@@ -150,7 +150,7 @@ pipeline {
                         sh 'cmake --build build-kokkos --parallel 7'
                         sh 'cmake --install build-kokkos'
                         sh 'cmake -B build-arborx -D CMAKE_INSTALL_PREFIX=$PWD/install-arborx -D Kokkos_ROOT=$PWD/install-kokkos $CMAKE_OPTIONS -D ARBORX_ENABLE_BENCHMARKS=ON -D ARBORX_ENABLE_TESTS=ON -D ARBORX_ENABLE_EXAMPLES=ON'
-                        sh 'cmake --build build-arborx --parallel 7'
+                        sh 'cmake --build build-arborx --parallel 4'
                         dir('build-arborx') {
                             sh 'ctest $CTEST_OPTIONS'
                         }
