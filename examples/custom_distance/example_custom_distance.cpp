@@ -50,9 +50,6 @@ struct ArborX::GeometryTraits::tag<CustomPoint>
   using type = ArborX::GeometryTraits::PointTag;
 };
 
-// Provide the required centroid function for the custom data type
-KOKKOS_FUNCTION auto returnCentroid(CustomPoint const &point) { return point; }
-
 // Provide the distance function between indexable getter geometry and the
 // custom data type
 KOKKOS_FUNCTION auto distance(CustomPoint const &p, CustomPoint const &q)
