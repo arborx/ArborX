@@ -12,8 +12,9 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <iostream>
-#include <vector>
+#include <algorithm> // copy
+#include <iostream>  // cout
+#include <iterator>  // ostream_iterator
 
 // Define custom type that will be used for distance calculations
 struct CustomPoint
