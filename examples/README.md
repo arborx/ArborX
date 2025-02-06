@@ -7,6 +7,7 @@ Directory | Description
 `callback`              | execute search which calls user function on match
 `custom_distance`       | execute nearest search using a custom distance metric
 `dbscan`                | cluster a set of points using DBSCAN
+`emst`                  | build an Euclidean minimum spanning tree (MST)
 `molecular_dynamics`    | do one step of moving particles under forces
 `moving_least_squares`  | interpolate data between point clouds using MLS
 `raytracing`            | deposit ray energy onto intersected boxes
