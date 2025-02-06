@@ -44,7 +44,7 @@ struct Dendrogram
 
   template <typename ExecutionSpace>
   Dendrogram(ExecutionSpace const &exec_space,
-             Kokkos::View<Details::WeightedEdge *, MemorySpace> edges)
+             Kokkos::View<Experimental::WeightedEdge *, MemorySpace> edges)
       : _parents("ArborX::Dendrogram::parents", 0)
       , _parent_heights("ArborX::Dendrogram::parent_heights", 0)
   {
@@ -81,7 +81,7 @@ struct Dendrogram
   template <typename ExecutionSpace>
   void splitEdges(
       ExecutionSpace const &exec_space,
-      Kokkos::View<Details::WeightedEdge *, MemorySpace> edges,
+      Kokkos::View<Experimental::WeightedEdge *, MemorySpace> edges,
       Kokkos::View<Details::UnweightedEdge *, MemorySpace> unweighted_edges,
       Kokkos::View<float *, MemorySpace> weights)
   {

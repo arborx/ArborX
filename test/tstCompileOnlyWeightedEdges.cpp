@@ -46,7 +46,7 @@ static_assert(test_directed_edges()); // avoid warning unused function
 
 KOKKOS_FUNCTION constexpr bool test_weighted_edges()
 {
-  using ArborX::Details::WeightedEdge;
+  using ArborX::Experimental::WeightedEdge;
 
   static_assert(WeightedEdge{1, 2, 3} < WeightedEdge{1, 2, 4});
 
