@@ -24,7 +24,7 @@
 
 namespace Test
 {
-struct UndirectedEdge : ArborX::Details::WeightedEdge
+struct UndirectedEdge : ArborX::Experimental::WeightedEdge
 {
 private:
   friend bool operator==(UndirectedEdge const &lhs, UndirectedEdge const &rhs)
@@ -33,7 +33,7 @@ private:
             (lhs.source == rhs.target && lhs.target == rhs.source));
   }
   friend std::ostream &operator<<(std::ostream &os,
-                                  ArborX::Details::WeightedEdge const &e)
+                                  ArborX::Experimental::WeightedEdge const &e)
   {
     os << e.source << " -> " << e.target << " [weight=" << e.weight << "]";
     return os;
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree_golden_test, DeviceType,
   auto edges_ref = Test::parseEdgesFromCSVFile("mst_golden_test_edges.csv");
   std::sort(edges_ref.data(), edges_ref.data() + edges_ref.size());
 
-  using ArborX::Details::MinimumSpanningTree;
+  using ArborX::Experimental::MinimumSpanningTree;
   auto edges = Kokkos::create_mirror_view_and_copy(
       Kokkos::HostSpace{},
       MinimumSpanningTree<MemorySpace>(exec_space, points).edges);

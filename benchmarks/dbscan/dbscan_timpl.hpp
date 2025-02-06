@@ -317,7 +317,7 @@ bool ArborXBenchmark::run(ArborXBenchmark::Parameters const &params)
   {
 
     Kokkos::Profiling::pushRegion("ArborX::MST::total");
-    ArborX::Details::MinimumSpanningTree<MemorySpace> mst(
+    ArborX::Experimental::MinimumSpanningTree<MemorySpace> mst(
         exec_space, primitives, params.core_min_size);
     Kokkos::Profiling::popRegion();
 

@@ -15,7 +15,7 @@
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_MinMax.hpp>
 
-namespace ArborX::Details
+namespace ArborX::Experimental
 {
 
 struct WeightedEdge
@@ -48,6 +48,6 @@ private:
   }
 };
 
-} // namespace ArborX::Details
+} // namespace ArborX::Experimental
 
 #endif

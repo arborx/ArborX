@@ -19,7 +19,7 @@
 
 namespace ArborX
 {
-namespace Details
+namespace Experimental
 {
 // NOTE not sure why but wasn't detected when defined in the global namespace
 inline constexpr bool operator==(WeightedEdge const &lhs,
@@ -27,21 +27,21 @@ inline constexpr bool operator==(WeightedEdge const &lhs,
 {
   return !(lhs < rhs) && !(rhs < lhs);
 }
-} // namespace Details
+} // namespace Experimental
 } // namespace ArborX
 
 void test_weighted_edges_comparison_compile_only()
 {
-  using ArborX::Details::WeightedEdge;
+  using ArborX::Experimental::WeightedEdge;
   static_assert(WeightedEdge{1, 2, 3} == WeightedEdge{1, 2, 3});
   static_assert(WeightedEdge{1, 2, 3} == WeightedEdge{2, 1, 3});
 }
 
 template <>
 struct boost::test_tools::tt_detail::print_log_value<
-    ArborX::Details::WeightedEdge>
+    ArborX::Experimental::WeightedEdge>
 {
-  void operator()(std::ostream &os, ArborX::Details::WeightedEdge const &e)
+  void operator()(std::ostream &os, ArborX::Experimental::WeightedEdge const &e)
   {
     os << e.source << " -> " << e.target << " [weight=" << e.weight << "]";
   }
@@ -58,7 +58,8 @@ auto build_minimum_spanning_tree(ExecutionSpace const &exec_space,
   auto points = toView<ExecutionSpace>(points_host, "Test::points");
 
   using MemorySpace = typename ExecutionSpace::memory_space;
-  ArborX::Details::MinimumSpanningTree<MemorySpace> mst{exec_space, points, k};
+  ArborX::Experimental::MinimumSpanningTree<MemorySpace> mst{exec_space, points,
+                                                             k};
 
   auto edges_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, mst.edges);
@@ -87,6 +88,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree, DeviceType,
   ExecutionSpace exec_space;
 
   using Point = ArborX::Point<3>;
+  using WeightedEdge = ArborX::Experimental::WeightedEdge;
 
   { // equidistant points
     // 0     1     2     3     4
@@ -97,27 +99,27 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree, DeviceType,
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, points, 1,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 1}, {1, 2, 1}, {2, 3, 1}, {3, 4, 1}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, points, 2,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 1}, {1, 2, 1}, {2, 3, 1}, {3, 4, 1}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, points, 3,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 2}, {1, 2, 1}, {2, 3, 1}, {2, 4, 2}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, points, 4,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 3}, {1, 2, 2}, {1, 3, 2}, {1, 4, 3}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, points, 5,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 4}, {1, 2, 3}, {1, 3, 3}, {0, 4, 4}}));
   }
   { // non-equidistant points
@@ -129,32 +131,32 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree, DeviceType,
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, non_equidistant_points, 1,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 1}, {1, 2, 1}, {2, 3, 1}, {3, 4, 3}, {4, 5, 4}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, non_equidistant_points, 2,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 1}, {1, 2, 1}, {2, 3, 1}, {3, 4, 3}, {4, 5, 4}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, non_equidistant_points, 3,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 2}, {1, 2, 1}, {1, 3, 2}, {2, 4, 4}, {3, 5, 7}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, non_equidistant_points, 4,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 3}, {1, 2, 2}, {0, 3, 3}, {2, 4, 4}, {2, 5, 8}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, non_equidistant_points, 5,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 6}, {1, 2, 5}, {2, 3, 4}, {1, 4, 5}, {1, 5, 9}}));
 
     ARBORX_TEST_MINIMUM_SPANNING_TREE(
         exec_space, non_equidistant_points, 6,
-        (std::vector<ArborX::Details::WeightedEdge>{
+        (std::vector<WeightedEdge>{
             {0, 1, 10}, {1, 2, 9}, {2, 3, 8}, {3, 4, 7}, {0, 5, 10}}));
   }
 }

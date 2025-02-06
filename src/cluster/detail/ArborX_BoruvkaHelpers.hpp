@@ -97,7 +97,7 @@ public:
       , weight{weight}
   {}
   KOKKOS_DEFAULTED_FUNCTION constexpr DirectedEdge() = default;
-  KOKKOS_FUNCTION explicit constexpr operator WeightedEdge()
+  KOKKOS_FUNCTION explicit constexpr operator Experimental::WeightedEdge()
   {
     return {source(), target(), weight};
   }
@@ -453,7 +453,7 @@ struct UpdateComponentsAndEdges
 
     // append new edge at the "end" of the array (akin to
     // std::vector::push_back)
-    auto const edge = static_cast<WeightedEdge>(_out_edges(i));
+    auto const edge = static_cast<Experimental::WeightedEdge>(_out_edges(i));
     auto const back =
         Kokkos::atomic_fetch_inc(&_num_edges()); // atomic post-increment
     _edges(back) = edge;

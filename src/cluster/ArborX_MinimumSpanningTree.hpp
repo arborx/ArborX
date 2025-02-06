@@ -25,10 +25,11 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
-namespace ArborX::Details
+namespace ArborX::Experimental
 {
 
-template <class MemorySpace, BoruvkaMode Mode = BoruvkaMode::MST>
+template <class MemorySpace,
+          Details::BoruvkaMode Mode = Details::BoruvkaMode::MST>
 struct MinimumSpanningTree
 {
   using memory_space = MemorySpace;
@@ -69,11 +70,11 @@ struct MinimumSpanningTree
       bvh.query(
           space,
           Experimental::attach_indices(Experimental::make_nearest(points, k)),
-          MaxDistance<Points, decltype(core_distances)>{points,
-                                                        core_distances});
+          Details::MaxDistance<Points, decltype(core_distances)>{
+              points, core_distances});
       Kokkos::Profiling::popRegion();
 
-      MutualReachability<decltype(core_distances)> mutual_reachability{
+      Details::MutualReachability<decltype(core_distances)> mutual_reachability{
           core_distances};
       Kokkos::Profiling::pushRegion("ArborX::MST::boruvka");
       doBoruvka(space, bvh, mutual_reachability);
@@ -82,11 +83,11 @@ struct MinimumSpanningTree
     else
     {
       Kokkos::Profiling::pushRegion("ArborX::MST::boruvka");
-      doBoruvka(space, bvh, Euclidean{});
+      doBoruvka(space, bvh, Details::Euclidean{});
       Kokkos::Profiling::popRegion();
     }
 
-    finalizeEdges(space, bvh, edges);
+    Details::finalizeEdges(space, bvh, edges);
 
     Kokkos::Profiling::popRegion();
   }
@@ -107,7 +108,7 @@ private:
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::MST::tree_parents"),
         2 * n - 1);
-    findParents(space, bvh, tree_parents);
+    Details::findParents(space, bvh, tree_parents);
 
     Kokkos::Profiling::pushRegion("ArborX::MST::initialize_node_labels");
     Kokkos::View<int *, MemorySpace> labels(
@@ -118,7 +119,7 @@ private:
                     Kokkos::subview(labels, std::make_pair((decltype(n))0, n)));
     Kokkos::Profiling::popRegion();
 
-    Kokkos::View<DirectedEdge *, MemorySpace> component_out_edges(
+    Kokkos::View<Details::DirectedEdge *, MemorySpace> component_out_edges(
         Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                            "ArborX::MST::component_out_edges"),
         n);
@@ -169,7 +170,7 @@ private:
 
     Kokkos::View<int *, MemorySpace> sided_parents("ArborX::MST::sided_parents",
                                                    0);
-    if constexpr (Mode == BoruvkaMode::HDBSCAN)
+    if constexpr (Mode == Details::BoruvkaMode::HDBSCAN)
     {
       KokkosExt::reallocWithoutInitializing(space, edges_mapping, n - 1);
       KokkosExt::reallocWithoutInitializing(space, sided_parents, n - 1);
@@ -189,16 +190,16 @@ private:
                                     std::to_string(num_components));
 
       // Propagate leaf node labels to internal nodes
-      reduceLabels(space, tree_parents, labels);
+      Details::reduceLabels(space, tree_parents, labels);
 
       constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
-      constexpr DirectedEdge uninitialized_edge;
+      constexpr Details::DirectedEdge uninitialized_edge;
       Kokkos::deep_copy(space, component_out_edges, uninitialized_edge);
       Kokkos::deep_copy(space, weights, inf);
       Kokkos::deep_copy(space, radii, inf);
       resetSharedRadii(space, bvh, labels, metric, radii);
 
-      FindComponentNearestNeighbors(
+      Details::FindComponentNearestNeighbors(
           space, bvh, labels, weights, component_out_edges, metric, radii,
           lower_bounds, std::bool_constant<use_shared_radii>());
       retrieveEdges(space, labels, weights, component_out_edges);
@@ -207,40 +208,40 @@ private:
         updateLowerBounds(space, labels, component_out_edges, lower_bounds);
       }
 
-      UpdateComponentsAndEdges<decltype(labels), decltype(component_out_edges),
-                               decltype(edges), decltype(edges_mapping),
-                               decltype(num_edges), Mode>
+      Details::UpdateComponentsAndEdges<
+          decltype(labels), decltype(component_out_edges), decltype(edges),
+          decltype(edges_mapping), decltype(num_edges), Mode>
           f{labels, component_out_edges, edges, edges_mapping, num_edges};
 
       // For every component C and a found shortest edge `(u, w)`, add the
       // edge to the list of MST edges.
       Kokkos::parallel_for(
           "ArborX::MST::update_unidirectional_edges",
-          Kokkos::RangePolicy<ExecutionSpace, UnidirectionalEdgesTag>(space, 0,
-                                                                      n),
+          Kokkos::RangePolicy<ExecutionSpace, Details::UnidirectionalEdgesTag>(
+              space, 0, n),
           f);
 
       int num_edges_host;
       Kokkos::deep_copy(space, num_edges_host, num_edges);
       space.fence();
 
-      if constexpr (Mode == BoruvkaMode::HDBSCAN)
+      if constexpr (Mode == Details::BoruvkaMode::HDBSCAN)
       {
         Kokkos::parallel_for(
             "ArborX::MST::update_bidirectional_edges",
-            Kokkos::RangePolicy<ExecutionSpace, BidirectionalEdgesTag>(space, 0,
-                                                                       n),
+            Kokkos::RangePolicy<ExecutionSpace, Details::BidirectionalEdgesTag>(
+                space, 0, n),
             f);
 
         if (iterations > 1)
-          updateSidedParents(space, labels, edges, edges_mapping, sided_parents,
-                             edges_start, edges_end);
+          Details::updateSidedParents(space, labels, edges, edges_mapping,
+                                      sided_parents, edges_start, edges_end);
         else
         {
           Kokkos::Profiling::ScopedRegion guard(
               "ArborX::MST::compute_vertex_parents");
-          assignVertexParents(space, labels, component_out_edges, edges_mapping,
-                              bvh, dendrogram_parents);
+          Details::assignVertexParents(space, labels, component_out_edges,
+                                       edges_mapping, bvh, dendrogram_parents);
         }
       }
 
@@ -248,7 +249,8 @@ private:
       // with the component that w belongs to by updating the labels
       Kokkos::parallel_for(
           "ArborX::MST::update_labels",
-          Kokkos::RangePolicy<ExecutionSpace, LabelsTag>(space, 0, n), f);
+          Kokkos::RangePolicy<ExecutionSpace, Details::LabelsTag>(space, 0, n),
+          f);
 
       num_components = static_cast<int>(n) - num_edges_host;
 
@@ -267,7 +269,7 @@ private:
     Kokkos::resize(component_out_edges, 0);
     Kokkos::resize(tree_parents, 0);
 
-    if constexpr (Mode == BoruvkaMode::HDBSCAN)
+    if constexpr (Mode == Details::BoruvkaMode::HDBSCAN)
     {
 
       // Done with the recursion as there are no more alpha edges. Assign
@@ -275,9 +277,9 @@ private:
       Kokkos::deep_copy(space,
                         Kokkos::subview(sided_parents,
                                         std::make_pair(edges_start, edges_end)),
-                        ROOT_CHAIN_VALUE);
+                        Details::ROOT_CHAIN_VALUE);
 
-      computeParents(space, edges, sided_parents, dendrogram_parents);
+      Details::computeParents(space, edges, sided_parents, dendrogram_parents);
 
       KokkosExt::reallocWithoutInitializing(space, dendrogram_parent_heights,
                                             n - 1);
@@ -293,6 +295,6 @@ private:
   }
 };
 
-} // namespace ArborX::Details
+} // namespace ArborX::Experimental
 
 #endif

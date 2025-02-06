@@ -25,7 +25,7 @@
 
 BOOST_AUTO_TEST_SUITE(Dendrogram)
 
-using ArborX::Details::WeightedEdge;
+using ArborX::Experimental::WeightedEdge;
 namespace tt = boost::test_tools;
 
 namespace
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_union_find, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
-  using ArborX::Details::WeightedEdge;
+  using ArborX::Experimental::WeightedEdge;
 
   ExecutionSpace space;
 
@@ -121,7 +121,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka, DeviceType,
   int const n = 3000;
   auto points = ArborXTest::make_random_cloud<ArborX::Point<3>>(space, n);
 
-  MinimumSpanningTree<MemorySpace, BoruvkaMode::HDBSCAN> mst(space, points);
+  ArborX::Experimental::MinimumSpanningTree<MemorySpace, BoruvkaMode::HDBSCAN>
+      mst(space, points);
   ArborX::Experimental::Dendrogram<MemorySpace> dendrogram(space, mst.edges);
 
   // Because the dendrogram in the MST is permuted, we need to reorder it in the
@@ -209,8 +210,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka_same_weights, DeviceType,
 
   // minpts = 5 is the first value that leads to the test failure with N = 4
   int const minpts = 5;
-  MinimumSpanningTree<MemorySpace, BoruvkaMode::HDBSCAN> mst(space, points,
-                                                             minpts);
+  ArborX::Experimental::MinimumSpanningTree<MemorySpace, BoruvkaMode::HDBSCAN>
+      mst(space, points, minpts);
   ArborX::Experimental::Dendrogram<MemorySpace> dendrogram(space, mst.edges);
 
   // Check that the dendrogram is binary
