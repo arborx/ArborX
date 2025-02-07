@@ -11,6 +11,8 @@
 
 #include <ArborX_MinimumSpanningTree.hpp>
 
+#include <Kokkos_Sort.hpp>
+
 #include <iostream>
 
 template <typename MemorySpace>
@@ -19,7 +21,7 @@ void printEdges(
 {
   auto edges_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, edges);
-  std::sort(edges_host.data(), edges_host.data() + edges_host.size());
+  Kokkos::sort(edges_host);
   for (int i = 0; i < (int)edges_host.size(); ++i)
   {
     auto const &edge = edges_host(i);
