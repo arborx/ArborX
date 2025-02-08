@@ -6,21 +6,16 @@ ARG NPROCS=4
 RUN if test ${NV_CUDA_LIB_VERSION}; then apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub; fi
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
-        build-essential \
         bc \
-        curl \
-        git \
-        wget \
-        jq \
-        vim \
-        lcov \
+        build-essential \
         ccache \
+        curl \
         gdb \
+        git \
+        jq \
         ninja-build \
-        libbz2-dev \
-        libicu-dev \
-        python-dev \
-        autotools-dev \
+        vim \
+        wget \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -135,7 +130,7 @@ ARG KOKKOS_VERSION=4.3.00
 ARG KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
-    KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
+    KOKKOS_ARCHIVE=kokkos-${KOKKOS_VERSION}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
     mkdir -p kokkos && \

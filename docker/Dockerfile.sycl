@@ -10,7 +10,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         wget \
         ccache \
         ninja-build \
-        python3 \
         git \
         vim \
         jq \
@@ -132,7 +131,7 @@ ARG KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DKokkos_ENABLE_SYCL=ON -DCMAKE_CXX_
 ENV KOKKOS_DIR=/opt/kokkos
 RUN . /opt/intel/oneapi/setvars.sh --include-intel-llvm && \
     KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
-    KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
+    KOKKOS_ARCHIVE=kokkos-${KOKKOS_VERSION}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
     mkdir -p kokkos && \
