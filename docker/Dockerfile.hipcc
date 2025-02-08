@@ -3,24 +3,19 @@ FROM $BASE
 
 ARG NPROCS=4
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -yq \
-        build-essential \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -yq \
         bc \
-        curl \
-        git \
-        kmod \
-        wget \
-        jq \
-        vim \
-        gdb \
+        build-essential \
         ccache \
-        libbz2-dev \
-        libicu-dev \
-        python-dev \
-        autotools-dev \
+        curl \
+        gdb \
+        git \
+        jq \
         libopenmpi-dev \
+        ninja-build \
         rocthrust \
+        vim \
+        wget \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -90,10 +85,10 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
 
 # Install Kokkos
 ARG KOKKOS_VERSION=4.5.00
-ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_HIP=ON -DKokkos_ENABLE_OPENMP=ON"
+ARG KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DKokkos_ENABLE_HIP=ON -DKokkos_ENABLE_OPENMP=ON"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \
-    KOKKOS_ARCHIVE=kokkos-${KOKKOS_HASH}.tar.gz && \
+    KOKKOS_ARCHIVE=kokkos-${KOKKOS_VERSION}.tar.gz && \
     SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     wget --quiet ${KOKKOS_URL} --output-document=${KOKKOS_ARCHIVE} && \
     mkdir -p kokkos && \
