@@ -3,8 +3,9 @@ FROM $BASE
 
 ARG NPROCS=4
 
-RUN if test ${NV_CUDA_LIB_VERSION}; then apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub; fi
+RUN if test ${NV_CUDA_LIB_VERSION}; then apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub; fi
 
+# lsb-release software-properties-common are required by llvm.sh
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         bc \
         build-essential \
@@ -13,7 +14,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         gdb \
         git \
         jq \
+        lsb-release \
         ninja-build \
+        software-properties-common \
         vim \
         wget \
         && \
@@ -46,20 +49,14 @@ RUN CMAKE_VERSION=3.22.6 && \
 ENV PATH=${CMAKE_DIR}/bin:$PATH
 
 # Install Clang/LLVM
-ENV LLVM_DIR=/opt/llvm
-RUN LLVM_VERSION=14.0.0 && \
-    LLVM_KEY="86419D8A 345AD05D" && \
-    LLVM_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-18.04.tar.xz && \
-    LLVM_ARCHIVE=llvm-${LLVM_VERSION}.tar.xz && \
-    SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
-    wget --quiet ${LLVM_URL} --output-document=${LLVM_ARCHIVE} && \
-    wget --quiet ${LLVM_URL}.sig --output-document=${LLVM_ARCHIVE}.sig && \
-    gpg --verify ${LLVM_ARCHIVE}.sig ${LLVM_ARCHIVE} && \
-    mkdir -p ${LLVM_DIR} && \
-    tar -xvf ${LLVM_ARCHIVE} -C ${LLVM_DIR} --strip-components=1 && \
-    echo "${LLVM_DIR}/lib" > /etc/ld.so.conf.d/llvm.conf && ldconfig && \
-    rm -rf ${SCRATCH_DIR}
-ENV PATH=${LLVM_DIR}/bin:$PATH
+RUN LLVM_VERSION=16 && \
+    LLVM_SCRIPT_URL=https://apt.llvm.org/llvm.sh && \
+    echo $LLVM_SCRIPT_URL && \
+    wget --quiet ${LLVM_SCRIPT_URL} && \
+    bash llvm.sh ${LLVM_VERSION} && \
+    ln -s $(which clang++-${LLVM_VERSION}) /usr/bin/clang++ && \
+    ln -s $(which clang-${LLVM_VERSION}) /usr/bin/clang && \
+    rm llvm.sh
 
 # Install OpenMPI
 ARG CUDA_AWARE_MPI
