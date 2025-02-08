@@ -346,7 +346,7 @@ pipeline {
                             dir "docker"
                             additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:5.6 --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
                             args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES} --env AMDGPU_TARGET=${AMDGPU_TARGET}'
-                            label 'rocm-docker && AMD_Radeon_Instinct_MI210'
+                            label 'rocm-docker'
                         }
                     }
                     steps {
