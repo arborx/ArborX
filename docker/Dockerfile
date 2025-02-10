@@ -6,6 +6,7 @@ ARG NPROCS=4
 RUN if test ${NV_CUDA_LIB_VERSION}; then apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub; fi
 
 # lsb-release software-properties-common are required by llvm.sh
+# libomp-dev needed by LLVM to get OpenMP
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         bc \
         build-essential \
@@ -14,6 +15,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         gdb \
         git \
         jq \
+        libomp-dev \
         lsb-release \
         ninja-build \
         software-properties-common \
