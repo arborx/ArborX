@@ -221,7 +221,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=ubuntu:18.04 --build-arg KOKKOS_VERSION=4.4.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
+                            additionalBuildArgs '--build-arg BASE=ubuntu:22.04 --build-arg KOKKOS_VERSION=4.4.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_OPENMP=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'docker'
                         }
