@@ -1,8 +1,9 @@
 add_library(cluster_benchmark_helpers
+  data.cpp
   print_timers.cpp
 )
 target_compile_features(cluster_benchmark_helpers PRIVATE cxx_std_17)
-target_link_libraries(cluster_benchmark_helpers PRIVATE Kokkos::kokkos)
+target_link_libraries(cluster_benchmark_helpers PRIVATE ArborX::ArborX)
 
 set(input_file "input.txt")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${input_file} ${CMAKE_CURRENT_BINARY_DIR}/${input_file} COPYONLY)
