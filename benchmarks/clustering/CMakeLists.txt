@@ -21,7 +21,3 @@ add_executable(ArborX_Benchmark_HDBSCAN.exe hdbscan.cpp)
 target_include_directories(ArborX_Benchmark_HDBSCAN.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ArborX_Benchmark_HDBSCAN.exe ArborX::ArborX Boost::program_options cluster_benchmark_helpers)
 add_test(NAME ArborX_Benchmark_MST COMMAND ArborX_Benchmark_MST.exe --filename=${input_file})
-
-add_executable(ArborX_DataConverter.exe converter.cpp)
-target_compile_features(ArborX_DataConverter.exe PRIVATE cxx_std_17)
-target_link_libraries(ArborX_DataConverter.exe Boost::program_options)
