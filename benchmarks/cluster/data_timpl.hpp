@@ -336,15 +336,13 @@ loadData(ArborXBenchmark::Parameters const &params)
                                                params.num_samples),
                                  "Benchmark::primitives");
   }
-  else
-  {
-    // Generate data
-    int dim = params.dim;
-    printf("generator         : n = %d, dim = %d, density = %s\n", params.n,
-           dim, (params.variable_density ? "variable" : "constant"));
-    return vec2view<MemorySpace>(GanTao<DIM>(params.n, params.variable_density),
-                                 "Benchmark::primitives");
-  }
+
+  // Generate data
+  int dim = params.dim;
+  printf("generator         : n = %d, dim = %d, density = %s\n", params.n, dim,
+         (params.variable_density ? "variable" : "constant"));
+  return vec2view<MemorySpace>(GanTao<DIM>(params.n, params.variable_density),
+                               "Benchmark::primitives");
 }
 
 } // namespace ArborXBenchmark
