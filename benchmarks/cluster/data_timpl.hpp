@@ -9,15 +9,26 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef DATA_HPP
-#define DATA_HPP
+#ifndef ARBORX_BENCHMARK_DATA_TIMPL_HPP
+#define ARBORX_BENCHMARK_DATA_TIMPL_HPP
 
 #include <ArborX_Point.hpp>
 #include <misc/ArborX_Exception.hpp>
 
+#include <Kokkos_Core.hpp>
+
+#include <cassert>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <random>
 #include <vector>
+
+#include "data.hpp"
+#include "parameters.hpp"
+
+namespace ArborXBenchmark
+{
 
 using ArborX::Point;
 
@@ -297,5 +308,43 @@ std::vector<Point<DIM>> GanTao(int n, bool variable_density = false,
 
   return points;
 }
+
+template <typename... P, typename T>
+auto vec2view(std::vector<T> const &in, std::string const &label = "")
+{
+  Kokkos::View<T *, P...> out(
+      Kokkos::view_alloc(label, Kokkos::WithoutInitializing), in.size());
+  Kokkos::deep_copy(out, Kokkos::View<T const *, Kokkos::HostSpace,
+                                      Kokkos::MemoryTraits<Kokkos::Unmanaged>>{
+                             in.data(), in.size()});
+  return out;
+}
+
+template <int DIM, typename MemorySpace>
+Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
+loadData(ArborXBenchmark::Parameters const &params)
+{
+  if (!params.filename.empty())
+  {
+    // Read in data
+    printf("filename          : %s [%s, max_pts = %d]\n",
+           params.filename.c_str(), (params.binary ? "binary" : "text"),
+           params.max_num_points);
+    printf("samples           : %d\n", params.num_samples);
+    return vec2view<MemorySpace>(loadData<DIM>(params.filename, params.binary,
+                                               params.max_num_points,
+                                               params.num_samples),
+                                 "Benchmark::primitives");
+  }
+
+  // Generate data
+  int dim = params.dim;
+  printf("generator         : n = %d, dim = %d, density = %s\n", params.n, dim,
+         (params.variable_density ? "variable" : "constant"));
+  return vec2view<MemorySpace>(GanTao<DIM>(params.n, params.variable_density),
+                               "Benchmark::primitives");
+}
+
+} // namespace ArborXBenchmark
 
 #endif

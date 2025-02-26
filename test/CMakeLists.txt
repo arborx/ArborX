@@ -201,7 +201,7 @@ add_executable(ArborX_Test_Clustering.exe
   utf_main.cpp
 )
 target_link_libraries(ArborX_Test_Clustering.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
-target_include_directories(ArborX_Test_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/benchmarks/dbscan)
+target_include_directories(ArborX_Test_Clustering.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/benchmarks/cluster)
 add_test(NAME ArborX_Test_Clustering COMMAND ArborX_Test_Clustering.exe)
 
 # compare results with a dataset of 1000 points from mlpack

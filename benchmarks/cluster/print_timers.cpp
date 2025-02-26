@@ -33,14 +33,14 @@ std::vector<Timer> done_timers;
 
 } // namespace
 
-void ArborX_Benchmark::push_region(char const *label)
+void ArborXBenchmark::push_region(char const *label)
 {
   Kokkos::fence();
   auto now = Timer::clock_type::now();
   current_timers.push({label, now, {}});
 }
 
-void ArborX_Benchmark::pop_region()
+void ArborXBenchmark::pop_region()
 {
   Kokkos::fence();
   auto now = Timer::clock_type::now();
@@ -50,7 +50,7 @@ void ArborX_Benchmark::pop_region()
   done_timers.push_back(timer);
 }
 
-double ArborX_Benchmark::get_time(std::string const &label)
+double ArborXBenchmark::get_time(std::string const &label)
 {
   for (auto const &timer : done_timers)
     if (timer.label == label)

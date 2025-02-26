@@ -11,9 +11,9 @@
 
 #include <string>
 
-namespace ArborX_Benchmark
+namespace ArborXBenchmark
 {
 void push_region(char const *);
 void pop_region();
 double get_time(std::string const &label);
-} // namespace ArborX_Benchmark
+} // namespace ArborXBenchmark
