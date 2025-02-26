@@ -20,6 +20,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <random>
 #include <vector>
 
