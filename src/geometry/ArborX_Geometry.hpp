@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2025, ArborX authors                                       *
+ * Copyright (c) 2017-2025 by the ArborX authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the ArborX library. ArborX is                       *
@@ -8,30 +8,30 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
+#ifndef ARBORX_GEOMETRY_HPP
+#define ARBORX_GEOMETRY_HPP
 
-#ifndef ARBORX_HPP
-#define ARBORX_HPP
+#include <ArborX_GeometryTraits.hpp>
 
-#include <ArborX_Config.hpp>
+// Geometries
+#include <ArborX_Box.hpp>
+#include <ArborX_KDOP.hpp>
+#include <ArborX_Point.hpp>
+#include <ArborX_Ray.hpp>
+#include <ArborX_Segment.hpp>
+#include <ArborX_Sphere.hpp>
+#include <ArborX_Tetrahedron.hpp>
+#include <ArborX_Triangle.hpp>
 
-#include <ArborX_Geometry.hpp>
-
-// Indexes
-#include <ArborX_BruteForce.hpp>
-#ifdef ARBORX_ENABLE_MPI
-#include <ArborX_DistributedTree.hpp>
-#endif
-#include <ArborX_CrsGraphWrapper.hpp>
-#include <ArborX_LinearBVH.hpp>
-
-// Indexes helpers
-#include <detail/ArborX_AttachIndices.hpp>
-#include <detail/ArborX_HalfTraversal.hpp>
-#include <detail/ArborX_NeighborList.hpp>
-#include <detail/ArborX_PredicateHelpers.hpp>
-#include <detail/ArborX_Predicates.hpp>
-
-// Other files
-#include <misc/ArborX_Exception.hpp>
+// Algorithms
+#include <ArborX_Centroid.hpp>
+#include <ArborX_Convert.hpp>
+#include <ArborX_Distance.hpp>
+#include <ArborX_Equals.hpp>
+#include <ArborX_Expand.hpp>
+#include <ArborX_Intersects.hpp>
+#include <ArborX_Reducer.hpp>
+#include <ArborX_TranslateAndScale.hpp>
+#include <ArborX_Valid.hpp>
 
 #endif
