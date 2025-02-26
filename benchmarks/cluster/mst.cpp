@@ -32,9 +32,9 @@ void run_mst(ExecutionSpace const &exec_space, Primitives const &primitives,
   if (params.verbose)
   {
     Kokkos::Profiling::Experimental::set_push_region_callback(
-        ArborX_Benchmark::push_region);
+        ArborXBenchmark::push_region);
     Kokkos::Profiling::Experimental::set_pop_region_callback(
-        ArborX_Benchmark::pop_region);
+        ArborXBenchmark::pop_region);
   }
 
   Kokkos::Profiling::pushRegion("ArborX::MST::total");
@@ -46,14 +46,14 @@ void run_mst(ExecutionSpace const &exec_space, Primitives const &primitives,
     return;
 
   printf("-- construction     : %10.3f\n",
-         ArborX_Benchmark::get_time("ArborX::MST::construction"));
+         ArborXBenchmark::get_time("ArborX::MST::construction"));
   if (params.core_min_size > 1)
     printf("-- core distances   : %10.3f\n",
-           ArborX_Benchmark::get_time("ArborX::MST::compute_core_distances"));
+           ArborXBenchmark::get_time("ArborX::MST::compute_core_distances"));
   printf("-- boruvka          : %10.3f\n",
-         ArborX_Benchmark::get_time("ArborX::MST::boruvka"));
+         ArborXBenchmark::get_time("ArborX::MST::boruvka"));
   printf("total time          : %10.3f\n",
-         ArborX_Benchmark::get_time("ArborX::MST::total"));
+         ArborXBenchmark::get_time("ArborX::MST::total"));
 }
 
 int main(int argc, char *argv[])
@@ -112,12 +112,14 @@ int main(int argc, char *argv[])
 
   ExecutionSpace exec_space;
 
-  int dim = (params.filename.empty()
-                 ? params.dim
-                 : getDataDimension(params.filename, params.binary));
+  int dim =
+      (params.filename.empty()
+           ? params.dim
+           : ArborXBenchmark::getDataDimension(params.filename, params.binary));
 #define SWITCH_DIM(DIM)                                                        \
   case DIM:                                                                    \
-    run_mst(exec_space, loadData<DIM, MemorySpace>(params), params);           \
+    run_mst(exec_space, ArborXBenchmark::loadData<DIM, MemorySpace>(params),   \
+            params);                                                           \
     break;
   switch (dim)
   {

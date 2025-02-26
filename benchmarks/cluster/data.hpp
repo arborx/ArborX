@@ -8,8 +8,8 @@
  *                                                                          *
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
-#ifndef DATA_HPP
-#define DATA_HPP
+#ifndef ARBORX_BENCHMARK_DATA_HPP
+#define ARBORX_BENCHMARK_DATA_HPP
 
 #include <ArborX_Point.hpp>
 
@@ -17,10 +17,15 @@
 
 #include "parameters.hpp"
 
+namespace ArborXBenchmark
+{
+
 int getDataDimension(std::string const &filename, bool binary);
 
 template <int DIM, typename MemorySpace>
 Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
 loadData(ArborXBenchmark::Parameters const &params);
+
+} // namespace ArborXBenchmark
 
 #endif

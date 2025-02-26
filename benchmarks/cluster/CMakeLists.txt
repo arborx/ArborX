@@ -2,7 +2,6 @@ add_library(cluster_benchmark_helpers
   data.cpp
   print_timers.cpp
 )
-target_compile_features(cluster_benchmark_helpers PRIVATE cxx_std_17)
 target_link_libraries(cluster_benchmark_helpers PRIVATE ArborX::ArborX)
 
 set(input_file "input.txt")

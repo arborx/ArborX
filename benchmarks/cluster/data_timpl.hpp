@@ -9,8 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef DATA_TIMPL_HPP
-#define DATA_TIMPL_HPP
+#ifndef ARBORX_BENCHMARK_DATA_TIMPL_HPP
+#define ARBORX_BENCHMARK_DATA_TIMPL_HPP
 
 #include <ArborX_Point.hpp>
 #include <misc/ArborX_Exception.hpp>
@@ -26,6 +26,9 @@
 
 #include "data.hpp"
 #include "parameters.hpp"
+
+namespace ArborXBenchmark
+{
 
 using ArborX::Point;
 
@@ -343,5 +346,7 @@ loadData(ArborXBenchmark::Parameters const &params)
                                  "Benchmark::primitives");
   }
 }
+
+} // namespace ArborXBenchmark
 
 #endif

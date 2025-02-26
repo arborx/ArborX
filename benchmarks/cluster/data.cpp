@@ -17,6 +17,9 @@
 
 #include "data_timpl.hpp"
 
+namespace ArborXBenchmark
+{
+
 // Explicit instantiations
 using MemorySpace = typename Kokkos::DefaultExecutionSpace::memory_space;
 #define INSTANTIATE_LOADER(DIM)                                                \
@@ -55,3 +58,5 @@ int getDataDimension(std::string const &filename, bool binary)
 
   return dim;
 }
+
+} // namespace ArborXBenchmark

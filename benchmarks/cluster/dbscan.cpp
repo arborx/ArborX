@@ -153,9 +153,9 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   if (params.verbose)
   {
     Kokkos::Profiling::Experimental::set_push_region_callback(
-        ArborX_Benchmark::push_region);
+        ArborXBenchmark::push_region);
     Kokkos::Profiling::Experimental::set_pop_region_callback(
-        ArborX_Benchmark::pop_region);
+        ArborXBenchmark::pop_region);
   }
 
   Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
@@ -188,22 +188,22 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
     if (implementation == ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox)
       printf("-- dense cells      : %10.3f\n",
-             ArborX_Benchmark::get_time("ArborX::DBSCAN::dense_cells"));
+             ArborXBenchmark::get_time("ArborX::DBSCAN::dense_cells"));
     printf("-- construction     : %10.3f\n",
-           ArborX_Benchmark::get_time("ArborX::DBSCAN::tree_construction"));
+           ArborXBenchmark::get_time("ArborX::DBSCAN::tree_construction"));
     printf("-- query+cluster    : %10.3f\n",
-           ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters"));
+           ArborXBenchmark::get_time("ArborX::DBSCAN::clusters"));
     if (!is_special_case)
     {
       printf("---- neigh          : %10.3f\n",
-             ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters::num_neigh"));
+             ArborXBenchmark::get_time("ArborX::DBSCAN::clusters::num_neigh"));
       printf("---- query          : %10.3f\n",
-             ArborX_Benchmark::get_time("ArborX::DBSCAN::clusters::query"));
+             ArborXBenchmark::get_time("ArborX::DBSCAN::clusters::query"));
     }
     printf("-- postprocess      : %10.3f\n",
-           ArborX_Benchmark::get_time("ArborX::DBSCAN::postprocess"));
+           ArborXBenchmark::get_time("ArborX::DBSCAN::postprocess"));
     printf("total time          : %10.3f\n",
-           ArborX_Benchmark::get_time("ArborX::DBSCAN::total"));
+           ArborXBenchmark::get_time("ArborX::DBSCAN::total"));
   }
 
   int num_points = primitives.extent_int(0);
@@ -322,13 +322,15 @@ int main(int argc, char *argv[])
 
   ExecutionSpace exec_space;
 
-  int dim = (params.filename.empty()
-                 ? params.dim
-                 : getDataDimension(params.filename, params.binary));
+  int dim =
+      (params.filename.empty()
+           ? params.dim
+           : ArborXBenchmark::getDataDimension(params.filename, params.binary));
 #define SWITCH_DIM(DIM)                                                        \
   case DIM:                                                                    \
-    success =                                                                  \
-        run_dbscan(exec_space, loadData<DIM, MemorySpace>(params), params);    \
+    success = run_dbscan(exec_space,                                           \
+                         ArborXBenchmark::loadData<DIM, MemorySpace>(params),  \
+                         params);                                              \
     break;
   bool success = true;
   switch (dim)
