@@ -8,16 +8,16 @@ pipeline {
 
         stage('Build') {
             parallel {
-                stage('CUDA-11.7.1') {
+                stage('CUDA-12.4.1') {
                     agent {
                         docker {
-                            image 'nvidia/cuda:11.7.1-devel-ubuntu22.04'
+                            image 'nvidia/cuda:12.4.1-devel-ubuntu22.04'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
                     }
                     environment {
                         CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
-                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_EXTENSIONS=OFF'
+                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=20 -D CMAKE_CXX_EXTENSIONS=OFF'
                     }
                     steps {
                         sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git cmake libboost-program-options-dev libboost-test-dev libbenchmark-dev'
@@ -48,16 +48,16 @@ pipeline {
                         }
                     }
                 }
-                stage('CUDA-12.2.0-MPI') {
+                stage('CUDA-12.2.2-MPI') {
                     agent {
                         docker {
-                            image 'nvidia/cuda:12.2.0-devel-ubuntu22.04'
+                            image 'nvidia/cuda:12.2.2-devel-ubuntu22.04'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
                     }
                     environment {
                         CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
-                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_EXTENSIONS=OFF'
+                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=20 -D CMAKE_CXX_EXTENSIONS=OFF'
                     }
                     steps {
                         sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git cmake libboost-program-options-dev libboost-test-dev libbenchmark-dev libopenmpi-dev'
@@ -98,7 +98,7 @@ pipeline {
                     }
                     environment {
                         CTEST_OPTIONS = '--timeout 180 --no-compress-output -T Test'
-                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=17 -D CMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_PREFIX_PATH=/opt/rocm'
+                        CMAKE_OPTIONS = '-D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_STANDARD=20 -D CMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_PREFIX_PATH=/opt/rocm'
                     }
                     steps {
                         sh 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git cmake libboost-program-options-dev libboost-test-dev libbenchmark-dev'
