@@ -16,39 +16,72 @@
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
+#include <Kokkos_Swap.hpp>
 
 #include <iostream>
 #include <set>
 #include <stack>
 #include <vector>
 
-namespace ArborX
-{
-namespace Details
+namespace ArborX::Details
 {
 
-// Check that core points have nonnegative indices
-template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename LabelsView>
-bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
-                                      IndicesView /*indices*/,
-                                      OffsetView offset, LabelsView labels,
-                                      int core_min_size, bool verbose)
+namespace
 {
-  int n = labels.size();
+struct PairIndexLabel
+{
+  unsigned index;
+  int label;
+  bool is_core;
+};
+
+template <typename Neighbor>
+KOKKOS_FUNCTION void dual_print(char const *msg, Neighbor self)
+{
+  Kokkos::printf(msg);
+  if constexpr (std::is_same_v<Neighbor, PairIndexLabel>)
+    Kokkos::printf(": %d [%d]\n", self.index, self.label);
+  else
+    Kokkos::printf(": %d (%d) [%ll]\n", self.index, self.rank, self.label);
+}
+template <typename Neighbor>
+KOKKOS_FUNCTION void dual_print(char const *msg, Neighbor self, Neighbor neigh)
+{
+  Kokkos::printf(msg);
+  if constexpr (std::is_same_v<Neighbor, PairIndexLabel>)
+    Kokkos::printf(": %d [%d] -> %d [%d]\n", self.index, self.label,
+                   neigh.index, neigh.label);
+  else
+    Kokkos::printf(": %d (%d) [%ll] -> %d (%d) [%ll]\n", self.index, self.rank,
+                   self.label, neigh.index, neigh.rank, neigh.label);
+}
+
+template <typename Neighbors>
+inline constexpr bool is_serial_v =
+    std::is_same_v<typename Neighbors::value_type, PairIndexLabel>;
+
+} // namespace
+
+// Check that core points have nonnegative indices
+template <typename ExecutionSpace, typename Offset, typename Neighbors>
+bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
+                                      Offset offset, Neighbors neighbors,
+                                      bool verbose)
+{
+  auto const n = offset.size() - 1;
 
   int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_core_points_nonnegative",
       Kokkos::RangePolicy(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
-        bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
-        if (self_is_core_point && labels(i) < 0)
+        auto self = neighbors(offset(i));
+        if (self.is_core && self.label < 0)
         {
+          ++update;
           if (verbose)
-            Kokkos::printf("Core point is marked as noise: %d [%d]\n", i,
-                           labels(i));
-          update++;
+            dual_print("Core point is marked as noise", self);
         }
       },
       num_incorrect);
@@ -56,37 +89,30 @@ bool verifyCorePointsNonnegativeIndex(ExecutionSpace const &exec_space,
 }
 
 // Check that connected core points have same cluster indices
-template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename LabelsView>
+template <typename ExecutionSpace, typename Offset, typename Neighbors>
 bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
-                                         IndicesView indices, OffsetView offset,
-                                         LabelsView labels, int core_min_size,
+                                         Offset offset, Neighbors neighbors,
                                          bool verbose)
 {
-  int n = labels.size();
+  auto const n = offset.size() - 1;
 
   int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_connected_core_points",
       Kokkos::RangePolicy(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
-        bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
-        if (self_is_core_point)
+        auto const self = neighbors(offset(i));
+        if (self.is_core)
         {
-          for (int jj = offset(i); jj < offset(i + 1); ++jj)
+          for (int j = offset(i) + 1; j < offset(i + 1); ++j)
           {
-            int j = indices(jj);
-            bool neigh_is_core_point =
-                (offset(j + 1) - offset(j) >= core_min_size);
-
-            if (neigh_is_core_point && labels(i) != labels(j))
+            auto const neigh = neighbors(j);
+            if (neigh.is_core && self.label != neigh.label)
             {
+              ++update;
               if (verbose)
-                Kokkos::printf(
-                    "Connected cores do not belong to the same cluster: "
-                    "%d [%d] -> %d [%d]\n",
-                    i, labels(i), j, labels(j));
-              update++;
+                dual_print("Connected cores do not belong to the same cluster",
+                           self, neigh);
             }
           }
         }
@@ -97,59 +123,49 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
 
 // Check that border points share index with at least one core point, and
 // that noise points have index -1
-template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename LabelsView>
-bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
-                                IndicesView indices, OffsetView offset,
-                                LabelsView labels, int core_min_size,
-                                bool verbose)
+template <typename ExecutionSpace, typename Offset, typename Neighbors>
+bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space, Offset offset,
+                                Neighbors neighbors, bool verbose)
 {
-  int n = labels.size();
+  auto const n = offset.size() - 1;
 
   int num_incorrect;
   Kokkos::parallel_reduce(
       "ArborX::DBSCAN::verify_connected_border_points",
       Kokkos::RangePolicy(exec_space, 0, n),
       KOKKOS_LAMBDA(int i, int &update) {
-        bool self_is_core_point = (offset(i + 1) - offset(i) >= core_min_size);
-        if (!self_is_core_point)
+        auto const self = neighbors(offset(i));
+        if (self.is_core)
+          return;
+        bool is_border = false;
+        bool have_shared_core = false;
+        for (int j = offset(i) + 1; j < offset(i + 1); ++j)
         {
-          bool is_border = false;
-          bool have_shared_core = false;
-          for (int jj = offset(i); jj < offset(i + 1); ++jj)
+          auto const neigh = neighbors(j);
+          if (neigh.is_core)
           {
-            int j = indices(jj);
-            bool neigh_is_core_point =
-                (offset(j + 1) - offset(j) >= core_min_size);
-
-            if (neigh_is_core_point)
+            is_border = true;
+            if (self.label == neigh.label)
             {
-              is_border = true;
-              if (labels(i) == labels(j))
-              {
-                have_shared_core = true;
-                break;
-              }
+              have_shared_core = true;
+              break;
             }
           }
+        }
 
-          // Border point must be connected to a core point
-          if (is_border && !have_shared_core)
-          {
-            if (verbose)
-              Kokkos::printf(
-                  "Border point does not belong to a cluster: %d [%d]\n", i,
-                  labels(i));
-            update++;
-          }
-          // Noise points must have index -1
-          if (!is_border && labels(i) != -1)
-          {
-            if (verbose)
-              Kokkos::printf("Noise point does not have index -1: %d [%d]\n", i,
-                             labels(i));
-            update++;
-          }
+        // Border point must be connected to a core point
+        if (is_border && !have_shared_core)
+        {
+          update++;
+          if (verbose)
+            dual_print("Border point does not belong to a cluster", self);
+        }
+        // Noise points must have index -1
+        if (!is_border && self.label != -1)
+        {
+          if (verbose)
+            dual_print("Noise point does not have index -1", self);
+          update++;
         }
       },
       num_incorrect);
@@ -157,32 +173,16 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space,
 }
 
 // Check that cluster indices are unique
-template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename LabelsView>
-bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
-                             IndicesView indices, OffsetView offset,
-                             LabelsView labels, int core_min_size, bool verbose)
+template <typename ExecutionSpace, typename Offset, typename Neighbors>
+bool verifyClustersAreUnique(ExecutionSpace const &, Offset offset_device,
+                             Neighbors neighbors_device, bool verbose)
 {
-  int n = labels.size();
+  int const n = offset_device.size() - 1;
 
-  // FIXME we don't want to modify the labels view in this check. What we
-  // want here is to create a view on the host, and deep_copy into it.
-  // create_mirror_view_and_copy won't work, because it is a no-op if labels
-  // is already on the host.
-  decltype(Kokkos::create_mirror_view(Kokkos::HostSpace{},
-                                      std::declval<LabelsView>()))
-      labels_host(Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                                     "ArborX::DBSCAN::labels_host"),
-                  labels.size());
-  Kokkos::deep_copy(exec_space, labels_host, labels);
-  auto offset_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset);
-  auto indices_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices);
-
-  auto is_core_point = [&](int i) {
-    return offset_host(i + 1) - offset_host(i) >= core_min_size;
-  };
+  auto offset =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offset_device);
+  auto neighbors = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{},
+                                                       neighbors_device);
 
   // Remove all border points from consideration (noise points are already -1)
   // The idea is that this way if labels were bridged through a border
@@ -190,15 +190,15 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   // index, which will fail the unique labels check
   for (int i = 0; i < n; ++i)
   {
-    if (!is_core_point(i))
+    auto &self = neighbors(offset(i));
+    if (!self.is_core)
     {
-      for (int jj = offset_host(i); jj < offset_host(i + 1); ++jj)
+      for (int j = offset(i); j < offset(i + 1); ++j)
       {
-        int j = indices_host(jj);
-        if (is_core_point(j))
+        if (neighbors(j).is_core)
         {
           // The point is a border point
-          labels_host(i) = -1;
+          self.label = -1;
           break;
         }
       }
@@ -208,8 +208,11 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   // Record all unique cluster indices
   std::set<int> unique_cluster_indices;
   for (int i = 0; i < n; ++i)
-    if (labels_host(i) != -1)
-      unique_cluster_indices.insert(labels_host(i));
+  {
+    auto const self = neighbors(offset(i));
+    if (self.label != -1)
+      unique_cluster_indices.insert(self.label);
+  }
   auto num_unique_cluster_indices = unique_cluster_indices.size();
 
   // Record all cluster indices, assigning a unique index to each (which is
@@ -219,11 +222,12 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   std::set<int> cluster_sets;
   for (int i = 0; i < n; ++i)
   {
-    if (labels_host(i) >= 0)
+    auto const self = neighbors(offset(i));
+    if (self.label >= 0)
     {
-      auto id = labels_host(i);
+      auto id = self.label;
       cluster_sets.insert(id);
-      num_clusters++;
+      ++num_clusters;
 
       // DFS search
       std::stack<int> stack;
@@ -232,14 +236,14 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
       {
         auto k = stack.top();
         stack.pop();
-        if (labels_host(k) >= 0)
+        if (neighbors(offset(k)).label >= 0)
         {
-          labels_host(k) = -1;
-          for (int jj = offset_host(k); jj < offset_host(k + 1); ++jj)
+          neighbors(offset(k)).label = -1;
+          for (int j = offset(k); j < offset(k + 1); ++j)
           {
-            int j = indices_host(jj);
-            if (is_core_point(j) || (labels_host(j) == id))
-              stack.push(j);
+            auto neigh = neighbors(j);
+            if (neigh.is_core || neigh.label == id)
+              stack.push(neigh.index);
           }
         }
       }
@@ -261,19 +265,74 @@ bool verifyClustersAreUnique(ExecutionSpace const &exec_space,
   return true;
 }
 
-template <typename ExecutionSpace, typename IndicesView, typename OffsetView,
-          typename LabelsView>
-bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
-                    OffsetView offset, LabelsView labels, int core_min_size,
-                    bool verbose)
+template <typename Labels>
+struct IndexLabelCallback
 {
-  int n = labels.size();
-  if ((int)offset.size() != n + 1 ||
-      KokkosExt::lastElement(exec_space, offset) != (int)indices.size())
-    return false;
+  Labels _labels;
 
-  using Verify = bool (*)(ExecutionSpace const &, IndicesView, OffsetView,
-                          LabelsView, int, bool);
+  template <typename Query, typename Value, typename Output>
+  KOKKOS_FUNCTION auto operator()(Query const &, Value const &value,
+                                  Output const &out) const
+  {
+    out({value.index, _labels(value.index), 0 /*is_core*/});
+  }
+};
+
+template <typename ExecutionSpace, typename Primitives, typename Labels,
+          typename Coordinate>
+bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
+                  Coordinate eps, int core_min_size, Labels const &labels,
+                  bool verbose = false)
+{
+  Kokkos::Profiling::ScopedRegion guard("ArborX::DBSCAN::verify");
+
+  static_assert(Kokkos::is_view<Labels>{});
+
+  using Points = Details::AccessValues<Primitives>;
+  using MemorySpace = typename Points::memory_space;
+
+  static_assert(std::is_same_v<typename Labels::value_type, int>);
+  static_assert(std::is_same_v<typename Labels::memory_space, MemorySpace>);
+
+  ARBORX_ASSERT(eps > 0);
+  ARBORX_ASSERT(core_min_size >= 2);
+
+  Points points{primitives}; // NOLINT
+  auto const n = points.size();
+
+  using Point = typename Points::value_type;
+  static_assert(GeometryTraits::is_point_v<Point>);
+
+  ArborX::BoundingVolumeHierarchy index(
+      exec_space, ArborX::Experimental::attach_indices(points));
+
+  Kokkos::View<PairIndexLabel *, MemorySpace> neighbors(
+      "ArborX::DBSCAN::neighbors", 0);
+  Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
+  index.query(exec_space, ArborX::Experimental::make_intersects(points, eps),
+              IndexLabelCallback<Labels>{labels}, neighbors, offset);
+
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::set_neighbors", Kokkos::RangePolicy(exec_space, 0, n),
+      KOKKOS_LAMBDA(unsigned i) {
+        int self_index = -1;
+        for (int jj = offset(i); jj < offset(i + 1); ++jj)
+        {
+          auto j = neighbors(jj).index;
+          neighbors(jj).is_core = (offset(j + 1) - offset(j) >= core_min_size);
+          if (j == i)
+            self_index = jj;
+        }
+
+        // Place self first
+        if (self_index != offset(i))
+          Kokkos::kokkos_swap(neighbors(offset(i)), neighbors(self_index));
+
+        KOKKOS_ASSERT(neighbors(offset(i)).index == i);
+      });
+
+  using Verify = bool (*)(ExecutionSpace const &, decltype(offset),
+                          decltype(neighbors), bool);
 
   std::vector<Verify> verify{
       static_cast<Verify>(verifyCorePointsNonnegativeIndex),
@@ -281,60 +340,10 @@ bool verifyClusters(ExecutionSpace const &exec_space, IndicesView indices,
       static_cast<Verify>(verifyBorderAndNoisePoints),
       static_cast<Verify>(verifyClustersAreUnique)};
   return std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
-    return verify(exec_space, indices, offset, labels, core_min_size, verbose);
+    return verify(exec_space, offset, neighbors, verbose);
   });
 }
 
-struct IndexOnlyCallback
-{
-  template <typename Query, typename Value, typename Output>
-  KOKKOS_FUNCTION auto operator()(Query const &, Value const &value,
-                                  Output const &out) const
-  {
-    out(value.index);
-  }
-};
-
-template <typename ExecutionSpace, typename Primitives, typename LabelsView,
-          typename Coordinate>
-bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
-                  Coordinate eps, int core_min_size, LabelsView const &labels,
-                  bool verbose = false)
-{
-  Kokkos::Profiling::pushRegion("ArborX::DBSCAN::verify");
-
-  static_assert(Kokkos::is_view<LabelsView>{});
-
-  using Points = Details::AccessValues<Primitives>;
-  using MemorySpace = typename Points::memory_space;
-
-  static_assert(std::is_same<typename LabelsView::value_type, int>{});
-  static_assert(std::is_same<typename LabelsView::memory_space, MemorySpace>{});
-
-  ARBORX_ASSERT(eps > 0);
-  ARBORX_ASSERT(core_min_size >= 2);
-
-  Points points{primitives}; // NOLINT
-
-  using Point = typename Points::value_type;
-  static_assert(GeometryTraits::is_point_v<Point>);
-
-  ArborX::BoundingVolumeHierarchy bvh(
-      exec_space, ArborX::Experimental::attach_indices(points));
-
-  Kokkos::View<int *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
-  Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
-  bvh.query(exec_space, ArborX::Experimental::make_intersects(points, eps),
-            IndexOnlyCallback{}, indices, offset);
-
-  auto passed = Details::verifyClusters(exec_space, indices, offset, labels,
-                                        core_min_size, verbose);
-  Kokkos::Profiling::popRegion();
-
-  return passed;
-}
-
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif
