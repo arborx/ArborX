@@ -410,8 +410,11 @@ bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point_v<Point>);
 
-  ArborX::DistributedTree index(comm, exec_space,
-                                ArborX::Experimental::attach_indices(points));
+  // FIXME_NVCC: nvcc 11.7 (and maybe others) cannot compile this without
+  // template arguments.
+  ArborX::DistributedTree<MemorySpace,
+                          PairValueIndex<typename Points::value_type, unsigned>>
+      index(comm, exec_space, ArborX::Experimental::attach_indices(points));
 
   // Phase 1: determine core points by getting offset
   Kokkos::View<int *, MemorySpace> is_core(
