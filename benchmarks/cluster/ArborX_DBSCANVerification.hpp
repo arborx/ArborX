@@ -12,7 +12,12 @@
 #ifndef ARBORX_DETAILSDBSCANVERIFICATION_HPP
 #define ARBORX_DETAILSDBSCANVERIFICATION_HPP
 
+#include <ArborX_Config.hpp>
+
 #include <ArborX_LinearBVH.hpp>
+#ifdef ARBORX_ENABLE_MPI
+#include <ArborX_DistributedTree.hpp>
+#endif
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -35,6 +40,15 @@ struct PairIndexLabel
   int label;
   bool is_core;
 };
+#ifdef ARBORX_ENABLE_MPI
+struct TupleIndexRankLabel
+{
+  unsigned index;
+  int rank;
+  long long label;
+  bool is_core;
+};
+#endif
 
 template <typename Neighbor>
 KOKKOS_FUNCTION void dual_print(char const *msg, Neighbor self)
@@ -343,6 +357,123 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
     return verify(exec_space, offset, neighbors, verbose);
   });
 }
+
+#ifdef ARBORX_ENABLE_MPI
+struct IndexCallback
+{
+  template <typename Query, typename Value, typename Output>
+  KOKKOS_FUNCTION auto operator()(Query const &, Value const &value,
+                                  Output const &out) const
+  {
+    out({value.index});
+  }
+};
+
+template <typename Labels, typename IsCore>
+struct IndexRankLabelCoreCallback
+{
+  int _rank;
+  Labels _labels;
+  IsCore _is_core;
+
+  template <typename Query, typename Value, typename Output>
+  KOKKOS_FUNCTION auto operator()(Query const &, Value const &value,
+                                  Output const &out) const
+  {
+    auto const i = value.index;
+    out({i, _rank, _labels(i), _is_core(i)});
+  }
+};
+
+template <typename ExecutionSpace, typename Primitives, typename Labels,
+          typename Coordinate>
+bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
+                  Primitives const &primitives, Coordinate eps,
+                  int core_min_size, Labels const &labels, bool verbose = false)
+{
+  Kokkos::Profiling::ScopedRegion guard("ArborX::DBSCAN::verify");
+
+  static_assert(Kokkos::is_view<Labels>{});
+
+  using Points = Details::AccessValues<Primitives>;
+  using MemorySpace = typename Points::memory_space;
+
+  static_assert(std::is_same_v<typename Labels::value_type, int>);
+  static_assert(std::is_same_v<typename Labels::memory_space, MemorySpace>);
+
+  ARBORX_ASSERT(eps > 0);
+  ARBORX_ASSERT(core_min_size >= 2);
+
+  Points points{primitives}; // NOLINT
+  auto const n = points.size();
+
+  using Point = typename Points::value_type;
+  static_assert(GeometryTraits::is_point_v<Point>);
+
+  ArborX::DistributedTree index(comm, exec_space,
+                                ArborX::Experimental::attach_indices(points));
+
+  // Phase 1: determine core points by getting offset
+  Kokkos::View<int *, MemorySpace> is_core(
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                         "ArborX::DBSCAN::is_core"),
+      n);
+  {
+    Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
+    Kokkos::View<unsigned *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
+    index.query(exec_space, ArborX::Experimental::make_intersects(points, eps),
+                IndexCallback{}, indices, offset);
+
+    Kokkos::parallel_for(
+        "ArborX::DBSCAN::set_is_core", Kokkos::RangePolicy(exec_space, 0, n),
+        KOKKOS_LAMBDA(int i) {
+          is_core(i) = (offset(i + 1) - offset(i) >= core_min_size);
+        });
+  }
+
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+
+  // Phase 2: return point information (index, rank, label, core) from all ranks
+  Kokkos::View<TupleIndexRankLabel *, MemorySpace> neighbors(
+      "ArborX::DBSCAN::neighbors", 0);
+  Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
+  index.query(exec_space, ArborX::Experimental::make_intersects(points, eps),
+              IndexRankLabelCoreCallback<Labels, decltype(is_core)>{
+                  rank, labels, is_core},
+              neighbors, offset);
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::set_neighbors", Kokkos::RangePolicy(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i) {
+        int self_index = -1;
+        for (int j = offset(i); j < offset(i + 1); ++j)
+        {
+          if (neighbors(j).index == i && neighbors(j).rank == rank)
+            self_index = j;
+        }
+
+        // Place self first
+        if (self_index != offset(i))
+          Kokkos::kokkos_swap(neighbors(offset(i)), neighbors(self_index));
+
+        KOKKOS_ASSERT(neighbors(offset(i)).index == i &&
+                      neighbors(offset(i)).rank == rank);
+      });
+
+  using Verify = bool (*)(ExecutionSpace const &, decltype(offset),
+                          decltype(neighbors), bool);
+
+  // FIXME: we are skipping verifyClustersAreUnique check as no idea how to do
+  // it in distributed setting right now
+  std::vector<Verify> verify{
+      static_cast<Verify>(verifyCorePointsNonnegativeIndex),
+      static_cast<Verify>(verifyConnectedCorePointsShareIndex),
+      static_cast<Verify>(verifyBorderAndNoisePoints)};
+  return std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
+    return verify(exec_space, offset, neighbors, verbose);
+  });
+}
+#endif
 
 } // namespace ArborX::Details
 
