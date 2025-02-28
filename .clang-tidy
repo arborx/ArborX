@@ -1,5 +1,28 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,performance-*,-performance-noexcept-swap,-performance-inefficient-string-concatenation,mpi-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-avoid-c-arrays,-modernize-use-nodiscard,-modernize-concat-nested-namespaces,readability-*,-readability-braces-around-statements,-readability-named-parameter,-readability-magic-numbers,-readability-uppercase-literal-suffix,-readability-identifier-length,-readability-function-cognitive-complexity,-readability-redundant-string-cstr,-readability-inconsistent-declaration-parameter-name'
+Checks: >
+  -*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  performance-*,
+  -performance-noexcept-swap,
+  -performance-inefficient-string-concatenation,
+  mpi-*,
+  modernize-*,
+  -modernize-pass-by-value,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-use-nodiscard,
+  -modernize-concat-nested-namespaces,
+  readability-*,
+  -readability-braces-around-statements,
+  -readability-named-parameter,
+  -readability-magic-numbers,
+  -readability-uppercase-literal-suffix,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -readability-redundant-string-cstr,
+  -readability-inconsistent-declaration-parameter-name
+
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*'
 AnalyzeTemporaryDtors: false
