@@ -3,6 +3,7 @@ Checks: >
   -*,
   clang-diagnostic-*,
   clang-analyzer-*,
+  -clang-analyzer-optin.cplusplus.UninitializedObject,
   performance-*,
   -performance-noexcept-swap,
   -performance-inefficient-string-concatenation,
