@@ -343,7 +343,7 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(intersects(box2, Segment2{{-1, 2}, {2, -1}}));
   BOOST_TEST(!intersects(Segment2{{0.5, 1.6}, {2, 0}}, box2));
 
-  // ellipsoid
+  // ellipsoid [2x^2 - 3xy + 2y^2 <= 1]
   using Ellipse = ArborX::Experimental::Ellipsoid<2>;
   constexpr Ellipse ellipse{{1.f, 1.f}, {{2.f, -1.5f}, {-1.5f, 2.f}}};
   BOOST_TEST(intersects(ellipse, Point2{1.f, 1.f}));
@@ -364,6 +364,20 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(intersects(ellipse, Segment2{{0.5, 0.5}, {1.5, 1.5}}));
   BOOST_TEST(intersects(ellipse, Segment2{{0.0, 1.9}, {3.0, 1.9}}));
   BOOST_TEST(!intersects(ellipse, Segment2{{2.1, 0}, {2.1, 3}}));
+
+  using Box2 = ArborX::Box<2>;
+  BOOST_TEST(intersects(ellipse, Box2{{-10, -10}, {10, 10}}));
+  BOOST_TEST(intersects(ellipse, Box2{{0.5, 0.5}, {1.0, 1.0}}));
+  BOOST_TEST(intersects(ellipse, Box2{{-1, -1}, {0, 0}}));
+  BOOST_TEST(intersects(ellipse, Box2{{2, 2}, {3, 3}}));
+  BOOST_TEST(intersects(ellipse, Box2{{-1, -1}, {0, 2}}));
+  BOOST_TEST(intersects(ellipse, Box2{{-1, -1}, {2, 0}}));
+  BOOST_TEST(intersects(ellipse, Box2{{2, 1}, {3, 3}}));
+  BOOST_TEST(intersects(ellipse, Box2{{1, 2}, {3, 3}}));
+  BOOST_TEST(!intersects(ellipse, Box2{{1.5, 0}, {2, 0.5}}));
+  BOOST_TEST(!intersects(ellipse, Box2{{-1, -1}, {-0.1, -0.1}}));
+  BOOST_TEST(!intersects(ellipse, Box2{{0, 1.5}, {0.5, 2}}));
+  BOOST_TEST(!intersects(ellipse, Box2{{2.1, 2.1}, {3, 3}}));
 }
 
 BOOST_AUTO_TEST_CASE(equals)

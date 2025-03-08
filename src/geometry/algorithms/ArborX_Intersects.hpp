@@ -14,6 +14,7 @@
 #include "ArborX_Distance.hpp"
 #include "ArborX_Expand.hpp"
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_Segment.hpp>
 #include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
@@ -577,7 +578,7 @@ struct intersects<EllipsoidTag, SegmentTag, Ellipsoid, Segment>
 
     // At^2 + 2B^t + C
     auto A = rmt_multiply(ab, rmt, ab);
-    auto B = rmt_multiply(ab, rmt, ca);
+    auto B = rmt_multiply(ca, rmt, ab);
     auto C = rmt_multiply(ca, rmt, ca);
     auto t = -B / A;
 
@@ -595,6 +596,39 @@ struct intersects<SegmentTag, EllipsoidTag, Segment, Ellipsoid>
                                               Ellipsoid const &ellipsoid)
   {
     return Details::intersects(ellipsoid, segment);
+  }
+};
+
+template <typename Ellipsoid, typename Box>
+struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ellipsoid const &ellipsoid,
+                                              Box const &box)
+  {
+    static_assert(GeometryTraits::dimension_v<Box> == 2,
+                  "Ellipsoid-box intersection is only implemented for 2D");
+
+    auto min_corner = box.minCorner();
+    auto max_corner = box.maxCorner();
+    using ::ArborX::Experimental::Segment;
+    // clang-format off
+    return
+      Details::intersects(ellipsoid.centroid(), box) ||
+      Details::intersects(ellipsoid, Segment{min_corner, {min_corner[0], max_corner[1]}}) ||
+      Details::intersects(ellipsoid, Segment{min_corner, {max_corner[0], min_corner[1]}}) ||
+      Details::intersects(ellipsoid, Segment{max_corner, {min_corner[0], max_corner[1]}}) ||
+      Details::intersects(ellipsoid, Segment{max_corner, {max_corner[0], min_corner[1]}});
+    // clang-format on
+  }
+};
+
+template <typename Box, typename Ellipsoid>
+struct intersects<BoxTag, EllipsoidTag, Box, Ellipsoid>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &box,
+                                              Ellipsoid const &ellipsoid)
+  {
+    return Details::intersects(ellipsoid, box);
   }
 };
 
