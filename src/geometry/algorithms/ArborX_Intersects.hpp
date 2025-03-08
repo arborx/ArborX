@@ -17,6 +17,7 @@
 #include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
+#include <Kokkos_Clamp.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 
 namespace ArborX::Details
@@ -547,6 +548,53 @@ struct intersects<PointTag, EllipsoidTag, Point, Ellipsoid>
                                               Ellipsoid const &ellipsoid)
   {
     return Details::intersects(ellipsoid, point);
+  }
+};
+
+template <typename Ellipsoid, typename Segment>
+struct intersects<EllipsoidTag, SegmentTag, Ellipsoid, Segment>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ellipsoid const &ellipsoid,
+                                              Segment const &segment)
+  {
+    // Preliminaries:
+    // - parametric segment formula: a + t(b-a)
+    // - ellipsoid formula: (x-c)^T R (x-c) <= 1
+    //
+    // Steps:
+    // - shift coordinates so that ellipsoid center is at origin
+    //   new segment formula: a-c + t(b-a)
+    //   new ellipsoid formula: x^T R x <= 1
+    // - substitute segment parametric equation into ellipsoid formula
+    // - find the value of t minimizing it
+    //   t = -(R(b-a), a-c) / (R(b-a), b-a)
+    // - clamp t to [0, 1]
+    // - Plug the resulting point into ellipsoid equation
+    auto const &rmt = ellipsoid.rmt();
+
+    auto ab = segment.b - segment.a;
+    auto ca = segment.a - ellipsoid.centroid();
+
+    // At^2 + 2B^t + C
+    auto A = rmt_multiply(ab, rmt, ab);
+    auto B = rmt_multiply(ab, rmt, ca);
+    auto C = rmt_multiply(ca, rmt, ca);
+    auto t = -B / A;
+
+    using Float = coordinate_type_t<Segment>;
+    t = Kokkos::clamp(t, (Float)0, (Float)1);
+
+    return A * t * t + 2 * B * t + C <= 1;
+  }
+};
+
+template <typename Segment, typename Ellipsoid>
+struct intersects<SegmentTag, EllipsoidTag, Segment, Ellipsoid>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Segment const &segment,
+                                              Ellipsoid const &ellipsoid)
+  {
+    return Details::intersects(ellipsoid, segment);
   }
 };
 
