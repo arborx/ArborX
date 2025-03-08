@@ -14,6 +14,7 @@
 #include "ArborX_Distance.hpp"
 #include "ArborX_Expand.hpp"
 #include <ArborX_GeometryTraits.hpp>
+#include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
@@ -509,6 +510,43 @@ struct intersects<BoxTag, SegmentTag, Box, Segment>
                                               Segment const &segment)
   {
     return Details::intersects(segment, box);
+  }
+};
+
+namespace
+{
+// Computes x^t R y
+template <int DIM, typename Coordinate>
+KOKKOS_INLINE_FUNCTION auto rmt_multiply(Details::Vector<DIM, Coordinate> x,
+                                         Coordinate const rmt[DIM][DIM],
+                                         Details::Vector<DIM, Coordinate> y)
+{
+  Coordinate r = 0;
+  for (int i = 0; i < DIM; ++i)
+    for (int j = 0; j < DIM; ++j)
+      r += x[i] * rmt[i][j] * y[j];
+  return r;
+}
+} // namespace
+
+template <typename Ellipsoid, typename Point>
+struct intersects<EllipsoidTag, PointTag, Ellipsoid, Point>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ellipsoid const &ellipsoid,
+                                              Point const &point)
+  {
+    auto d = point - ellipsoid.centroid();
+    return rmt_multiply(d, ellipsoid.rmt(), d) <= 1;
+  }
+};
+
+template <typename Point, typename Ellipsoid>
+struct intersects<PointTag, EllipsoidTag, Point, Ellipsoid>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
+                                              Ellipsoid const &ellipsoid)
+  {
+    return Details::intersects(ellipsoid, point);
   }
 };
 
