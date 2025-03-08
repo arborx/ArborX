@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <ArborX_Box.hpp>
+#include <ArborX_Ellipsoid.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Segment.hpp>
 #include <ArborX_Sphere.hpp>
@@ -456,6 +457,11 @@ BOOST_AUTO_TEST_CASE(centroid)
   Segment segment{{-1.f, -1.f}, {3.f, 3.f}};
   auto seg_center = returnCentroid(segment);
   BOOST_TEST(equals(seg_center, ArborX::Point{1.f, 1.f}));
+
+  using ArborX::Experimental::Ellipsoid;
+  Ellipsoid ellipse{{1.f, 0.f}, {{2.f, 1.f}, {1.f, 2.f}}};
+  auto ell_center = returnCentroid(ellipse);
+  BOOST_TEST(equals(ell_center, ArborX::Point{1.f, 0.f}));
 }
 
 BOOST_AUTO_TEST_CASE(is_valid)
