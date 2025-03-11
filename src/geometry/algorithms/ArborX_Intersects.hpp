@@ -14,8 +14,11 @@
 #include "ArborX_Distance.hpp"
 #include "ArborX_Expand.hpp"
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_Segment.hpp>
+#include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
+#include <Kokkos_Clamp.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 
 namespace ArborX::Details
@@ -509,6 +512,123 @@ struct intersects<BoxTag, SegmentTag, Box, Segment>
                                               Segment const &segment)
   {
     return Details::intersects(segment, box);
+  }
+};
+
+namespace
+{
+// Computes x^t R y
+template <int DIM, typename Coordinate>
+KOKKOS_INLINE_FUNCTION auto rmt_multiply(Details::Vector<DIM, Coordinate> x,
+                                         Coordinate const (&rmt)[DIM][DIM],
+                                         Details::Vector<DIM, Coordinate> y)
+{
+  Coordinate r = 0;
+  for (int i = 0; i < DIM; ++i)
+    for (int j = 0; j < DIM; ++j)
+      r += x[i] * rmt[i][j] * y[j];
+  return r;
+}
+} // namespace
+
+template <typename Ellipsoid, typename Point>
+struct intersects<EllipsoidTag, PointTag, Ellipsoid, Point>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ellipsoid const &ellipsoid,
+                                              Point const &point)
+  {
+    auto d = point - ellipsoid.centroid();
+    return rmt_multiply(d, ellipsoid.rmt(), d) <= 1;
+  }
+};
+
+template <typename Point, typename Ellipsoid>
+struct intersects<PointTag, EllipsoidTag, Point, Ellipsoid>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
+                                              Ellipsoid const &ellipsoid)
+  {
+    return Details::intersects(ellipsoid, point);
+  }
+};
+
+template <typename Ellipsoid, typename Segment>
+struct intersects<EllipsoidTag, SegmentTag, Ellipsoid, Segment>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ellipsoid const &ellipsoid,
+                                              Segment const &segment)
+  {
+    // Preliminaries:
+    // - parametric segment formula: a + t(b-a)
+    // - ellipsoid formula: (x-c)^T R (x-c) <= 1
+    //
+    // Steps:
+    // - shift coordinates so that ellipsoid center is at origin
+    //   new segment formula: a-c + t(b-a)
+    //   new ellipsoid formula: x^T R x <= 1
+    // - substitute segment parametric equation into ellipsoid formula
+    // - find the value of t minimizing it
+    //   t = -(R(b-a), a-c) / (R(b-a), b-a)
+    // - clamp t to [0, 1]
+    // - Plug the resulting point into ellipsoid equation
+    auto const &rmt = ellipsoid.rmt();
+
+    auto ab = segment.b - segment.a;
+    auto ca = segment.a - ellipsoid.centroid();
+
+    // At^2 + 2B^t + C
+    auto A = rmt_multiply(ab, rmt, ab);
+    auto B = rmt_multiply(ca, rmt, ab);
+    auto C = rmt_multiply(ca, rmt, ca);
+    auto t = -B / A;
+
+    using Float = coordinate_type_t<Segment>;
+    t = Kokkos::clamp(t, (Float)0, (Float)1);
+
+    return A * t * t + 2 * B * t + C <= 1;
+  }
+};
+
+template <typename Segment, typename Ellipsoid>
+struct intersects<SegmentTag, EllipsoidTag, Segment, Ellipsoid>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Segment const &segment,
+                                              Ellipsoid const &ellipsoid)
+  {
+    return Details::intersects(ellipsoid, segment);
+  }
+};
+
+template <typename Ellipsoid, typename Box>
+struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ellipsoid const &ellipsoid,
+                                              Box const &box)
+  {
+    static_assert(GeometryTraits::dimension_v<Box> == 2,
+                  "Ellipsoid-box intersection is only implemented for 2D");
+
+    auto min_corner = box.minCorner();
+    auto max_corner = box.maxCorner();
+    using ::ArborX::Experimental::Segment;
+    // clang-format off
+    return
+      Details::intersects(ellipsoid.centroid(), box) ||
+      Details::intersects(ellipsoid, Segment{min_corner, {min_corner[0], max_corner[1]}}) ||
+      Details::intersects(ellipsoid, Segment{min_corner, {max_corner[0], min_corner[1]}}) ||
+      Details::intersects(ellipsoid, Segment{max_corner, {min_corner[0], max_corner[1]}}) ||
+      Details::intersects(ellipsoid, Segment{max_corner, {max_corner[0], min_corner[1]}});
+    // clang-format on
+  }
+};
+
+template <typename Box, typename Ellipsoid>
+struct intersects<BoxTag, EllipsoidTag, Box, Ellipsoid>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &box,
+                                              Ellipsoid const &ellipsoid)
+  {
+    return Details::intersects(ellipsoid, box);
   }
 };
 

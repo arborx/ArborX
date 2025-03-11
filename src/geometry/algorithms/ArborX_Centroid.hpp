@@ -124,6 +124,15 @@ struct centroid<SegmentTag, Segment>
   }
 };
 
+template <typename Ellipsoid>
+struct centroid<EllipsoidTag, Ellipsoid>
+{
+  KOKKOS_FUNCTION static auto apply(Ellipsoid const &ellipsoid)
+  {
+    return ellipsoid.centroid();
+  }
+};
+
 } // namespace Dispatch
 
 } // namespace ArborX::Details

@@ -65,6 +65,7 @@ DEFINE_GEOMETRY(kdop, KDOPTag);
 DEFINE_GEOMETRY(tetrahedron, TetrahedronTag);
 DEFINE_GEOMETRY(ray, RayTag);
 DEFINE_GEOMETRY(segment, SegmentTag);
+DEFINE_GEOMETRY(ellipsoid, EllipsoidTag);
 #undef DEFINE_GEOMETRY
 
 template <typename Geometry>
@@ -72,7 +73,7 @@ inline constexpr bool is_valid_geometry =
     (is_point_v<Geometry> || is_box_v<Geometry> || is_sphere_v<Geometry> ||
      is_kdop_v<Geometry> || is_triangle_v<Geometry> ||
      is_tetrahedron_v<Geometry> || is_ray_v<Geometry> ||
-     is_segment_v<Geometry>);
+     is_segment_v<Geometry> || is_ellipsoid_v<Geometry>);
 
 template <typename Geometry>
 using DimensionNotSpecializedArchetypeAlias =
