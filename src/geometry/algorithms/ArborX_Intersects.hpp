@@ -520,7 +520,7 @@ namespace
 // Computes x^t R y
 template <int DIM, typename Coordinate>
 KOKKOS_INLINE_FUNCTION auto rmt_multiply(Details::Vector<DIM, Coordinate> x,
-                                         Coordinate const rmt[DIM][DIM],
+                                         Coordinate const (&rmt)[DIM][DIM],
                                          Details::Vector<DIM, Coordinate> y)
 {
   Coordinate r = 0;
