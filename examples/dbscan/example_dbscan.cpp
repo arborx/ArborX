@@ -16,8 +16,8 @@
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;
 using MemorySpace = ExecutionSpace::memory_space;
 
-template <typename MemorySpace>
-void printLabels(Kokkos::View<int *, MemorySpace> labels)
+template <typename... LabelProperties>
+void printLabels(Kokkos::View<int *, LabelProperties...> labels)
 {
   auto labels_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, labels);
@@ -52,26 +52,28 @@ int main(int argc, char *argv[])
   cloud_host[9] = {2.f, 2.f};
   Kokkos::deep_copy(cloud, cloud_host);
 
+  Kokkos::View<int *> labels("Example::labels", 0);
+
   // Running with minpts = 2 and eps = 1 would produce two clusters consisting
   // of points with indices [1, 2, 3, 4] and [0, 5, 6, 7]. The corresponding
   // entries in the labels array would be the same.
   // Expected output:
   //   0 1 1 1 1 0 0 0 -1 -1
-  auto labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.f, 2);
+  ArborX::dbscan(ExecutionSpace{}, cloud, 1.f, 2, labels);
   printLabels(labels);
 
   // Running with minpts = 5 and eps = 1 would produce no clusters. All the
   // entries in the labels array would be marked as noise, -1.
   // Expected output:
   //   -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
-  labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.f, 5);
+  ArborX::dbscan(ExecutionSpace{}, cloud, 1.f, 5, labels);
   printLabels(labels);
 
   // Running with minpts = 2 and eps = 1.5 would produce a single cluster
   // consisting of points with indices [0, 1, 2, 3, 4, 5, 6, 7, 9].
   // Expected output:
   //   0 0 0 0 0 0 0 0 -1 0
-  labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.5f, 2);
+  ArborX::dbscan(ExecutionSpace{}, cloud, 1.5f, 2, labels);
   printLabels(labels);
 
   // Running with minpts = 4 and eps = 1.5 would produce two clusters
@@ -82,7 +84,7 @@ int main(int argc, char *argv[])
   //   0 1 1 1 1 0 0 0 -1 0
   // or
   //   0 1 1 1 1 0 0 0 -1 1
-  labels = ArborX::dbscan(ExecutionSpace{}, cloud, 1.5f, 4);
+  ArborX::dbscan(ExecutionSpace{}, cloud, 1.5f, 4, labels);
   printLabels(labels);
 
   return 0;

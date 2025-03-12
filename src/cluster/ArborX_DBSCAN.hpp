@@ -204,10 +204,11 @@ struct Parameters
 };
 } // namespace DBSCAN
 
-template <typename ExecutionSpace, typename Primitives, typename Coordinate>
-Kokkos::View<int *, typename AccessTraits<Primitives>::memory_space>
+template <typename ExecutionSpace, typename Primitives, typename Coordinate,
+          typename Labels>
+std::enable_if_t<!std::is_same_v<Labels, DBSCAN::Parameters>>
 dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
-       Coordinate eps, int core_min_size,
+       Coordinate eps, int core_min_size, Labels &labels,
        DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
@@ -220,11 +221,12 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Primitives must be accessible from the execution space");
+  static_assert(Kokkos::is_view_v<Labels>);
+  static_assert(std::is_integral_v<typename Labels::value_type>);
 
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
-  using Labels = Kokkos::View<int *, MemorySpace>;
 #ifdef KOKKOS_ENABLE_SERIAL
   using UnionFind = Details::UnionFind<
       Labels,
@@ -251,8 +253,6 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   Kokkos::View<int *, MemorySpace> num_neigh("ArborX::DBSCAN::num_neighbors",
                                              0);
-
-  Labels labels("ArborX::DBSCAN::labels", 0);
 
   if (parameters._implementation == DBSCAN::Implementation::FDBSCAN)
   {
@@ -486,7 +486,17 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::popRegion();
+}
 
+template <typename ExecutionSpace, typename Primitives, typename Coordinate>
+[[deprecated("Please use dbscan() that takes in labels as an argument")]] auto
+dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
+       Coordinate eps, int core_min_size,
+       DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
+{
+  using MemorySpace = typename AccessTraits<Primitives>::memory_space;
+  Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
+  dbscan(exec_space, primitives, eps, core_min_size, labels, parameters);
   return labels;
 }
 
