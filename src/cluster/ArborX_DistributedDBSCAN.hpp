@@ -68,45 +68,55 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &exec_space,
 
   auto const total_n = offsets.back();
   auto rank_offset = offsets[comm_rank];
-
-  Kokkos::View<Point *, MemorySpace> data(
-      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
-                         "ArborX::DistributedDBSCAN::data"),
-      total_n);
   auto slice = Kokkos::make_pair(offsets[comm_rank], offsets[comm_rank + 1]);
+
+#ifdef ARBORX_ENABLE_GPU_AWARE_MPI
+  Kokkos::View<Point *, MemorySpace> send_data(
+      Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                         "ArborX::DistributedDBSCAN::send_data"),
+      total_n);
+#else
+  Kokkos::View<Point *, Kokkos::HostSpace> send_data(
+      Kokkos::view_alloc(Kokkos::DefaultHostExecutionSpace{},
+                         Kokkos::WithoutInitializing,
+                         "ArborX::DistributedDBSCAN::send_data"),
+      total_n);
+#endif
+
   if constexpr (Kokkos::is_view_v<Primitives>)
   {
-    Kokkos::deep_copy(exec_space, Kokkos::subview(data, slice), primitives);
+    Kokkos::deep_copy(exec_space, Kokkos::subview(send_data, slice),
+                      primitives);
   }
   else
   {
+#ifdef ARBORX_ENABLE_GPU_AWARE_MPI
     Kokkos::parallel_for(
         "ArborX::DistributedDBSCAN::fill_data",
         Kokkos::RangePolicy(exec_space, 0, n),
-        KOKKOS_LAMBDA(int i) { data(rank_offset + i) = points(i); });
-  }
-
-#ifdef ARBORX_ENABLE_GPU_AWARE_MPI
-  auto send_data = data;
+        KOKKOS_LAMBDA(int i) { send_data(rank_offset + i) = points(i); });
 #else
-  Kokkos::DefaultHostExecutionSpace host_exec;
-  auto send_data = Kokkos::create_mirror_view(
-      Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing), data);
-  Kokkos::deep_copy(exec_space, Kokkos::subview(send_data, slice),
-                    Kokkos::subview(data, slice));
+    Kokkos::View<Point *, MemorySpace> data(
+        Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
+                           "ArborX::DistributedDBSCAN::data"),
+        n);
+    Kokkos::parallel_for(
+        "ArborX::DistributedDBSCAN::fill_data",
+        Kokkos::RangePolicy(exec_space, 0, n),
+        KOKKOS_LAMBDA(int i) { data(i) = points(i); });
+    Kokkos::deep_copy(exec_space, Kokkos::subview(send_data, slice), data);
 #endif
+  }
+  exec_space.fence("ArborX::DistributedDBSCAN (data ready before sending)");
 
-  auto const value_size = sizeof(Point);
-  std::for_each(counts.begin(), counts.end(),
-                [value_size](auto &x) { x *= value_size; });
-  std::for_each(offsets.begin(), offsets.end(),
-                [value_size](auto &x) { x *= value_size; });
+  auto const sc = sizeof(Point);
+  std::for_each(counts.begin(), counts.end(), [sc](auto &x) { x *= sc; });
+  std::for_each(offsets.begin(), offsets.end(), [sc](auto &x) { x *= sc; });
   MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, send_data.data(),
                  counts.data(), offsets.data(), MPI_BYTE, MPI_COMM_WORLD);
 
-#ifndef ARBORX_ENABLE_GPU_AWARE_MPI
-  Kokkos::deep_copy(exec_space, data, send_data);
-#endif
+  auto data = Kokkos::create_mirror_view_and_copy(exec_space, send_data);
+  Kokkos::resize(send_data, 0); // deallocate
 
   auto local_labels = dbscan(exec_space, data, eps, core_min_size, parameters);
 
