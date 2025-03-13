@@ -122,6 +122,54 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
   return v;
 }
 
+#ifdef ARBORX_ENABLE_MPI
+template <int DIM>
+std::vector<Point<DIM>> loadData(MPI_Comm comm, std::string const &filename,
+                                 int max_num_points = -1)
+{
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+
+  if (comm_rank == 0)
+    printf("Reading in \"%s\" in binary mode...\n", filename.c_str());
+  MPI_Barrier(comm);
+
+  std::ifstream input(filename, std::ifstream::binary);
+  ARBORX_ASSERT(input.good());
+
+  std::vector<Point<DIM>> v;
+
+  int num_points = 0;
+  int dim = 0;
+  input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
+  input.read(reinterpret_cast<char *>(&dim), sizeof(int));
+
+  ARBORX_ASSERT(dim == DIM);
+
+  if (max_num_points > 0 && max_num_points < num_points)
+    num_points = max_num_points;
+
+  auto num_points_per_proc = num_points / comm_size;
+  num_points =
+      num_points_per_proc +
+      (comm_rank == comm_size - 1 ? (num_points % num_points_per_proc) : 0);
+
+  auto const value_size = sizeof(Point<DIM>);
+
+  input.seekg(num_points_per_proc * comm_rank * value_size, std::ios::cur);
+
+  v.resize(num_points);
+  input.read(reinterpret_cast<char *>(v.data()), num_points * value_size);
+  input.close();
+
+  printf("[%d]: read in %d %dD points\n", comm_rank, num_points, dim);
+
+  return v;
+}
+#endif
+
 template <int DIM, typename Generator>
 auto randomDomainPoint(Generator &generator, float L)
 {
@@ -344,6 +392,37 @@ loadData(ArborXBenchmark::Parameters const &params)
   return vec2view<MemorySpace>(GanTao<DIM>(params.n, params.variable_density),
                                "Benchmark::primitives");
 }
+
+#ifdef ARBORX_ENABLE_MPI
+template <int DIM, typename MemorySpace>
+Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
+loadData(MPI_Comm comm, ArborXBenchmark::Parameters const &params)
+{
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  if (!params.filename.empty())
+  {
+    // Read in data
+    if (comm_rank == 0)
+    {
+      printf("filename          : %s [%s, max_pts = %d]\n",
+             params.filename.c_str(), (params.binary ? "binary" : "text"),
+             params.max_num_points);
+    }
+    return vec2view<MemorySpace>(
+        loadData<DIM>(comm, params.filename, params.max_num_points),
+        "Benchmark::primitives");
+  }
+
+  // Generate data
+  int dim = params.dim;
+  if (comm_rank == 0)
+    printf("generator         : n = %d, dim = %d, density = %s\n", params.n,
+           dim, (params.variable_density ? "variable" : "constant"));
+  return vec2view<MemorySpace>(GanTao<DIM>(params.n, params.variable_density),
+                               "Benchmark::primitives");
+}
+#endif
 
 } // namespace ArborXBenchmark
 

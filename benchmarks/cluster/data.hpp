@@ -11,11 +11,17 @@
 #ifndef ARBORX_BENCHMARK_DATA_HPP
 #define ARBORX_BENCHMARK_DATA_HPP
 
+#include <ArborX_Config.hpp>
+
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
 
 #include "parameters.hpp"
+
+#ifdef ARBORX_ENABLE_MPI
+#include <mpi.h>
+#endif
 
 namespace ArborXBenchmark
 {
@@ -25,6 +31,12 @@ int getDataDimension(std::string const &filename, bool binary);
 template <int DIM, typename MemorySpace>
 Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
 loadData(ArborXBenchmark::Parameters const &params);
+
+#ifdef ARBORX_ENABLE_MPI
+template <int DIM, typename MemorySpace>
+Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
+loadData(MPI_Comm comm, ArborXBenchmark::Parameters const &params);
+#endif
 
 } // namespace ArborXBenchmark
 

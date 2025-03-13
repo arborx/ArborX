@@ -32,6 +32,18 @@ INSTANTIATE_LOADER(5)
 INSTANTIATE_LOADER(6)
 #undef INSTANTIATE_LOADER
 
+#ifdef ARBORX_ENABLE_MPI
+#define INSTANTIATE_MPI_LOADER(DIM)                                            \
+  template Kokkos::View<ArborX::Point<DIM> *, MemorySpace>                     \
+  loadData<DIM, MemorySpace>(MPI_Comm, ArborXBenchmark::Parameters const &);
+INSTANTIATE_MPI_LOADER(2)
+INSTANTIATE_MPI_LOADER(3)
+INSTANTIATE_MPI_LOADER(4)
+INSTANTIATE_MPI_LOADER(5)
+INSTANTIATE_MPI_LOADER(6)
+#undef INSTANTIATE_LOADER
+#endif
+
 int getDataDimension(std::string const &filename, bool binary)
 {
   std::ifstream input;

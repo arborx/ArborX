@@ -20,7 +20,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <vector>
 
 #include "data.hpp"
@@ -158,7 +157,6 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
         ArborXBenchmark::pop_region);
   }
 
-  Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
   using ArborX::DBSCAN::Implementation;
   Implementation implementation = Implementation::FDBSCAN;
   if (params.implementation == "fdbscan-densebox")
@@ -169,6 +167,7 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::total");
 
+  Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
   labels = ArborX::dbscan<ExecutionSpace>(exec_space, primitives, params.eps,
                                           params.core_min_size, dbscan_params);
 

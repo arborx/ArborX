@@ -398,7 +398,7 @@ bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
   using Points = Details::AccessValues<Primitives>;
   using MemorySpace = typename Points::memory_space;
 
-  static_assert(std::is_same_v<typename Labels::value_type, int>);
+  static_assert(std::is_same_v<typename Labels::value_type, long long>);
   static_assert(std::is_same_v<typename Labels::memory_space, MemorySpace>);
 
   ARBORX_ASSERT(eps > 0);
@@ -417,7 +417,7 @@ bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
       index(comm, exec_space, ArborX::Experimental::attach_indices(points));
 
   // Phase 1: determine core points by getting offset
-  Kokkos::View<int *, MemorySpace> is_core(
+  Kokkos::View<bool *, MemorySpace> is_core(
       Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
                          "ArborX::DBSCAN::is_core"),
       n);
@@ -447,7 +447,7 @@ bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
               neighbors, offset);
   Kokkos::parallel_for(
       "ArborX::DBSCAN::set_neighbors", Kokkos::RangePolicy(exec_space, 0, n),
-      KOKKOS_LAMBDA(int i) {
+      KOKKOS_LAMBDA(unsigned i) {
         int self_index = -1;
         for (int j = offset(i); j < offset(i + 1); ++j)
         {
