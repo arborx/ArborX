@@ -91,3 +91,37 @@ void check_bounding_volume_and_predicate_geometry_type_requirements()
              KOKKOS_LAMBDA(NearestPredicate, auto){});
 #endif
 }
+
+namespace Test
+{
+
+// clang-format off
+struct FakePrimitiveGeometry {};
+
+KOKKOS_FUNCTION void expand(ArborX::Box<3> &, FakePrimitiveGeometry) {}
+KOKKOS_FUNCTION ArborX::Point<3> returnCentroid(FakePrimitiveGeometry) { return {}; }
+// clang-format on
+
+} // namespace Test
+
+template <>
+struct ArborX::GeometryTraits::dimension<Test::FakePrimitiveGeometry>
+{
+  static constexpr int value = 3;
+};
+template <>
+struct ArborX::GeometryTraits::coordinate_type<Test::FakePrimitiveGeometry>
+{
+  using type = float;
+};
+
+// Compile-only
+void check_hierarchy_for_custom_types()
+{
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = ExecutionSpace::memory_space;
+
+  Kokkos::View<Test::FakePrimitiveGeometry *, MemorySpace> primitives(
+      "primitives", 0);
+  ArborX::BoundingVolumeHierarchy tree(ExecutionSpace{}, primitives);
+}
