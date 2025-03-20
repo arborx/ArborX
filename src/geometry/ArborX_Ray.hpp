@@ -78,15 +78,16 @@ auto returnCentroid(Ray const &ray) { return ray.origin(); }
 // algorithm checks the intersections both in front and behind the ray.
 //
 // There are few issues here. First, when a ray direction is aligned with one
-// of the axis, a division by zero will occur. This is fine, as usually it
-// results in +inf or -inf, which are treated correctly. However, it also leads
-// to the second situation, when it is 0/0 which occurs when the ray's origin
-// in that dimension is on the same plane as one of the corners of the box
-// (i.e., if inv_ray_dir[d] == 0 && (min_corner[d] == origin[d] || max_corner[d]
-// == origin[d])). This leads to NaN, which are not treated correctly (unless,
-// as in [1], the underlying min/max functions are able to ignore them). The
-// issue is discussed in more details in [2] and the website (key word: A
-// minimal ray-tracer: rendering simple shapes).
+// of the axis, a division by zero will occur. The algorithm can treat -inf and
+// +inf correctly but some user codes enable floating point exceptions which is
+// probablematic. Instead of dividing by zero, we set the values to -inf/+inf
+// ourselves. The second issue happens when it is 0/0 which occurs when the
+// ray's origin in that dimension is on the same plane as one of the corners of
+// the box (i.e., if inv_ray_dir[d] == 0 && (min_corner[d] == origin[d] ||
+// max_corner[d] == origin[d])). This leads to NaN, which are not treated
+// correctly unless, as in [1], the underlying min/max functions are able to
+// ignore them. This is what we do manually using `continue`. The issue is
+// discussed in more details in [2].
 //
 // [1] Majercik, A., Crassin, C., Shirley, P., & McGuire, M. (2018). A ray-box
 // intersection algorithm and efficient dynamic voxel rendering. Journal of
@@ -112,7 +113,30 @@ bool intersection(Ray const &ray, Box<3> const &box, float &tmin, float &tmax)
   {
     float tdmin;
     float tdmax;
-    if (dir[d] >= 0)
+    if (dir[d] == 0.)
+    {
+      float const min_orig = min[d] - orig[d];
+      float const max_orig = max[d] - orig[d];
+
+      // minx_orig is zero then max_orig is also zero
+      if (min_orig == 0.)
+      {
+        continue;
+      }
+
+      // signbit returns false for +0.0 and true for -0.0
+      if (std::signbit(dir[d]))
+      {
+        tdmin = std::signbit(max_orig) ? inf : -inf;
+        tdmax = std::signbit(min_orig) ? inf : -inf;
+      }
+      else
+      {
+        tdmin = std::signbit(min_orig) ? -inf : inf;
+        tdmax = std::signbit(max_orig) ? -inf : inf;
+      }
+    }
+    else if (dir[d] > 0)
     {
       tdmin = (min[d] - orig[d]) / dir[d];
       tdmax = (max[d] - orig[d]) / dir[d];
