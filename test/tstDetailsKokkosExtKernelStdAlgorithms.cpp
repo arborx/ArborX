@@ -105,3 +105,43 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(upper_bound, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(findUpperBound<DeviceType>({1, 3, 5}, 5) == 3);
   BOOST_TEST(findUpperBound<DeviceType>({1, 3, 5, 7, 9, 11, 13}, 8) == 4);
 }
+
+template <typename DeviceType>
+int findLowerBound(std::vector<float> const &v_host, float x)
+{
+  auto const n = v_host.size();
+  Kokkos::View<float *, DeviceType> v("Testing::v", n);
+  Kokkos::deep_copy(v, UnmanagedHostView<float const>(v_host.data(), n));
+
+  int pos;
+  Kokkos::parallel_reduce(
+      "Testing::run_lower_bound",
+      Kokkos::RangePolicy<typename DeviceType::execution_space>(0, 1),
+      KOKKOS_LAMBDA(int, int &update) {
+        update =
+            ArborX::Details::KokkosExt::lower_bound(v.data(), v.data() + n, x) -
+            v.data();
+      },
+      pos);
+
+  return pos;
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(lower_bound, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  BOOST_TEST(findLowerBound<DeviceType>({}, 0) == 0);
+  BOOST_TEST(findLowerBound<DeviceType>({0}, -1) == 0);
+  BOOST_TEST(findLowerBound<DeviceType>({0}, 0) == 0);
+  BOOST_TEST(findLowerBound<DeviceType>({0}, 1) == 1);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 1}, 0) == 0);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 1}, 1) == 0);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 1}, 2) == 2);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 3, 5}, 0) == 0);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 3, 5}, 1) == 0);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 3, 5}, 2) == 1);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 3, 5}, 3) == 1);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 3, 5}, 4) == 2);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 3, 5}, 5) == 2);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 3, 5}, 6) == 3);
+  BOOST_TEST(findLowerBound<DeviceType>({1, 3, 5, 7, 9, 11, 13}, 8) == 4);
+}

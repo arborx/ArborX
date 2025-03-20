@@ -83,6 +83,27 @@ KOKKOS_FUNCTION Iterator upper_bound(Iterator first, Iterator last,
   return first;
 }
 
+template <typename Iterator, typename T>
+KOKKOS_FUNCTION Iterator lower_bound(Iterator first, Iterator last,
+                                     T const &value)
+{
+  int count = last - first;
+  while (count > 0)
+  {
+    int step = count / 2;
+    if (*(first + step) < value)
+    {
+      first += step + 1;
+      count -= step + 1;
+    }
+    else
+    {
+      count = step;
+    }
+  }
+  return first;
+}
+
 } // namespace ArborX::Details::KokkosExt
 
 #endif
