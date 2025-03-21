@@ -19,7 +19,7 @@ endif()
 
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::kokkos)
-set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_17)
+set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_20)
 # As all executables using ArborX depend on it, depending on record_hash allows
 # updating hash each time executable is rebuilt, including when called from
 # within a subdirectory.
