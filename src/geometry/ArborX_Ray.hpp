@@ -80,7 +80,7 @@ auto returnCentroid(Ray const &ray) { return ray.origin(); }
 // There are few issues here. First, when a ray direction is aligned with one
 // of the axis, a division by zero will occur. The algorithm can treat -inf and
 // +inf correctly but some user codes enable floating point exceptions which is
-// probablematic. Instead of dividing by zero, we set the values to -inf/+inf
+// problematic. Instead of dividing by zero, we set the values to -inf/+inf
 // ourselves. The second issue happens when it is 0/0 which occurs when the
 // ray's origin in that dimension is on the same plane as one of the corners of
 // the box (i.e., if inv_ray_dir[d] == 0 && (min_corner[d] == origin[d] ||
@@ -113,16 +113,17 @@ bool intersection(Ray const &ray, Box<3> const &box, float &tmin, float &tmax)
   {
     float tdmin;
     float tdmax;
-    if (dir[d] == 0.)
+    if (dir[d] == 0)
     {
       float const min_orig = min[d] - orig[d];
-      float const max_orig = max[d] - orig[d];
 
       // minx_orig is zero then max_orig is also zero
-      if (min_orig == 0.)
+      if (min_orig == 0)
       {
         continue;
       }
+
+      float const max_orig = max[d] - orig[d];
 
       // signbit returns false for +0.0 and true for -0.0
       if (std::signbit(dir[d]))
