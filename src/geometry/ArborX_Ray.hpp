@@ -126,16 +126,8 @@ bool intersection(Ray const &ray, Box<3> const &box, float &tmin, float &tmax)
       float const max_orig = max[d] - orig[d];
 
       // signbit returns false for +0.0 and true for -0.0
-      if (std::signbit(dir[d]))
-      {
-        tdmin = std::signbit(max_orig) ? inf : -inf;
-        tdmax = std::signbit(min_orig) ? inf : -inf;
-      }
-      else
-      {
-        tdmin = std::signbit(min_orig) ? -inf : inf;
-        tdmax = std::signbit(max_orig) ? -inf : inf;
-      }
+      tdmin = std::signbit(dir[d] * max_orig) ? inf : -inf;
+      tdmax = std::signbit(dir[d] * min_orig) ? inf : -inf;
     }
     else if (dir[d] > 0)
     {
