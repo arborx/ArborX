@@ -57,7 +57,7 @@ KOKKOS_FUNCTION void dual_print(char const *msg, Neighbor self)
   if constexpr (std::is_same_v<Neighbor, PairIndexLabel>)
     Kokkos::printf(": %d [%d]\n", self.index, self.label);
   else
-    Kokkos::printf(": %d (%d) [%ll]\n", self.index, self.rank, self.label);
+    Kokkos::printf(": %d (%d) [%lld]\n", self.index, self.rank, self.label);
 }
 template <typename Neighbor>
 KOKKOS_FUNCTION void dual_print(char const *msg, Neighbor self, Neighbor neigh)
@@ -67,8 +67,8 @@ KOKKOS_FUNCTION void dual_print(char const *msg, Neighbor self, Neighbor neigh)
     Kokkos::printf(": %d [%d] -> %d [%d]\n", self.index, self.label,
                    neigh.index, neigh.label);
   else
-    Kokkos::printf(": %d (%d) [%ll] -> %d (%d) [%ll]\n", self.index, self.rank,
-                   self.label, neigh.index, neigh.rank, neigh.label);
+    Kokkos::printf(": %d (%d) [%lld] -> %d (%d) [%lld]\n", self.index,
+                   self.rank, self.label, neigh.index, neigh.rank, neigh.label);
 }
 
 template <typename Neighbors>
@@ -472,9 +472,15 @@ bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
       static_cast<Verify>(verifyCorePointsNonnegativeIndex),
       static_cast<Verify>(verifyConnectedCorePointsShareIndex),
       static_cast<Verify>(verifyBorderAndNoisePoints)};
-  return std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
-    return verify(exec_space, offset, neighbors, verbose);
-  });
+  int local_success =
+      std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
+        return verify(exec_space, offset, neighbors, verbose);
+      });
+
+  int global_success;
+  MPI_Allreduce(&local_success, &global_success, 1, MPI_INT, MPI_MIN, comm);
+
+  return global_success;
 }
 #endif
 
