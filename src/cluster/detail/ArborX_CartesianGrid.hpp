@@ -142,13 +142,8 @@ private:
 };
 
 template <int DIM, typename Coordinate>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-    CartesianGrid(Box<DIM, Coordinate>, Coordinate)
-        -> CartesianGrid<DIM, Coordinate>;
+KOKKOS_DEDUCTION_GUIDE CartesianGrid(Box<DIM, Coordinate>, Coordinate)
+    -> CartesianGrid<DIM, Coordinate>;
 
 } // namespace ArborX::Details
 
