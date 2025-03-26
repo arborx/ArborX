@@ -30,6 +30,8 @@ struct Parameters
   std::string implementation;
   int max_num_points;
   int n;
+  int n_seq;
+  int spacing;
   int num_samples;
   bool variable_density;
   bool verbose;

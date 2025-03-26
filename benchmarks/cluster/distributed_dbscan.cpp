@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "data.hpp"
+#include "distributed_data.hpp"
 #include "parameters.hpp"
 #include "print_timers.hpp"
 #include <mpi.h>
@@ -68,8 +69,9 @@ bool run_dist_dbscan(MPI_Comm comm, ExecutionSpace const &exec_space,
   bool success = true;
   if (params.verify)
   {
-    success = ArborX::Details::verifyDBSCAN(
-        comm, exec_space, primitives, params.eps, params.core_min_size, labels);
+    success = ArborX::Details::verifyDBSCAN(comm, exec_space, primitives,
+                                            params.eps, params.core_min_size,
+                                            labels, params.verbose);
     if (comm_rank == 0)
       printf("Verification %s\n", (success ? "passed" : "failed"));
   }
@@ -96,12 +98,15 @@ int main(int argc, char *argv[])
   MPI_Comm const comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
   if (comm_rank == 0)
   {
     std::cout << "ArborX version    : " << ArborX::version() << std::endl;
     std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
     std::cout << "Kokkos version    : " << ArborX::Details::KokkosExt::version()
               << std::endl;
+    std::cout << "#MPI ranks         : " << comm_size << std::endl;
   }
 
   // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
@@ -141,8 +146,9 @@ int main(int argc, char *argv[])
       ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
       ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), ("implementation " + vec2string(allowed_impls, " | ")).c_str() )
       ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
-      ( "n", bpo::value<int>(&params.n)->default_value(10), "number of points to generate" )
-      ( "variable-density", bpo::bool_switch(&params.variable_density), "type of cluster density to generate" )
+      ( "n", bpo::value<int>(&params.n)->default_value(10), "number of points to generate per rank" )
+      ( "num-seq", bpo::value<int>(&params.n_seq)->default_value(3), "number of points in sequence" )
+      ( "spacing", bpo::value<int>(&params.spacing)->default_value(2), "spacing size" )
       ( "verbose", bpo::bool_switch(&params.verbose), "verbose")
       ( "verify", bpo::bool_switch(&params.verify), "verify connected components")
       ;
@@ -158,13 +164,11 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
     {
       std::cout << desc << '\n';
-      std::cout
-          << "[Generator Help]\n"
-             "If using generator, the recommended DBSCAN parameters are:\n"
-             "- core-min-size = 10\n"
-             "- eps = 60 (2D constant), 100 (2D variable), 200 (3D "
-             "constant), 400 (3D variable)"
-          << std::endl;
+      std::cout << "[Generator Help]\n"
+                   "If using generator, the distance between closest points\n"
+                   "is 1. Use eps accordingly. If eps is larger than spacing,\n"
+                   "all the clusters will be merged together.\n"
+                << std::endl;
     }
     Kokkos::finalize();
     MPI_Finalize();
@@ -193,6 +197,12 @@ int main(int argc, char *argv[])
     printf("eps               : %f\n", params.eps);
     printf("minpts            : %d\n", params.core_min_size);
     printf("implementation    : %s\n", ss.str().c_str());
+    if (params.filename.empty())
+    {
+      printf("n                 : %d\n", params.n);
+      printf("n_seq             : %d\n", params.n_seq);
+      printf("spacing           : %d\n", params.spacing);
+    }
     printf("verify            : %s\n", (params.verify ? "true" : "false"));
     printf("verbose           : %s\n", (params.verbose ? "true" : "false"));
   }
@@ -205,16 +215,17 @@ int main(int argc, char *argv[])
 #define SWITCH_DIM(DIM)                                                        \
   case DIM:                                                                    \
     success = run_dist_dbscan(                                                 \
-        comm, exec_space, loadData<DIM, MemorySpace>(comm, params), params);   \
+        comm, exec_space,                                                      \
+        (params.filename.empty()                                               \
+             ? generateDistributedData<DIM, MemorySpace>(comm, params)         \
+             : loadData<DIM, MemorySpace>(comm, params)),                      \
+        params);                                                               \
     break;
   bool success = true;
   switch (dim)
   {
     SWITCH_DIM(2)
     SWITCH_DIM(3)
-    SWITCH_DIM(4)
-    SWITCH_DIM(5)
-    SWITCH_DIM(6)
   default:
     std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
   }

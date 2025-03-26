@@ -45,10 +45,10 @@ void countResults(ExecutionSpace const &space, int n_queries,
   KokkosExt::exclusive_scan(space, offset, offset, 0);
 }
 
-template <typename ExecutionSpace, typename Predicates, typename Indices,
+template <typename ExecutionSpace, typename Predicates, typename RanksTo,
           typename Offset, typename FwdQueries, typename FwdIds, typename Ranks>
 void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
-                    Predicates const &queries, Indices const &indices,
+                    Predicates const &queries, RanksTo const &ranks_to,
                     Offset const &offset, FwdQueries &fwd_queries,
                     FwdIds &fwd_ids, Ranks &fwd_ranks)
 {
@@ -66,7 +66,7 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
 
   int const n_queries = queries.size();
   int const n_exports = KokkosExt::lastElement(space, offset);
-  int const n_imports = distributor.createFromSends(space, indices);
+  int const n_imports = distributor.createFromSends(space, ranks_to);
 
   {
     Kokkos::View<Query *, MemorySpace> export_queries(
@@ -112,10 +112,10 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
   }
 }
 
-template <typename ExecutionSpace, typename Predicates, typename Indices,
+template <typename ExecutionSpace, typename Predicates, typename RanksTo,
           typename Offset, typename FwdQueries>
 void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
-                    Predicates const &queries, Indices const &indices,
+                    Predicates const &queries, RanksTo const &ranks_to,
                     Offset const &offset, FwdQueries &fwd_queries)
 {
   std::string prefix =
@@ -129,7 +129,7 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
   Distributor<MemorySpace> distributor(comm);
 
   int const n_exports = KokkosExt::lastElement(space, offset);
-  int const n_imports = distributor.createFromSends(space, indices);
+  int const n_imports = distributor.createFromSends(space, ranks_to);
 
   Kokkos::View<Query *, MemorySpace> export_queries(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
