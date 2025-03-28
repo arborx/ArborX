@@ -46,14 +46,14 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
 
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
-  if (core_min_size > 2)
-    Kokkos::abort("minPts > 2 is not supported yet");
 
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point_v<Point>);
   static_assert(
       std::is_same_v<typename GeometryTraits::coordinate_type<Point>::type,
                      Coordinate>);
+
+  bool const is_special_case = (core_min_size == 2);
 
   Points points{primitives}; // NOLINT
   int const n_local = points.size();
@@ -65,8 +65,13 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
   Kokkos::View<int *, MemorySpace> ghost_ids(prefix + "ghost_ids", 0);
   Kokkos::View<Point *, MemorySpace> ghost_points(prefix + "ghost_points", 0);
   Kokkos::View<int *, MemorySpace> ghost_ranks(prefix + "ghost_ranks", 0);
-  Details::forwardNeighbors(comm, space, points, eps, ghost_points, ghost_ids,
-                            ghost_ranks);
+  // For minPts=2 case, we only need to fetch the ponts within eps distance.
+  // For minPts>2, we need points within 2*eps distance to allow to use the
+  // local DBSCAN algorithm to determine core points.
+  Details::forwardNeighbors(
+      comm, space, points,
+      (is_special_case ? eps : std::nextafter(2 * eps, 10 * eps)), ghost_points,
+      ghost_ids, ghost_ranks);
   int const n_ghost = ghost_points.size();
 
   // Step 2: do local DBSCAN
@@ -142,13 +147,36 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
   Kokkos::resize(space, ghost_labels, num_compressed);
   Details::communicateNeighborDataBack(comm, space, ghost_ranks, ghost_ids,
                                        ghost_labels);
+  Kokkos::resize(ghost_ranks, 0); // free space
 
   // Step 5: process multi-labeled indices
   Kokkos::View<Details::MergePair *, MemorySpace> local_merge_pairs(
       prefix + "local_merge_pairs", 0);
-  Details::computeMergePairs(space, labels, ghost_ids, ghost_labels,
-                             local_merge_pairs);
+  if (is_special_case)
+  {
+    Details::computeMergePairs(space, Details::CCSCorePoints{}, labels,
+                               ghost_ids, ghost_labels, local_merge_pairs);
+  }
+  else
+  {
+    BoundingVolumeHierarchy bvh(
+        space, Details::UnifiedPoints<Points, decltype(ghost_points)>{
+                   points, ghost_points});
+
+    Kokkos::View<int *, MemorySpace> num_neigh(prefix + "num_neighbors",
+                                               n_local);
+    bvh.query(space,
+              Experimental::attach_indices(
+                  Experimental::make_intersects(points, eps)),
+              Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
+
+    Details::computeMergePairs(
+        space, Details::DBSCANCorePoints<MemorySpace>{num_neigh, core_min_size},
+        labels, ghost_ids, ghost_labels, local_merge_pairs);
+  }
   sortAndFilterMergePairs(space, local_merge_pairs);
+  Kokkos::resize(ghost_ids, 0);    // free space
+  Kokkos::resize(ghost_labels, 0); // free space
 
   // Step 6: communicate merge pairs (all-to-all)
   Kokkos::View<Details::MergePair *, MemorySpace> global_merge_pairs(
