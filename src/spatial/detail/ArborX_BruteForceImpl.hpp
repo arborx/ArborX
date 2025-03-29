@@ -195,10 +195,14 @@ struct BruteForceImpl
               heap(UnmanagedStaticVector<PairIndexDistance>(buffer.data(),
                                                             buffer.size()));
 
+          using Coordinate =
+              decltype(std::declval<Predicates>()(0).distance(indexables(0)));
+
           // Nodes with a distance that exceed that radius can safely be
           // discarded. Initialize the radius to infinity and tighten it once k
           // neighbors have been found.
-          auto radius = KokkosExt::ArithmeticTraits::infinity<float>::value;
+          auto radius =
+              KokkosExt::ArithmeticTraits::infinity<Coordinate>::value;
 
           int j = 0;
           for (; j < n_indexables && j < k; ++j)
