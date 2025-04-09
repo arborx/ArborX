@@ -166,10 +166,31 @@ void forwardNeighbors(MPI_Comm comm, ExecutionSpace space, Points const &points,
   using Boxes = decltype(global_boxes);
   using Box = typename Boxes::value_type;
 
-  // Reset local box so that it does not find anything
-  Kokkos::deep_copy(space, Kokkos::subview(global_boxes, comm_rank), Box{});
+  // Filter out: a) local box, and b) boxes that are not close to the local box
+  // This changes the local search to neighbor-to-neighbor rather than global,
+  // improving weak scaling.
+  Kokkos::View<PairValueIndex<Box, int> *, MemorySpace> primitives(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         prefix + "primitives"),
+      comm_size);
+  int num_primitives;
+  Kokkos::parallel_scan(
+      prefix + "filter_out_global_boxes",
+      Kokkos::RangePolicy(space, 0, comm_size),
+      KOKKOS_LAMBDA(int i, int &update, bool is_final) {
+        if (i == comm_rank ||
+            distance(global_boxes(i), global_boxes(comm_rank)) > eps)
+          return;
 
-  BruteForce index(space, Experimental::attach_indices<int>(global_boxes));
+        if (is_final)
+          primitives(update) = {global_boxes(i), i};
+        ++update;
+      },
+      num_primitives);
+  Kokkos::resize(space, primitives, num_primitives);
+  Kokkos::resize(space, global_boxes, 0); // free space
+
+  BruteForce index(space, primitives);
   Kokkos::View<int *, MemorySpace> offsets(prefix + "offsets", 0);
   Kokkos::View<int *, MemorySpace> ranks_to(prefix + "ranks_to", 0);
   index.query(space, Experimental::make_intersects(points, eps),
