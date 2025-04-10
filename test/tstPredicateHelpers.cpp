@@ -77,26 +77,36 @@ bool checkPredicates(Tag, ExecutionSpace const &space,
 
   // Check that the predicates have the same geometry
   int num_equal = 0;
-  Kokkos::parallel_reduce(
-      "Testing::check_predicates", Kokkos::RangePolicy(space, 0, n),
-      KOKKOS_LAMBDA(int i, int &update) {
-        if constexpr (std::is_same_v<Tag, IntersectsTag>)
-        {
+  if constexpr (std::is_same_v<Tag, IntersectsTag>)
+  {
+    Kokkos::parallel_reduce(
+        "Testing::check_predicates", Kokkos::RangePolicy(space, 0, n),
+        KOKKOS_LAMBDA(int i, int &update) {
           update += equals(data(i), ArborX::getGeometry(predicates(i)));
-        }
-        else if constexpr (std::is_same_v<Tag, IntersectsWithRadiusTag>)
-        {
+        },
+        num_equal);
+  }
+  else if constexpr (std::is_same_v<Tag, IntersectsWithRadiusTag>)
+  {
+    Kokkos::parallel_reduce(
+        "Testing::check_predicates", Kokkos::RangePolicy(space, 0, n),
+        KOKKOS_LAMBDA(int i, int &update) {
           update += equals(ArborX::Sphere(data(i), args...),
                            ArborX::getGeometry(predicates(i)));
-        }
-        else if constexpr (std::is_same_v<Tag, NearestTag>)
-        {
+        },
+        num_equal);
+  }
+  else if constexpr (std::is_same_v<Tag, NearestTag>)
+  {
+    Kokkos::parallel_reduce(
+        "Testing::check_predicates", Kokkos::RangePolicy(space, 0, n),
+        KOKKOS_LAMBDA(int i, int &update) {
           update += equals(data(i), ArborX::getGeometry(predicates(i))) &&
                     (ArborX::getK(predicates(i)) ==
                      std::get<0>(std::make_tuple(args...)));
-        }
-      },
-      num_equal);
+        },
+        num_equal);
+  }
 
   return num_equal == n;
 }
