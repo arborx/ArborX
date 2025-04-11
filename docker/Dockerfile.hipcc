@@ -89,7 +89,7 @@ RUN SCRATCH_DIR=/scratch && mkdir -p ${SCRATCH_DIR} && cd ${SCRATCH_DIR} && \
     rm -rf ${SCRATCH_DIR}
 
 # Install Kokkos
-ARG KOKKOS_VERSION=4.3.00
+ARG KOKKOS_VERSION=4.5.00
 ARG KOKKOS_OPTIONS="-DKokkos_ENABLE_HIP=ON -DKokkos_ENABLE_OPENMP=ON"
 ENV KOKKOS_DIR=/opt/kokkos
 RUN KOKKOS_URL=https://github.com/kokkos/kokkos/archive/${KOKKOS_VERSION}.tar.gz && \

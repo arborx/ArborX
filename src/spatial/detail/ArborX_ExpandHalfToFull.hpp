@@ -50,7 +50,7 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
                                  "ArborX::Experimental::HalfToFull::counts");
   Kokkos::parallel_for(
       "ArborX::Experimental::HalfToFull::rewrite",
-      Kokkos::TeamPolicy<ExecutionSpace>(space, n, Kokkos::AUTO, 1),
+      Kokkos::TeamPolicy(space, n, Kokkos::AUTO, 1),
       KOKKOS_LAMBDA(
           typename Kokkos::TeamPolicy<ExecutionSpace>::member_type const
               &member) {

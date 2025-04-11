@@ -71,12 +71,8 @@ struct Ellipsoid
 };
 
 template <typename T, std::size_t N>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-Ellipsoid(T const (&)[N], T const (&)[N][N]) -> Ellipsoid<N, T>;
+KOKKOS_DEDUCTION_GUIDE Ellipsoid(T const (&)[N], T const (&)[N][N])
+    -> Ellipsoid<N, T>;
 
 } // namespace ArborX::Experimental
 
