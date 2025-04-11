@@ -11,26 +11,8 @@
 
 #include <ArborX_Triangle.hpp>
 
-#include <Kokkos_MathematicalConstants.hpp>
-
-#if KOKKOS_VERSION >= 40400
 #include <Kokkos_Array.hpp>
-template <class T, size_t N>
-using KokkosArray = Kokkos::Array<T, N>;
-#else
-template <class T, size_t N>
-struct KokkosArray
-{
-  static constexpr auto size() { return N; }
-  KOKKOS_FUNCTION constexpr T &operator[](int i) { return _data[i]; }
-  KOKKOS_FUNCTION constexpr T const &operator[](int i) const
-  {
-    return _data[i];
-  }
-
-  T _data[N];
-};
-#endif
+#include <Kokkos_MathematicalConstants.hpp>
 
 auto icosahedron()
 {
@@ -54,7 +36,7 @@ auto icosahedron()
   vertices.push_back(Point{b, -a, 0});
   vertices.push_back(Point{-b, -a, 0});
 
-  std::vector<KokkosArray<int, 3>> triangles;
+  std::vector<Kokkos::Array<int, 3>> triangles;
 
   triangles.push_back({2, 1, 0});
   triangles.push_back({1, 2, 3});
@@ -80,8 +62,8 @@ auto icosahedron()
   return std::make_tuple(vertices, triangles);
 }
 
-void convertTriangles2EdgeForm(std::vector<KokkosArray<int, 2>> &edges,
-                               std::vector<KokkosArray<int, 3>> &triangles)
+void convertTriangles2EdgeForm(std::vector<Kokkos::Array<int, 2>> &edges,
+                               std::vector<Kokkos::Array<int, 3>> &triangles)
 {
   std::map<std::pair<int, int>, int> hash;
 
@@ -112,8 +94,8 @@ void convertTriangles2EdgeForm(std::vector<KokkosArray<int, 2>> &edges,
 template <typename ExecutionSpace, typename MemorySpace>
 void convertTriangles2VertexForm(
     ExecutionSpace const &space,
-    Kokkos::View<KokkosArray<int, 2> *, MemorySpace> const &edges,
-    Kokkos::View<KokkosArray<int, 3> *, MemorySpace> &triangles)
+    Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> const &edges,
+    Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> &triangles)
 {
   int const num_triangles = triangles.size();
   Kokkos::parallel_for(
@@ -142,8 +124,8 @@ void convertTriangles2VertexForm(
 template <typename ExecutionSpace, typename MemorySpace>
 void subdivide(ExecutionSpace const &space,
                Kokkos::View<ArborX::Point<3> *, MemorySpace> &vertices,
-               Kokkos::View<KokkosArray<int, 2> *, MemorySpace> &edges,
-               Kokkos::View<KokkosArray<int, 3> *, MemorySpace> &triangles)
+               Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> &edges,
+               Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> &triangles)
 {
   using Point = ArborX::Point<3>;
 
@@ -154,7 +136,7 @@ void subdivide(ExecutionSpace const &space,
   Kokkos::resize(space, vertices, vertices.size() + edges.size());
 
   // Each edge is split in two, and each triangle adds three internal edges
-  Kokkos::View<KokkosArray<int, 2> *, MemorySpace> new_edges(
+  Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> new_edges(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "Benchmark::edges"),
       2 * num_edges + 3 * num_triangles);
@@ -172,7 +154,7 @@ void subdivide(ExecutionSpace const &space,
         new_edges(2 * i + 1) = {w, new_vindex};
       });
 
-  Kokkos::View<KokkosArray<int, 3> *, MemorySpace> new_triangles(
+  Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> new_triangles(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "Benchmark::triangles"),
       4 * num_triangles);
@@ -245,7 +227,7 @@ auto buildTriangles(ExecutionSpace const &space, float radius,
   auto [vertices_v, triangles_v] = icosahedron();
 
   // Convert to edge form
-  std::vector<KokkosArray<int, 2>> edges_v;
+  std::vector<Kokkos::Array<int, 2>> edges_v;
   convertTriangles2EdgeForm(edges_v, triangles_v);
 
   auto vertices = vec2view<MemorySpace>(vertices_v);

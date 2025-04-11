@@ -31,7 +31,7 @@ template <typename MemorySpace>
 struct Triangles
 {
   Kokkos::View<Point *, MemorySpace> _points;
-  Kokkos::View<KokkosArray<int, 3> *, MemorySpace> _triangle_vertices;
+  Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> _triangle_vertices;
 };
 
 template <typename MemorySpace>

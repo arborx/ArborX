@@ -141,26 +141,17 @@ private:
 };
 
 template <typename ExecutionSpace, typename Values>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-    BoundingVolumeHierarchy(ExecutionSpace, Values) -> BoundingVolumeHierarchy<
+KOKKOS_DEDUCTION_GUIDE BoundingVolumeHierarchy(ExecutionSpace, Values)
+    -> BoundingVolumeHierarchy<
         typename Details::AccessValues<Values>::memory_space,
         typename Details::AccessValues<Values>::value_type>;
 
 template <typename ExecutionSpace, typename Values, typename IndexableGetter>
-#if KOKKOS_VERSION >= 40400
-KOKKOS_DEDUCTION_GUIDE
-#else
-KOKKOS_FUNCTION
-#endif
-    BoundingVolumeHierarchy(ExecutionSpace, Values, IndexableGetter)
-        -> BoundingVolumeHierarchy<
-            typename Details::AccessValues<Values>::memory_space,
-            typename Details::AccessValues<Values>::value_type,
-            IndexableGetter>;
+KOKKOS_DEDUCTION_GUIDE BoundingVolumeHierarchy(ExecutionSpace, Values,
+                                               IndexableGetter)
+    -> BoundingVolumeHierarchy<
+        typename Details::AccessValues<Values>::memory_space,
+        typename Details::AccessValues<Values>::value_type, IndexableGetter>;
 
 template <typename MemorySpace, typename Value,
           typename IndexableGetter = Experimental::DefaultIndexableGetter,

@@ -118,20 +118,19 @@ public:
     coefficientsComputation(phi, vandermonde, moment, coefficients);
   }
 
-  Kokkos::TeamPolicy<ExecutionSpace>
-  makePolicy(ExecutionSpace const &space) const
+  auto makePolicy(ExecutionSpace const &space) const
   {
-    Kokkos::TeamPolicy<ExecutionSpace> dummy_policy(space, 1, Kokkos::AUTO);
+    Kokkos::TeamPolicy dummy_policy(space, 1, Kokkos::AUTO);
     dummy_policy.set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
     int team_size =
         dummy_policy.team_size_recommended(*this, Kokkos::ParallelForTag{});
     if (team_size != 0)
     {
       int league_size = (_num_targets + team_size - 1) / team_size;
-      return Kokkos::TeamPolicy<ExecutionSpace>(space, league_size, team_size)
+      return Kokkos::TeamPolicy(space, league_size, team_size)
           .set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
     }
-    return Kokkos::TeamPolicy<ExecutionSpace>(space, _num_targets, 1, 1)
+    return Kokkos::TeamPolicy(space, _num_targets, 1, 1)
         .set_scratch_size(0, Kokkos::PerTeam(perTargetMem()));
   }
 

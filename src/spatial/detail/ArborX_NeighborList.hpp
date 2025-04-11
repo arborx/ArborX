@@ -163,7 +163,7 @@ void findFullNeighborList(ExecutionSpace const &space,
   auto counts_copy = KokkosExt::clone(space, counts, counts.label() + "_copy");
   Kokkos::parallel_for(
       "ArborX::Experimental::FullNeighborList::Copy",
-      Kokkos::TeamPolicy<ExecutionSpace>(space, n, Kokkos::AUTO, 1),
+      Kokkos::TeamPolicy(space, n, Kokkos::AUTO, 1),
       KOKKOS_LAMBDA(
           typename Kokkos::TeamPolicy<ExecutionSpace>::member_type const
               &member) {

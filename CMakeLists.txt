@@ -9,7 +9,7 @@ endif()
 # use gnu standard install directories
 include(GNUInstallDirs)
 
-find_package(Kokkos 4.3 REQUIRED CONFIG)
+find_package(Kokkos 4.5 REQUIRED CONFIG)
 message(STATUS "Found Kokkos: ${Kokkos_DIR} (version \"${Kokkos_VERSION}\")")
 
 # We use minimum compiler versions from Kokkos, with the exception for NVCC (>= 11.5)
