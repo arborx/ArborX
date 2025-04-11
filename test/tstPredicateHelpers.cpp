@@ -88,22 +88,23 @@ bool checkPredicates(Tag, ExecutionSpace const &space,
   }
   else if constexpr (std::is_same_v<Tag, IntersectsWithRadiusTag>)
   {
+    auto r = static_cast<float>(std::get<0>(std::make_tuple(args...)));
     Kokkos::parallel_reduce(
         "Testing::check_predicates", Kokkos::RangePolicy(space, 0, n),
         KOKKOS_LAMBDA(int i, int &update) {
-          update += equals(ArborX::Sphere(data(i), args...),
+          update += equals(ArborX::Sphere(data(i), r),
                            ArborX::getGeometry(predicates(i)));
         },
         num_equal);
   }
   else if constexpr (std::is_same_v<Tag, NearestTag>)
   {
+    auto k = static_cast<int>(std::get<0>(std::make_tuple(args...)));
     Kokkos::parallel_reduce(
         "Testing::check_predicates", Kokkos::RangePolicy(space, 0, n),
         KOKKOS_LAMBDA(int i, int &update) {
           update += equals(data(i), ArborX::getGeometry(predicates(i))) &&
-                    (ArborX::getK(predicates(i)) ==
-                     std::get<0>(std::make_tuple(args...)));
+                    ArborX::getK(predicates(i)) == k;
         },
         num_equal);
   }
