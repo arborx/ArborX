@@ -26,11 +26,12 @@ template <typename UserPrimitives>
 class PrimitivesIntersect
 {
   using Primitives = Details::AccessValues<UserPrimitives>;
-  // FIXME:
-  // using Geometry = typename Primitives::value_type;
-  // static_assert(GeometryTraits::is_valid_geometry<Geometry>{});
 
 public:
+  KOKKOS_FUNCTION PrimitivesIntersect(UserPrimitives const &primitives)
+      : _primitives(primitives)
+  {}
+
   Primitives _primitives;
 };
 
@@ -40,6 +41,10 @@ class PrimitivesOrderedIntersect
   using Primitives = Details::AccessValues<UserPrimitives>;
 
 public:
+  KOKKOS_FUNCTION PrimitivesOrderedIntersect(UserPrimitives const &primitives)
+      : _primitives(primitives)
+  {}
+
   Primitives _primitives;
 };
 
@@ -52,24 +57,26 @@ class PrimitivesWithRadius
   using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
 
 public:
-  Primitives _primitives;
-  Coordinate _r;
-
   PrimitivesWithRadius(UserPrimitives const &user_primitives, Coordinate r)
       : _primitives(user_primitives)
       , _r(r)
   {}
+
+  Primitives _primitives;
+  Coordinate _r;
 };
 
 template <class UserPrimitives>
 class PrimitivesNearestK
 {
   using Primitives = Details::AccessValues<UserPrimitives>;
-  // FIXME:
-  // using Geometry = typename Primitives::value_type;
-  // static_assert(GeometryTraits::is_valid_geometry<Geometry>{});
 
 public:
+  PrimitivesNearestK(UserPrimitives const &user_primitives, int k)
+      : _primitives(user_primitives)
+      , _k(k)
+  {}
+
   Primitives _primitives;
   int _k;
 };
@@ -84,6 +91,7 @@ auto make_intersects(Primitives const &primitives)
 template <typename Primitives, typename Coordinate>
 auto make_intersects(Primitives const &primitives, Coordinate r)
 {
+  KOKKOS_ASSERT(r > 0);
   Details::check_valid_access_traits(primitives);
   return PrimitivesWithRadius<Primitives>(primitives, r);
 }

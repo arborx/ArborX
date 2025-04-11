@@ -157,6 +157,7 @@ list(APPEND ARBORX_TEST_QUERY_TREE_SOURCES
   tstQueryTreeRay.cpp
   tstQueryTreeTraversalPolicy.cpp
   tstQueryTreeIntersectsKDOP.cpp
+  tstPredicateHelpers.cpp
   tstKokkosToolsAnnotations.cpp
   tstKokkosToolsExecutionSpaceInstances.cpp
   utf_main.cpp
