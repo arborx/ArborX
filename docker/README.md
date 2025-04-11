@@ -12,7 +12,7 @@ services:
   arborx_dev:
     build:
       args:
-        - BASE=nvidia/cuda:11.5.2-devel-ubuntu20.04
+        - BASE=nvidia/cuda:12.2.2-devel-ubuntu22.04
         - KOKKOS_VERSION=4.2.00
-        - KOKKOS_OPTIONS=-DCMAKE_CXX_STANDARD=17 -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON
+        - KOKKOS_OPTIONS=-DCMAKE_CXX_STANDARD=20 -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_SNB=ON -DKokkos_ARCH_VOLTA70=ON
 ```
