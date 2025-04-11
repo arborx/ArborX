@@ -254,7 +254,7 @@ void forwardQueriesAndCommunicateResults(
   // Merge results
   int const n_predicates = predicates.size();
   countResults(space, n_predicates, ids, offset);
-  KokkosExt::sortByKey(space, ids, values);
+  KokkosExt::sort_by_key(space, ids, values);
 
   Kokkos::Profiling::popRegion();
 }
