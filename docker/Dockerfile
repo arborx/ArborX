@@ -3,16 +3,13 @@ FROM $BASE
 
 ARG NPROCS=4
 
-# We use gfortran- to avoid problems with openmpi when using gcc images
-# See https://github.com/docker-library/gcc/issues/57
+ARG ADDITIONAL_PACKAGES=""
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
+        ${ADDITIONAL_PACKAGES} \
         build-essential \
         ccache \
         cmake \
-        clang \
-        clang-tidy \
         curl \
-        gfortran- \
         git \
         libomp-dev \
         libopenmpi-dev \
