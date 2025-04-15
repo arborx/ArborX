@@ -76,7 +76,10 @@ struct Indexables
   KOKKOS_FUNCTION auto size() const { return _values.size(); }
 };
 
-#ifdef KOKKOS_ENABLE_CXX17
+// FIXME_CLANG(Clang<17): Clang 16 or earlier does not support aggregate
+// initialization type deduction
+// https://github.com/llvm/llvm-project/issues/54050
+#if defined(__clang__) && (__clang_major__ < 17)
 template <typename Values, typename IndexableGetter>
 KOKKOS_DEDUCTION_GUIDE Indexables(Values, IndexableGetter)
     -> Indexables<Values, IndexableGetter>;
