@@ -98,12 +98,12 @@ pipeline {
                         }
                     }
                 }
-                stage('CUDA-12.8.1-NVCC') {
+                stage('CUDA-12.8.0-NVCC') {
                     agent {
                         dockerfile {
                             filename "Dockerfile.nvcc"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:12.8.1-devel-ubuntu24.04 --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_VOLTA70=ON"'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:12.8.0-devel-ubuntu22.04 --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_VOLTA70=ON"'
                             args '-v /tmp/ccache:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
