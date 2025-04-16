@@ -14,22 +14,21 @@
 
 #include <ArborX_Config.hpp>
 
-#include <ArborX_Box.hpp>
+// Indexes
 #include <ArborX_BruteForce.hpp>
 #ifdef ARBORX_ENABLE_MPI
 #include <ArborX_DistributedTree.hpp>
 #endif
 #include <ArborX_CrsGraphWrapper.hpp>
 #include <ArborX_LinearBVH.hpp>
-#include <ArborX_Point.hpp>
-#include <ArborX_Sphere.hpp>
+
+// Indexes helpers
+#include <detail/ArborX_AttachIndices.hpp>
+#include <detail/ArborX_NeighborList.hpp>
 #include <detail/ArborX_PredicateHelpers.hpp>
 #include <detail/ArborX_Predicates.hpp>
+
+// Misc
 #include <misc/ArborX_Exception.hpp>
-// FIXME: we include ArborX_Utils.hpp only for backward compatibility for
-// users using deprecated functions in ArborX namespace (min, max,
-// adjacentDifference, ...). This header should be removed when we remove those
-// functions.
-#include <misc/ArborX_Utils.hpp>
 
 #endif
