@@ -1,5 +1,40 @@
 # Changelog
 
+## [2.0](https://github.com/arborx/arborx/tree/v2.0) (2025-04-16)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v1.7...v2.0)
+
+**New features:**
+- New interfaces for search indexes (APIv2) [\#1155](https://github.com/arborx/ArborX/pull/1155), [\#1157](https://github.com/arborx/ArborX/pull/1157), [\#1161](https://github.com/arborx/ArborX/pull/1161)
+- Hyper-dimensional geometries  [\#1100](https://github.com/arborx/ArborX/pull/1100), [\#1148](https://github.com/arborx/ArborX/pull/1148), [\#1146](https://github.com/arborx/ArborX/pull/1146), [\#1154](https://github.com/arborx/ArborX/pull/1154)
+
+**Build Changes:**
+- Require C++20 [\#1215](https://github.com/arborx/ArborX/pull/1215)
+- Require Kokkos 4.5.00 [\#1233](https://github.com/arborx/ArborX/pull/1233)
+- Require CMake 3.22 [\#1188](https://github.com/arborx/ArborX/pull/1188)
+
+**Enhancements:**
+- Promote `ArborX::Triangle` from the EXPERIMENTAL namespace [\#1154](https://github.com/arborx/ArborX/pull/1154)
+- Add `Segment` geometry [EXPERIMENTAL] [\#1165](https://github.com/arborx/ArborX/pull/1065)
+- cmake: make install path configurable [\#1174](https://github.com/arborx/ArborX/pull/1174)
+- Add `DefaultIndexableGetter` [EXPERIMENTAL] [\#1181](https://github.com/arborx/ArborX/pull/1181)
+- Define `ARBORX_VERSION` number macro [\#1190](https://github.com/arborx/ArborX/pull/1190)
+- Allow running DBSCAN in different precision [\#1203](https://github.com/arborx/ArborX/pull/1203)
+- Move `MinimumSpanningTree` to `Experimental` namespace [\#1213](https://github.com/arborx/ArborX/pull/1213)
+- Add ellipsoid geometry [EXPERIMENTAL] [\#1222](https://github.com/arborx/ArborX/pull/1222)
+
+**Backward incompatible changes:**
+- Generalize geometries to support any dimension and precision [\#1100](https://github.com/arborx/ArborX/pull/1100), [\#1148](https://github.com/arborx/ArborX/pull/1148), [\#1146](https://github.com/arborx/ArborX/pull/1146), [\#1154](https://github.com/arborx/ArborX/pull/1154)
+- Remove deprecated algorithms from `ArborX` namespace (e.g., `min`, `max` `lastElement`,`clone`) [\#1151](https://github.com/arborx/ArborX/pull/1151)
+- Remove old interfaces (APIv1) from indexes [\#1155](https://github.com/arborx/ArborX/pull/1155), [\#1157](https://github.com/arborx/ArborX/pull/1157), [\#1161](https://github.com/arborx/ArborX/pull/1161)
+- Remove `ArborX::PairIndexRank` [\#1156](https://github.com/arborx/ArborX/pull/1156)
+- Remove `ArborX::PrimitivesTag` and `ArborX::PredicatesTag` from `ArborX::AccessTraits` [\#1172](https://github.com/arborx/ArborX/pull/1172)
+- Switch `AnyNewerVersion` to `SameMajorVersion` in CMake [\#1188](https://github.com/arborx/ArborX/pull/1188)
+- Add helper functions for predicates construction `make_{intersects,nearest}` [\#1232](https://github.com/arborx/ArborX/pull/1232)
+
+**Fixed bugs:**
+- Do not divide by zero when computing ray-AABB intersection [\#1226](https://github.com/arborx/ArborX/pull/1226)
+
 ## [1.7](https://github.com/arborx/arborx/tree/v1.7) (2024-09-03)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.6...v1.7)
