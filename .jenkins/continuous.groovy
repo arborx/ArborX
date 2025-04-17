@@ -309,7 +309,7 @@ pipeline {
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
                                 ..
                             '''
-                            sh 'make -j4 VERBOSE=1'
+                            sh 'make -j3 VERBOSE=1'
                             sh 'ctest $CTEST_OPTIONS'
                         }
                     }
