@@ -284,7 +284,7 @@ pipeline {
                             // We use gfortran- to avoid problems with openmpi
                             // when using gcc images. See
                             // https://github.com/docker-library/gcc/issues/57
-                            additionalBuildArgs '--build-arg BASE=gcc:13.3 --build-arg ADDITIONAL_PACKAGES="gfortran-" --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_OPENMP=ON -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
+                            additionalBuildArgs '--build-arg BASE=gcc:13.3 --build-arg ADDITIONAL_PACKAGES="gfortran-" --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_OPENMP=ON -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'docker'
                         }
@@ -299,6 +299,7 @@ pipeline {
                                     -D CMAKE_BUILD_TYPE=Debug \
                                     -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                     -D CMAKE_CXX_COMPILER=g++ \
+                                    -D CMAKE_CXX_EXTENSIONS=OFF \
                                     -D CMAKE_CXX_FLAGS="-Wpedantic -Wall -Wextra" \
                                     -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$BOOST_DIR;$BENCHMARK_DIR" \
                                     -D ARBORX_ENABLE_MPI=ON \
@@ -327,6 +328,7 @@ pipeline {
                                     cmake \
                                         -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                                         -D CMAKE_CXX_COMPILER=g++ \
+                                        -D CMAKE_CXX_EXTENSIONS=OFF \
                                         -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR" \
                                         -D MPIEXEC_PREFLAGS="--allow-run-as-root" \
                                     examples \
