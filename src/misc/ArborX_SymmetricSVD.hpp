@@ -115,7 +115,7 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
     for (int j = 0; j < size; j++)
       unit(i, j) = Value(i == j);
 
-  static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+  static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<Value>;
   while (true)
   {
     // We have a guarantee that p < q
@@ -224,7 +224,7 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
   int const size = mat.extent(0);
 
   using Value = typename Matrix::non_const_value_type;
-  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<Value>;
 
   // We compute the max to get a range of the invertible eigenvalues
   auto max_eigen = epsilon;
