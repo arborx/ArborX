@@ -85,13 +85,6 @@ void check_valid_callback(Callback const &callback, Predicates const &,
   using Predicate = typename AccessValues<Predicates>::value_type;
   using PredicateTag = typename Predicate::Tag;
 
-  static_assert(!(std::is_same_v<PredicateTag, NearestPredicateTag> &&
-                  std::is_invocable_v<Callback const &, Predicate, int, float,
-                                      OutputFunctorHelper<OutputView>>),
-                R"error(Callback signature has changed for nearest predicates.
-See https://github.com/arborx/ArborX/pull/366 for more details.
-Sorry!)error");
-
   static_assert(is_valid_predicate_tag<PredicateTag>::value &&
                     std::is_invocable_v<Callback const &, Predicate, Value,
                                         OutputFunctorHelper<OutputView>>,
