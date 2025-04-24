@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
   params.num_samples = -1;
 
   std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
-  std::vector<std::string> allowed_precisions = {"half", "float", "double"};
+  std::vector<std::string> allowed_precisions = {"float", "double"};
 
   bpo::options_description desc("Allowed options");
   std::string precision;
@@ -288,14 +288,6 @@ int main(int argc, char *argv[])
       {
         SWITCH_DIM(2, double)
         SWITCH_DIM(3, double)
-      }
-    }
-    else if (precision == "half")
-    {
-      switch (dim)
-      {
-        SWITCH_DIM(2, Kokkos::Experimental::half_t)
-        SWITCH_DIM(3, Kokkos::Experimental::half_t)
       }
     }
 #undef SWITCH_DIM
