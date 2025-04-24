@@ -14,6 +14,7 @@
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_Half.hpp>
 
 #include <boost/program_options.hpp>
 
@@ -54,10 +55,14 @@ bool run_dist_dbscan(MPI_Comm comm, ExecutionSpace const &exec_space,
   ArborX::DBSCAN::Parameters dbscan_params;
   dbscan_params.setVerbosity(params.verbose).setImplementation(implementation);
 
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<
+      typename Primitives::value_type>;
+
   Kokkos::Profiling::pushRegion("ArborX::DistributedDBSCAN::total");
   Kokkos::View<long long *, MemorySpace> labels("Example::labels", 0);
-  ArborX::Experimental::dbscan(comm, exec_space, primitives, params.eps,
-                               params.core_min_size, labels, dbscan_params);
+  ArborX::Experimental::dbscan(comm, exec_space, primitives,
+                               (Coordinate)params.eps, params.core_min_size,
+                               labels, dbscan_params);
   Kokkos::Profiling::popRegion();
 
   if (params.verbose && comm_rank == 0)
@@ -135,8 +140,10 @@ int main(int argc, char *argv[])
   params.num_samples = -1;
 
   std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
+  std::vector<std::string> allowed_precisions = {"float", "double"};
 
   bpo::options_description desc("Allowed options");
+  std::string precision;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
@@ -148,6 +155,7 @@ int main(int argc, char *argv[])
       ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
       ( "n", bpo::value<int>(&params.n)->default_value(10), "number of points to generate per rank" )
       ( "num-seq", bpo::value<int>(&params.n_seq)->default_value(3), "number of points in sequence" )
+      ( "precision", bpo::value<std::string>(&precision)->default_value("float"), "data precision" )
       ( "spacing", bpo::value<int>(&params.spacing)->default_value(2), "spacing size" )
       ( "verbose", bpo::bool_switch(&params.verbose), "verbose")
       ( "verify", bpo::bool_switch(&params.verify), "verify connected components")
@@ -188,6 +196,35 @@ int main(int argc, char *argv[])
     MPI_Finalize();
     return 2;
   }
+  if (!found(allowed_precisions, precision))
+  {
+    if (comm_rank == 0)
+      std::cerr << "Precision must be one of " << vec2string(allowed_precisions)
+                << "\n";
+    Kokkos::finalize();
+    MPI_Finalize();
+    return 2;
+  }
+  if (!params.filename.empty() && precision != "float")
+  {
+    if (comm_rank == 0)
+      std::cerr << "Data loading only supports \"float\"\n";
+    Kokkos::finalize();
+    MPI_Finalize();
+    return 3;
+  }
+
+  int dim = (params.filename.empty()
+                 ? params.dim
+                 : getDataDimension(params.filename, params.binary));
+  if (dim != 2 && dim != 3)
+  {
+    if (comm_rank == 0)
+      std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
+    Kokkos::finalize();
+    MPI_Finalize();
+    return 4;
+  }
 
   if (comm_rank == 0)
   {
@@ -201,6 +238,7 @@ int main(int argc, char *argv[])
     {
       printf("n                 : %d\n", params.n);
       printf("n_seq             : %d\n", params.n_seq);
+      printf("precision         : %s\n", precision.c_str());
       printf("spacing           : %d\n", params.spacing);
     }
     printf("verify            : %s\n", (params.verify ? "true" : "false"));
@@ -209,30 +247,53 @@ int main(int argc, char *argv[])
 
   MPI_Barrier(comm);
 
-  int dim = (params.filename.empty()
-                 ? params.dim
-                 : getDataDimension(params.filename, params.binary));
+  bool success = true;
+  if (!params.filename.empty())
+  {
 #define SWITCH_DIM(DIM)                                                        \
   case DIM:                                                                    \
     success = run_dist_dbscan(                                                 \
+        comm, exec_space, loadData<DIM, MemorySpace>(comm, params), params);   \
+    break;
+
+    switch (dim)
+    {
+      SWITCH_DIM(2)
+      SWITCH_DIM(3)
+    }
+#undef SWITCH_DIM
+  }
+  else
+  {
+    int dim = params.dim;
+#define SWITCH_DIM(DIM, TYPE)                                                  \
+  case DIM:                                                                    \
+    success = run_dist_dbscan(                                                 \
         comm, exec_space,                                                      \
-        (params.filename.empty()                                               \
-             ? generateDistributedData<DIM, MemorySpace>(comm, params)         \
-             : loadData<DIM, MemorySpace>(comm, params)),                      \
+        generateDistributedData<DIM, TYPE, MemorySpace>(comm, params),         \
         params);                                                               \
     break;
-  bool success = true;
-  switch (dim)
-  {
-    SWITCH_DIM(2)
-    SWITCH_DIM(3)
-  default:
-    std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
-  }
+
+    if (precision == "float")
+    {
+      switch (dim)
+      {
+        SWITCH_DIM(2, float)
+        SWITCH_DIM(3, float)
+      }
+    }
+    else if (precision == "double")
+    {
+      switch (dim)
+      {
+        SWITCH_DIM(2, double)
+        SWITCH_DIM(3, double)
+      }
+    }
 #undef SWITCH_DIM
+  }
 
   Kokkos::finalize();
-
   MPI_Finalize();
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;

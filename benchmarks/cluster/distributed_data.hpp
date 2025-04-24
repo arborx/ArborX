@@ -69,8 +69,8 @@ std::array<int, DIM> closestFactors(int n)
   return result;
 }
 
-template <int DIM, typename MemorySpace>
-Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
+template <int DIM, typename Coordinate, typename MemorySpace>
+Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace>
 generateDistributedData(MPI_Comm comm,
                         ArborXBenchmark::Parameters const &params)
 {
@@ -101,7 +101,7 @@ generateDistributedData(MPI_Comm comm,
   int spacing = params.spacing;
 
   typename MemorySpace::execution_space space;
-  Kokkos::View<ArborX::Point<DIM> *, MemorySpace> points(
+  Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace> points(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "Benchmark::distributed_data"),
       n);
@@ -113,7 +113,7 @@ generateDistributedData(MPI_Comm comm,
         KOKKOS_LAMBDA(int i, int j) {
           auto pos = [num_seq, spacing](int p) {
             auto tile = num_seq + spacing - 1;
-            return static_cast<float>((p / num_seq) * tile + p % num_seq);
+            return static_cast<Coordinate>((p / num_seq) * tile + p % num_seq);
           };
           points(j * nx + i) = {pos(Is[0] * nx + i), pos(Is[1] * nx + j)};
         });
@@ -126,7 +126,7 @@ generateDistributedData(MPI_Comm comm,
         KOKKOS_LAMBDA(int i, int j, int k) {
           auto pos = [num_seq, spacing](int p) {
             auto tile = num_seq + spacing - 1;
-            return static_cast<float>((p / num_seq) * tile + p % num_seq);
+            return static_cast<Coordinate>((p / num_seq) * tile + p % num_seq);
           };
           points(k * nx * nx + j * nx + i) = {
               pos(Is[0] * nx + i), pos(Is[1] * nx + j), pos(Is[2] * nx + k)};
