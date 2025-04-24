@@ -315,7 +315,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
     // The cell length is chosen to be eps/sqrt(dimension), so that any two
     // points within the same cell are within eps distance of each other.
-    auto const h = eps / std::sqrt((Coordinate)DIM);
+    auto const h = eps / Kokkos::sqrt((Coordinate)DIM);
     Details::CartesianGrid const grid(bounds, h);
 
     auto cell_indices = Details::computeCellIndices(exec_space, points, grid);
