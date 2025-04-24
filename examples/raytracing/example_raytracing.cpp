@@ -33,6 +33,10 @@
 #include <iostream>
 #include <numeric>
 
+using Point = ArborX::Point<3>;
+using Box = ArborX::Box<3>;
+using Ray = ArborX::Experimental::Ray<>;
+
 // The total energy that is distributed across all rays.
 float const total_energy = 4000.f;
 
@@ -51,7 +55,7 @@ namespace OrderedIntersectsBased
 template <typename MemorySpace>
 struct Rays
 {
-  Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> _rays;
+  Kokkos::View<Ray *, MemorySpace> _rays;
 };
 
 /*
@@ -60,7 +64,7 @@ struct Rays
 template <typename MemorySpace>
 struct DepositEnergy
 {
-  Kokkos::View<ArborX::Box<3> *, MemorySpace> _boxes;
+  Kokkos::View<Box *, MemorySpace> _boxes;
   Kokkos::View<float *, MemorySpace> _ray_energy;
   Kokkos::View<float *, MemorySpace> _energy;
 
@@ -147,7 +151,7 @@ struct IntersectedCell : public IntersectedCellForSorting
 template <typename MemorySpace>
 struct AccumulateRaySphereIntersections
 {
-  Kokkos::View<ArborX::Box<3> *, MemorySpace> _boxes;
+  Kokkos::View<Box *, MemorySpace> _boxes;
 
   template <typename Predicate, typename Value, typename OutputFunctor>
   KOKKOS_FUNCTION void operator()(Predicate const &predicate,
@@ -219,7 +223,7 @@ int main(int argc, char *argv[])
 
   Kokkos::Profiling::pushRegion("Example::problem_setup");
   Kokkos::Profiling::pushRegion("Example::make_grid");
-  Kokkos::View<ArborX::Box<3> *, MemorySpace> boxes(
+  Kokkos::View<Box *, MemorySpace> boxes(
       Kokkos::view_alloc(exec_space, Kokkos::WithoutInitializing,
                          "Example::boxes"),
       num_boxes);
@@ -236,7 +240,7 @@ int main(int argc, char *argv[])
   // For every box shoot rays from random (uniformly distributed) points inside
   // the box in random (uniformly distributed) directions.
   Kokkos::Profiling::pushRegion("Example::make_rays");
-  Kokkos::View<ArborX::Experimental::Ray *, MemorySpace> rays(
+  Kokkos::View<Ray *, MemorySpace> rays(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Example::rays"),
       rays_per_box * num_boxes);
   {
@@ -255,8 +259,7 @@ int main(int argc, char *argv[])
           using Kokkos::sin;
           using Kokkos::acos;
 
-          using Point = typename ArborX::Experimental::Ray::Point;
-          using Vector = typename ArborX::Experimental::Ray::Vector;
+          using Vector = ArborX::Details::Vector<3>;
 
           auto const &b = boxes(i);
           Point origin{b.minCorner()[0] +
@@ -273,8 +276,7 @@ int main(int argc, char *argv[])
           Vector direction{cos(upsilon) * sin(theta), sin(upsilon) * sin(theta),
                            cos(theta)};
 
-          rays(j + i * rays_per_box) =
-              ArborX::Experimental::Ray{origin, direction};
+          rays(j + i * rays_per_box) = Ray{origin, direction};
 
           rand_pool.free_state(g);
         });

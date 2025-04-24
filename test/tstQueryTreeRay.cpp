@@ -33,6 +33,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
   using MemorySpace = typename DeviceType::memory_space;
   typename DeviceType::execution_space exec_space;
 
+  using Ray = ArborX::Experimental::Ray<>;
   using Point = ArborX::Point<3>;
   using Box = ArborX::Box<3>;
 
@@ -47,8 +48,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_nearest, DeviceType,
 
   auto const tree = make<Tree>(exec_space, boxes);
 
-  ArborX::Experimental::Ray ray{{0, 0, 0}, {.15f, .1f, 0.f}};
-  Kokkos::View<ArborX::Experimental::Ray *, DeviceType> device_rays("rays", 1);
+  Ray ray{{0, 0, 0}, {.15f, .1f, 0.f}};
+  Kokkos::View<Ray *, DeviceType> device_rays("rays", 1);
   Kokkos::deep_copy(exec_space, device_rays, ray);
 
   BOOST_TEST(intersects(ray, Box{{0, 0, 0}, {1, 1, 1}}));
@@ -64,6 +65,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection, DeviceType,
   using MemorySpace = typename DeviceType::memory_space;
   typename DeviceType::execution_space exec_space;
 
+  using Ray = ArborX::Experimental::Ray<>;
   using Point = ArborX::Point<3>;
   using Box = ArborX::Box<3>;
 
@@ -78,8 +80,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection, DeviceType,
 
   auto const tree = make<Tree>(exec_space, boxes);
 
-  ArborX::Experimental::Ray ray{{0, 0, 0}, {.1f, .1f, .1f}};
-  Kokkos::View<ArborX::Experimental::Ray *, DeviceType> device_rays("rays", 1);
+  Ray ray{{0, 0, 0}, {.1f, .1f, .1f}};
+  Kokkos::View<Ray *, DeviceType> device_rays("rays", 1);
   Kokkos::deep_copy(exec_space, device_rays, ray);
 
   ARBORX_TEST_QUERY_TREE(
@@ -119,6 +121,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
   using MemorySpace = typename DeviceType::memory_space;
   typename DeviceType::execution_space exec_space;
 
+  using Ray = ArborX::Experimental::Ray<>;
   using Point = ArborX::Point<3>;
   using Box = ArborX::Box<3>;
 
@@ -134,12 +137,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
 
   auto const tree = make<Tree>(exec_space, boxes);
 
-  Kokkos::View<ArborX::Experimental::Ray *, Kokkos::HostSpace> host_rays("rays",
-                                                                         2);
-  host_rays(0) =
-      ArborX::Experimental::Ray{{0, 0, 0}, {1.f / n, 1.f / n, 1.f / n}};
-  host_rays(1) =
-      ArborX::Experimental::Ray{{n, n, n}, {-1.f / n, -1.f / n, -1.f / n}};
+  Kokkos::View<Ray *, Kokkos::HostSpace> host_rays("rays", 2);
+  host_rays(0) = Ray{{0, 0, 0}, {1.f / n, 1.f / n, 1.f / n}};
+  host_rays(1) = Ray{{n, n, n}, {-1.f / n, -1.f / n, -1.f / n}};
   auto device_rays =
       Kokkos::create_mirror_view_and_copy(MemorySpace{}, host_rays);
   Kokkos::View<int *[2], DeviceType> device_ordered_intersections(
@@ -168,13 +168,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_ray_box_intersection_new, DeviceType,
   }
 }
 
-template <typename DeviceType>
+template <typename DeviceType, typename Coordinate>
 auto makeOrderedIntersectsQueries(
-    std::vector<ArborX::Experimental::Ray> const &rays)
+    std::vector<ArborX::Experimental::Ray<Coordinate>> const &rays)
 {
   int const n = rays.size();
   Kokkos::View<decltype(ArborX::Experimental::ordered_intersects(
-                   ArborX::Experimental::Ray{})) *,
+                   ArborX::Experimental::Ray<Coordinate>{})) *,
                DeviceType>
       queries("Testing::intersecting_with_box_predicates", n);
   auto queries_host = Kokkos::create_mirror_view(queries);
@@ -198,14 +198,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(empty_tree_ordered_spatial_predicate, DeviceType,
   BOOST_TEST(equals(static_cast<ArborX::Box<3>>(tree.bounds()), {}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeOrderedIntersectsQueries<DeviceType>({}),
+                         (makeOrderedIntersectsQueries<DeviceType, float>({})),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeOrderedIntersectsQueries<DeviceType>({
+                         (makeOrderedIntersectsQueries<DeviceType, float>({
                              {},
                              {},
-                         }),
+                         })),
                          make_reference_solution<int>({}, {0, 0, 0}));
 }
 
@@ -231,14 +231,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(single_leaf_tree_ordered_spatial_predicate,
                     {{{0., 0., 0.}}, {{1., 1., 1.}}}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeOrderedIntersectsQueries<DeviceType>({}),
+                         (makeOrderedIntersectsQueries<DeviceType, float>({})),
                          make_reference_solution<int>({}, {0}));
 
   ARBORX_TEST_QUERY_TREE(ExecutionSpace{}, tree,
-                         makeOrderedIntersectsQueries<DeviceType>({
+                         (makeOrderedIntersectsQueries<DeviceType, float>({
                              {{0, 0, 0}, {1, 1, 1}},
                              {{4, 5, 6}, {7, 8, 9}},
-                         }),
+                         })),
                          make_reference_solution<int>({0}, {0, 1, 1}));
 }
 

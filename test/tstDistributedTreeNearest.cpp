@@ -577,7 +577,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distributed_ray, DeviceType, ARBORX_DEVICE_TYPES)
           {{{(float)comm_rank, 0., 0.}}, {{(float)comm_rank + 1, 1., 1.}}},
       });
 
-  std::vector<ArborX::Experimental::Ray> rays = {
+  std::vector<ArborX::Experimental::Ray<float>> rays = {
       {{comm_rank + 0.5f, -0.5f, 0.5f}, {0.f, 1.f, 0.f}},
       {{-0.5f, 0.5f, 0.5f}, {1.f, 0.f, 0.f}},
   };
