@@ -14,6 +14,7 @@
 #include <ArborX_Point.hpp>
 #include <ArborX_Segment.hpp>
 #include <ArborX_Sphere.hpp>
+#include <ArborX_Tetrahedron.hpp>
 #include <ArborX_Triangle.hpp>
 
 namespace ArborX::GeometryTraits
@@ -300,6 +301,26 @@ void test_triangle_ctad()
       std::is_same_v<decltype(Triangle{Point{3., 4., 2.}, Point{2., 2., 2.},
                                        Point{6., 3., 5.}}),
                      Triangle<3, double>>);
+}
+
+void test_tetrahedron_ctad()
+{
+  using ArborX::Point;
+  using ArborX::ExperimentalHyperGeometry::Tetrahedron;
+
+  static_assert(
+      std::is_same_v<decltype(Tetrahedron{
+                         {0, 2, 4}, {3, 1, 2}, {2, 5, 3}, {1, -1, 2}}),
+                     Tetrahedron<int>>);
+  static_assert(std::is_same_v<decltype(Tetrahedron{{0.f, 2.f, 3.f},
+                                                    {3.f, 1.f, 2.3f},
+                                                    {2.f, 5.f, 1.f},
+                                                    {1.f, -1.f, 2.f}}),
+                               Tetrahedron<float>>);
+  static_assert(std::is_same_v<decltype(Tetrahedron{
+                                   Point{3., 4., 2.}, Point{2., 2., 2.},
+                                   Point{6., 3., 5.}, Point{3., 1., 6.}}),
+                               Tetrahedron<double>>);
 }
 
 } // namespace ArborX::GeometryTraits
