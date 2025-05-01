@@ -30,8 +30,14 @@ struct Tetrahedron
 };
 
 template <class Coordinate>
-Tetrahedron(Point<3, Coordinate>, Point<3, Coordinate>, Point<3, Coordinate>,
-            Point<3, Coordinate>) -> Tetrahedron<Coordinate>;
+KOKKOS_DEDUCTION_GUIDE Tetrahedron(Point<3, Coordinate>, Point<3, Coordinate>,
+                                   Point<3, Coordinate>, Point<3, Coordinate>)
+    -> Tetrahedron<Coordinate>;
+
+template <typename T>
+KOKKOS_DEDUCTION_GUIDE Tetrahedron(T const (&)[3], T const (&)[3],
+                                   T const (&)[3], T const (&)[3])
+    -> Tetrahedron<T>;
 
 } // namespace ArborX::ExperimentalHyperGeometry
 
