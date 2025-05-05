@@ -311,11 +311,12 @@ private:
   }
 };
 
-template <typename ExecutionSpace, typename Labels, typename ImportedIds,
-          typename ImportedLabels, typename MergePairs>
-void computeMergePairs(ExecutionSpace const &space, Labels &local_labels,
-                       ImportedIds &imported_ids,
-                       ImportedLabels &imported_labels, MergePairs &merge_pairs)
+template <typename ExecutionSpace, typename CorePoints, typename Labels,
+          typename ImportedIds, typename ImportedLabels, typename MergePairs>
+void computeMergePairs(ExecutionSpace const &space, CorePoints const &is_core,
+                       Labels &local_labels, ImportedIds const &imported_ids,
+                       ImportedLabels const &imported_labels,
+                       MergePairs &merge_pairs)
 {
   std::string prefix = "ArborX::DistributedDBSCAN::computeMergePairs";
   Kokkos::Profiling::ScopedRegion guard(prefix);
@@ -364,8 +365,25 @@ void computeMergePairs(ExecutionSpace const &space, Labels &local_labels,
 
         int num_valid = (end - begin) + (is_local_valid);
         if (num_valid < 2)
+        {
+          // A noise point or a point with a single label
           return;
+        }
 
+        if (!is_core(id))
+        {
+          // A border point with multiple labels
+          if (is_final && !is_local_valid)
+          {
+            // Update local label if it is invalid (all imported labels are
+            // valid as we filter out noise before communicating)
+            local_labels(id) = imported_labels(begin);
+          }
+
+          return;
+        }
+
+        // A core point with multiple labels
         auto min_label = (is_local_valid ? local_label : LLONG_MAX);
         for (int j = begin; j < end; ++j)
         {
