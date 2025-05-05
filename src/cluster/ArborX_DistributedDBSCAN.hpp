@@ -147,6 +147,10 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
   Kokkos::resize(space, ghost_labels, num_compressed);
   Details::communicateNeighborDataBack(comm, space, ghost_ranks, ghost_ids,
                                        ghost_labels);
+  Details::KokkosExt::sortByKey(space, ghost_ids, ghost_labels);
+  Kokkos::View<int *, MemorySpace> ghost_offsets(
+      Kokkos::view_alloc(space, prefix + "ghost_offsets"), 0);
+  Details::computeOffsetsInOrderedView(space, ghost_ids, ghost_offsets);
   Kokkos::resize(ghost_ranks, 0); // free space
 
   // Step 5: process multi-labeled indices
@@ -155,7 +159,8 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
   if (is_special_case)
   {
     Details::computeMergePairs(space, Details::CCSCorePoints{}, labels,
-                               ghost_ids, ghost_labels, local_merge_pairs);
+                               ghost_offsets, ghost_ids, ghost_labels,
+                               local_merge_pairs);
   }
   else
   {
@@ -172,7 +177,7 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
 
     Details::computeMergePairs(
         space, Details::DBSCANCorePoints<MemorySpace>{num_neigh, core_min_size},
-        labels, ghost_ids, ghost_labels, local_merge_pairs);
+        labels, ghost_offsets, ghost_ids, ghost_labels, local_merge_pairs);
   }
   sortAndFilterMergePairs(space, local_merge_pairs);
   Kokkos::resize(ghost_ids, 0);    // free space

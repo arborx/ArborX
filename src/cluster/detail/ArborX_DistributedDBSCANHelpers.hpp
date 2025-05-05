@@ -312,9 +312,11 @@ private:
 };
 
 template <typename ExecutionSpace, typename CorePoints, typename Labels,
-          typename ImportedIds, typename ImportedLabels, typename MergePairs>
+          typename Offsets, typename ImportedIds, typename ImportedLabels,
+          typename MergePairs>
 void computeMergePairs(ExecutionSpace const &space, CorePoints const &is_core,
-                       Labels &local_labels, ImportedIds const &imported_ids,
+                       Labels &local_labels, Offsets const &offsets,
+                       ImportedIds const &imported_ids,
                        ImportedLabels const &imported_labels,
                        MergePairs &merge_pairs)
 {
@@ -324,27 +326,7 @@ void computeMergePairs(ExecutionSpace const &space, CorePoints const &is_core,
 
   using MemorySpace = typename Labels::memory_space;
 
-  int const n_import = imported_labels.size();
-
-  KokkosExt::sortByKey(space, imported_ids, imported_labels);
-
-  Kokkos::View<int *, MemorySpace> offsets(
-      Kokkos::view_alloc(space, prefix + "offsets"), n_import + 1);
-  int num_offsets;
-  Kokkos::parallel_scan(
-      prefix + "compute_offsets", Kokkos::RangePolicy(space, 0, n_import),
-      KOKKOS_LAMBDA(int i, int &update, bool is_final) {
-        if (i == n_import - 1 || imported_ids(i) != imported_ids(i + 1))
-        {
-          if (is_final)
-            offsets(update + 1) = i + 1;
-          ++update;
-        }
-      },
-      num_offsets);
-  ++num_offsets;
-  Kokkos::resize(space, offsets, num_offsets);
-
+  auto const num_offsets = offsets.size();
   if (num_offsets < 2)
   {
     Kokkos::resize(space, merge_pairs, 0);
@@ -352,7 +334,7 @@ void computeMergePairs(ExecutionSpace const &space, CorePoints const &is_core,
   }
 
   Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
-                 merge_pairs, n_import);
+                 merge_pairs, imported_labels.size());
   int num_merge_pairs;
   Kokkos::parallel_scan(
       prefix + "process_labels", Kokkos::RangePolicy(space, 0, num_offsets - 1),
