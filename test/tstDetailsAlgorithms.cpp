@@ -161,6 +161,39 @@ BOOST_AUTO_TEST_CASE(distance_point_triangle)
   BOOST_TEST(distance(Point3{1, -1, -1}, triangle3_2) == std::sqrt(3.f));
 }
 
+BOOST_AUTO_TEST_CASE(distance_point_tetrahedron)
+{
+  using ArborX::Details::distance;
+
+  using Point = ArborX::Point<3>;
+
+  constexpr ArborX::ExperimentalHyperGeometry::Tetrahedron tet{
+      Point{0, 0, 0}, Point{1, 0, 0}, Point{0, 1, 0}, Point{0, 0, 1}};
+
+  // vertices
+  BOOST_TEST(distance(Point{0, 0, 0}, tet) == 0);
+  BOOST_TEST(distance(Point{1, 0, 0}, tet) == 0);
+  BOOST_TEST(distance(Point{0, 1, 0}, tet) == 0);
+  BOOST_TEST(distance(Point{0, 0, 1}, tet) == 0);
+
+  // inside
+  BOOST_TEST(distance(Point{0.4f, 0.4f, 0.1f}, tet) == 0);
+  BOOST_TEST(distance(Point{0.8f, 0.05f, 0.05f}, tet) == 0);
+
+  // same plane as some side
+  BOOST_TEST(distance(Point{2, 0, 0}, tet) == 1);
+  BOOST_TEST(distance(Point{0.5f, -0.5f, 0}, tet) == 0.5f);
+  BOOST_TEST(distance(Point{-0.5f, 0.5f, 0}, tet) == 0.5f);
+  BOOST_TEST(distance(Point{0, 0, 2}, tet) == 1);
+  BOOST_TEST(distance(Point{0, -0.5f, 0}, tet) == 0.5f);
+
+  // outside
+  BOOST_TEST(distance(Point{-1, -1, -1}, tet) == std::sqrt(3.f));
+  BOOST_TEST(distance(Point{-1, -1, 2}, tet) == std::sqrt(3.f));
+  BOOST_TEST(distance(Point{1.5f, 1.5f, -1}, tet) == std::sqrt(3.f));
+  BOOST_TEST(distance(Point{1.5f, 1.5f, 0.5f}, tet) == 1.5f);
+}
+
 BOOST_AUTO_TEST_CASE(distance_box_box)
 {
   using ArborX::Details::distance;

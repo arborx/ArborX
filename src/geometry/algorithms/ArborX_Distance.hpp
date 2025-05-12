@@ -13,8 +13,10 @@
 
 #include "ArborX_Equals.hpp"
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_Triangle.hpp>
 #include <misc/ArborX_Vector.hpp>
 
+#include <Kokkos_Array.hpp>
 #include <Kokkos_Clamp.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 #include <Kokkos_MinMax.hpp>
@@ -195,6 +197,50 @@ struct distance<PointTag, TriangleTag, Point, Triangle>
     auto const &c = triangle.c;
 
     return Details::distance(p, closest_point(p, a, b, c));
+  }
+};
+
+// distance point-tetrahedron
+template <typename Point, typename Tetrahedron>
+struct distance<PointTag, TetrahedronTag, Point, Tetrahedron>
+{
+  static constexpr int DIM = dimension_v<Point>;
+  using Coordinate = coordinate_type_t<Tetrahedron>;
+
+  KOKKOS_FUNCTION static auto apply(Point const &point, Tetrahedron const &tet)
+  {
+    static_assert(GeometryTraits::dimension_v<Point> == 3);
+
+    constexpr int N = 4;
+    Kokkos::Array<decltype(tet.a), N> v = {tet.a, tet.b, tet.c, tet.d};
+
+    // For every plane check that the vertex lies within the same halfspace as
+    // the other tetrahedron vertex (similar to the current intersects
+    // algorithm). If not, compute the distance to the corresponding triangle.
+    for (int j = 0; j < N; ++j)
+    {
+      auto normal = (v[(j + 1) % N] - v[j]).cross(v[(j + 2) % N] - v[j]);
+
+      bool same_half_space =
+          (normal.dot(v[(j + 3) % N] - v[j]) * normal.dot(point - v[j]) >= 0);
+      if (!same_half_space)
+        return Details::distance(
+            point, Triangle{v[j], v[(j + 1) % N], v[(j + 2) % N]});
+    }
+    return static_cast<Coordinate>(0);
+  }
+};
+
+// distance tetrahedron-point
+template <typename Tetrahedron, typename Point>
+struct distance<TetrahedronTag, PointTag, Tetrahedron, Point>
+{
+  static constexpr int DIM = dimension_v<Point>;
+  using Coordinate = coordinate_type_t<Tetrahedron>;
+
+  KOKKOS_FUNCTION static auto apply(Tetrahedron const &tet, Point const &p)
+  {
+    return Details::distance(p, tet);
   }
 };
 
