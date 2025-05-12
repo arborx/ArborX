@@ -30,11 +30,29 @@ struct Placeholder
   int n;
 };
 
+struct PlaceholderWithoutMemory
+{
+  int n;
+};
+
 template <typename MemorySpace>
 struct ArborX::AccessTraits<Placeholder<MemorySpace>>
 {
   using Self = Placeholder<MemorySpace>;
   using memory_space = MemorySpace;
+
+  KOKKOS_FUNCTION static auto size(Self const &self) { return self.n; }
+  KOKKOS_FUNCTION static auto get(Self const &, int i)
+  {
+    return ArborX::Point<2>{(float)i, (float)i};
+  }
+};
+
+template <>
+struct ArborX::AccessTraits<PlaceholderWithoutMemory>
+{
+  using Self = PlaceholderWithoutMemory;
+  using memory_space = Kokkos::DefaultExecutionSpace::memory_space;
 
   KOKKOS_FUNCTION static auto size(Self const &self) { return self.n; }
   KOKKOS_FUNCTION static auto get(Self const &, int i)
@@ -131,11 +149,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(make_predicates, DeviceType, ARBORX_DEVICE_TYPES)
           v.data(), v.size()));
 
   Placeholder<MemorySpace> points_access{3};
+  PlaceholderWithoutMemory points_access_nomem{3};
 
   BOOST_TEST(checkPredicates(IntersectsTag{}, space,
                              make_intersects(points_view), points_view));
   BOOST_TEST(checkPredicates(IntersectsTag{}, space,
                              make_intersects(points_access), points_access));
+  BOOST_TEST(checkPredicates(IntersectsTag{}, space,
+                             make_intersects(points_access_nomem),
+                             points_access_nomem));
 
   float r = 1.f;
   BOOST_TEST(checkPredicates(IntersectsWithRadiusTag{}, space,
@@ -143,10 +165,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(make_predicates, DeviceType, ARBORX_DEVICE_TYPES)
   BOOST_TEST(checkPredicates(IntersectsWithRadiusTag{}, space,
                              make_intersects(points_access, r), points_access,
                              r));
+  BOOST_TEST(checkPredicates(IntersectsWithRadiusTag{}, space,
+                             make_intersects(points_access_nomem, r),
+                             points_access_nomem, r));
 
   int const k = 3;
   BOOST_TEST(checkPredicates(NearestTag{}, space, make_nearest(points_view, k),
                              points_view, k));
   BOOST_TEST(checkPredicates(NearestTag{}, space,
                              make_nearest(points_access, k), points_access, k));
+  BOOST_TEST(checkPredicates(NearestTag{}, space,
+                             make_nearest(points_access_nomem, k),
+                             points_access_nomem, k));
 }
