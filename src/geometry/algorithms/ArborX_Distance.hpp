@@ -14,6 +14,7 @@
 #include "ArborX_Equals.hpp"
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Triangle.hpp>
+#include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 #include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
@@ -217,6 +218,9 @@ struct distance<PointTag, TetrahedronTag, Point, Tetrahedron>
     // For every plane check that the vertex lies within the same halfspace as
     // the other tetrahedron vertex (similar to the current intersects
     // algorithm). If not, compute the distance to the corresponding triangle.
+    constexpr auto fmax =
+        Details::KokkosExt::ArithmeticTraits::finite_max<Coordinate>::value;
+    auto min_distance = fmax;
     for (int j = 0; j < N; ++j)
     {
       auto normal = (v[(j + 1) % N] - v[j]).cross(v[(j + 2) % N] - v[j]);
@@ -224,10 +228,12 @@ struct distance<PointTag, TetrahedronTag, Point, Tetrahedron>
       bool same_half_space =
           (normal.dot(v[(j + 3) % N] - v[j]) * normal.dot(point - v[j]) >= 0);
       if (!same_half_space)
-        return Details::distance(
-            point, Triangle{v[j], v[(j + 1) % N], v[(j + 2) % N]});
+        min_distance =
+            Kokkos::min(min_distance,
+                        Details::distance(point, Triangle{v[j], v[(j + 1) % N],
+                                                          v[(j + 2) % N]}));
     }
-    return static_cast<Coordinate>(0);
+    return (min_distance != fmax ? min_distance : static_cast<Coordinate>(0));
   }
 };
 
