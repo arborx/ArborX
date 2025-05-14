@@ -166,9 +166,10 @@ BOOST_AUTO_TEST_CASE(distance_point_tetrahedron)
   using ArborX::Details::distance;
 
   using Point = ArborX::Point<3>;
+  using Tetrahedron = ArborX::ExperimentalHyperGeometry::Tetrahedron<>;
 
-  constexpr ArborX::ExperimentalHyperGeometry::Tetrahedron tet{
-      Point{0, 0, 0}, Point{1, 0, 0}, Point{0, 1, 0}, Point{0, 0, 1}};
+  constexpr Tetrahedron tet{Point{0, 0, 0}, Point{1, 0, 0}, Point{0, 1, 0},
+                            Point{0, 0, 1}};
 
   // vertices
   BOOST_TEST(distance(Point{0, 0, 0}, tet) == 0);
@@ -192,6 +193,18 @@ BOOST_AUTO_TEST_CASE(distance_point_tetrahedron)
   BOOST_TEST(distance(Point{-1, -1, 2}, tet) == std::sqrt(3.f));
   BOOST_TEST(distance(Point{1.5f, 1.5f, -1}, tet) == std::sqrt(3.f));
   BOOST_TEST(distance(Point{1.5f, 1.5f, 0.5f}, tet) == 1.5f);
+
+  Point v[4] = {Point{0, 0, 0}, Point{1, 0, 0}, Point{0, 1, 0},
+                Point{-2, 0, 1}};
+  Point p{-1.5f, 0, -0.5f};
+  BOOST_TEST(distance(p, Tetrahedron{v[0], v[1], v[2], v[3]}) ==
+             std::sqrt(1.25f));
+  BOOST_TEST(distance(p, Tetrahedron{v[1], v[2], v[3], v[0]}) ==
+             std::sqrt(1.25f));
+  BOOST_TEST(distance(p, Tetrahedron{v[2], v[3], v[0], v[1]}) ==
+             std::sqrt(1.25f));
+  BOOST_TEST(distance(p, Tetrahedron{v[3], v[0], v[1], v[2]}) ==
+             std::sqrt(1.25f));
 }
 
 BOOST_AUTO_TEST_CASE(distance_box_box)
