@@ -46,6 +46,21 @@ struct PointsRequiringResolution
   Coordinate _eps;
 };
 
+// FIXME_CLANG(Clang<17): Clang 16 or earlier does not support aggregate
+// initialization type deduction
+// https://github.com/llvm/llvm-project/issues/54050
+#if defined(__clang__) && (__clang_major__ < 17)
+template <typename Points, typename GhostPoints>
+KOKKOS_DEDUCTION_GUIDE UnifiedPoints(Points, GhostPoints)
+    -> UnifiedPoints<Points, GhostPoints>;
+
+template <typename Points, typename GhostOffsets, typename GhostIds,
+          typename Coordinate>
+KOKKOS_DEDUCTION_GUIDE PointsRequiringResolution(Points, GhostOffsets, GhostIds,
+                                                 Coordinate)
+    -> PointsRequiringResolution<Points, GhostOffsets, GhostIds, Coordinate>;
+#endif
+
 } // namespace ArborX::Details
 
 template <typename Points, typename GhostPoints>

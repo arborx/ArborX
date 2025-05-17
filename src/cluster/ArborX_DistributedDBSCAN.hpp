@@ -76,10 +76,8 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
 
   // Step 2: do local DBSCAN
   auto local_labels =
-      dbscan(space,
-             Details::UnifiedPoints<Points, decltype(ghost_points)>{
-                 points, ghost_points},
-             eps, core_min_size, params);
+      dbscan(space, Details::UnifiedPoints{points, ghost_points}, eps,
+             core_min_size, params);
 
   // Step 3: convert local labels to global
   Kokkos::View<long long *, MemorySpace> rank_offsets(prefix + "rank_offsets",
@@ -168,9 +166,8 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
     {
       // As we are treating local DBSCAN as a black box, we always do this,
       // even if it may be unnecessary (e.g., FDBSCAN).
-      BoundingVolumeHierarchy bvh(
-          space, Details::UnifiedPoints<Points, decltype(ghost_points)>{
-                     points, ghost_points});
+      BoundingVolumeHierarchy bvh(space,
+                                  Details::UnifiedPoints{points, ghost_points});
 
       // Find the number of neighbors only for points that appear in the ghost
       // ids as we only need to resolve the labels of those points. We know
