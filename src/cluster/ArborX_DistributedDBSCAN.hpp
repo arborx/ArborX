@@ -76,10 +76,8 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
 
   // Step 2: do local DBSCAN
   auto local_labels =
-      dbscan(space,
-             Details::UnifiedPoints<Points, decltype(ghost_points)>{
-                 points, ghost_points},
-             eps, core_min_size, params);
+      dbscan(space, Details::UnifiedPoints{points, ghost_points}, eps,
+             core_min_size, params);
 
   // Step 3: convert local labels to global
   Kokkos::View<long long *, MemorySpace> rank_offsets(prefix + "rank_offsets",
@@ -147,34 +145,51 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
   Kokkos::resize(space, ghost_labels, num_compressed);
   Details::communicateNeighborDataBack(comm, space, ghost_ranks, ghost_ids,
                                        ghost_labels);
+  Details::KokkosExt::sortByKey(space, ghost_ids, ghost_labels);
+  Kokkos::View<int *, MemorySpace> ghost_offsets(
+      Kokkos::view_alloc(space, prefix + "ghost_offsets"), 0);
+  Details::computeOffsetsInOrderedView(space, ghost_ids, ghost_offsets);
   Kokkos::resize(ghost_ranks, 0); // free space
 
   // Step 5: process multi-labeled indices
   Kokkos::View<Details::MergePair *, MemorySpace> local_merge_pairs(
       prefix + "local_merge_pairs", 0);
-  if (is_special_case)
+  if (ghost_offsets.size() > 1)
   {
-    Details::computeMergePairs(space, Details::CCSCorePoints{}, labels,
-                               ghost_ids, ghost_labels, local_merge_pairs);
-  }
-  else
-  {
-    BoundingVolumeHierarchy bvh(
-        space, Details::UnifiedPoints<Points, decltype(ghost_points)>{
-                   points, ghost_points});
+    if (is_special_case)
+    {
+      Details::computeMergePairs(space, Details::CCSCorePoints{}, labels,
+                                 ghost_offsets, ghost_ids, ghost_labels,
+                                 local_merge_pairs);
+    }
+    else
+    {
+      // As we are treating local DBSCAN as a black box, we always do this,
+      // even if it may be unnecessary (e.g., FDBSCAN).
+      BoundingVolumeHierarchy bvh(space,
+                                  Details::UnifiedPoints{points, ghost_points});
 
-    Kokkos::View<int *, MemorySpace> num_neigh(prefix + "num_neighbors",
-                                               n_local);
-    bvh.query(space,
-              Experimental::attach_indices(
-                  Experimental::make_intersects(points, eps)),
-              Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
+      // Find the number of neighbors only for points that appear in the ghost
+      // ids as we only need to resolve the labels of those points. We know
+      // that none of them are noise (the received labels are never -1 because
+      // we filter those before communicating). Some of them may be border
+      // points, but it should be a small fraction, and filtering them out is
+      // not efficient.
+      Kokkos::View<int *, MemorySpace> num_neigh(prefix + "num_neighbors",
+                                                 n_local);
+      bvh.query(space,
+                Details::PointsRequiringResolution{points, ghost_offsets,
+                                                   ghost_ids, eps},
+                Details::CountUpToN<MemorySpace>{num_neigh, core_min_size});
 
-    Details::computeMergePairs(
-        space, Details::DBSCANCorePoints<MemorySpace>{num_neigh, core_min_size},
-        labels, ghost_ids, ghost_labels, local_merge_pairs);
+      Details::computeMergePairs(
+          space,
+          Details::DBSCANCorePoints<MemorySpace>{num_neigh, core_min_size},
+          labels, ghost_offsets, ghost_ids, ghost_labels, local_merge_pairs);
+    }
+    sortAndFilterMergePairs(space, local_merge_pairs);
   }
-  sortAndFilterMergePairs(space, local_merge_pairs);
+  Kokkos::resize(ghost_points, 0); // free space
   Kokkos::resize(ghost_ids, 0);    // free space
   Kokkos::resize(ghost_labels, 0); // free space
 

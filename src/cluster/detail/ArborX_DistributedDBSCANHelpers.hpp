@@ -15,6 +15,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_BruteForce.hpp>
 #include <detail/ArborX_Distributor.hpp>
+#include <detail/ArborX_Predicates.hpp>
 #include <detail/ArborX_TreeConstruction.hpp>
 #include <kokkos_ext/ArborX_KokkosExtKernelStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
@@ -35,6 +36,31 @@ struct UnifiedPoints
   GhostPoints _ghost_points;
 };
 
+template <typename Points, typename GhostOffsets, typename GhostIds,
+          typename Coordinate>
+struct PointsRequiringResolution
+{
+  Points _points;
+  GhostOffsets _ghost_offsets;
+  GhostIds _ghost_ids;
+  Coordinate _eps;
+};
+
+// FIXME_CLANG(Clang<17): Clang 16 or earlier does not support aggregate
+// initialization type deduction
+// https://github.com/llvm/llvm-project/issues/54050
+#if defined(__clang__) && (__clang_major__ < 17)
+template <typename Points, typename GhostPoints>
+KOKKOS_DEDUCTION_GUIDE UnifiedPoints(Points, GhostPoints)
+    -> UnifiedPoints<Points, GhostPoints>;
+
+template <typename Points, typename GhostOffsets, typename GhostIds,
+          typename Coordinate>
+KOKKOS_DEDUCTION_GUIDE PointsRequiringResolution(Points, GhostOffsets, GhostIds,
+                                                 Coordinate)
+    -> PointsRequiringResolution<Points, GhostOffsets, GhostIds, Coordinate>;
+#endif
+
 } // namespace ArborX::Details
 
 template <typename Points, typename GhostPoints>
@@ -52,6 +78,27 @@ struct ArborX::AccessTraits<ArborX::Details::UnifiedPoints<Points, GhostPoints>>
     auto const num_local = self._points.size();
     return (i < num_local ? self._points(i)
                           : self._ghost_points(i - num_local));
+  }
+};
+
+template <typename Points, typename GhostOffsets, typename GhostIds,
+          typename Coordinate>
+struct ArborX::AccessTraits<ArborX::Details::PointsRequiringResolution<
+    Points, GhostOffsets, GhostIds, Coordinate>>
+{
+  using Self = ArborX::Details::PointsRequiringResolution<Points, GhostOffsets,
+                                                          GhostIds, Coordinate>;
+  using memory_space = typename Points::memory_space;
+
+  static KOKKOS_FUNCTION auto size(Self const &self)
+  {
+    return self._ghost_offsets.size() - 1;
+  }
+  static KOKKOS_FUNCTION auto get(Self const &self, size_t i)
+  {
+    auto const id = self._ghost_ids(self._ghost_offsets(i));
+    return ArborX::attach(
+        ArborX::intersects(ArborX::Sphere(self._points(id), self._eps)), id);
   }
 };
 
@@ -312,54 +359,28 @@ private:
 };
 
 template <typename ExecutionSpace, typename CorePoints, typename Labels,
-          typename ImportedIds, typename ImportedLabels, typename MergePairs>
+          typename GhostOffsets, typename GhostIds, typename GhostLabels,
+          typename MergePairs>
 void computeMergePairs(ExecutionSpace const &space, CorePoints const &is_core,
-                       Labels &local_labels, ImportedIds const &imported_ids,
-                       ImportedLabels const &imported_labels,
-                       MergePairs &merge_pairs)
+                       Labels &local_labels, GhostOffsets const &ghost_offsets,
+                       GhostIds const &ghost_ids,
+                       GhostLabels const &ghost_labels, MergePairs &merge_pairs)
 {
   std::string prefix = "ArborX::DistributedDBSCAN::computeMergePairs";
   Kokkos::Profiling::ScopedRegion guard(prefix);
   prefix += "::";
 
-  using MemorySpace = typename Labels::memory_space;
-
-  int const n_import = imported_labels.size();
-
-  KokkosExt::sortByKey(space, imported_ids, imported_labels);
-
-  Kokkos::View<int *, MemorySpace> offsets(
-      Kokkos::view_alloc(space, prefix + "offsets"), n_import + 1);
-  int num_offsets;
-  Kokkos::parallel_scan(
-      prefix + "compute_offsets", Kokkos::RangePolicy(space, 0, n_import),
-      KOKKOS_LAMBDA(int i, int &update, bool is_final) {
-        if (i == n_import - 1 || imported_ids(i) != imported_ids(i + 1))
-        {
-          if (is_final)
-            offsets(update + 1) = i + 1;
-          ++update;
-        }
-      },
-      num_offsets);
-  ++num_offsets;
-  Kokkos::resize(space, offsets, num_offsets);
-
-  if (num_offsets < 2)
-  {
-    Kokkos::resize(space, merge_pairs, 0);
-    return;
-  }
+  auto const num_offsets = ghost_offsets.size();
 
   Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
-                 merge_pairs, n_import);
+                 merge_pairs, ghost_labels.size());
   int num_merge_pairs;
   Kokkos::parallel_scan(
       prefix + "process_labels", Kokkos::RangePolicy(space, 0, num_offsets - 1),
       KOKKOS_LAMBDA(int const i, int &update, bool is_final) {
-        auto const begin = offsets(i);
-        auto const end = offsets(i + 1);
-        auto const id = imported_ids(begin);
+        auto const begin = ghost_offsets(i);
+        auto const end = ghost_offsets(i + 1);
+        auto const id = ghost_ids(begin);
         auto local_label = local_labels(id);
         bool const is_local_valid = (local_label != -1);
 
@@ -377,7 +398,7 @@ void computeMergePairs(ExecutionSpace const &space, CorePoints const &is_core,
           {
             // Update local label if it is invalid (all imported labels are
             // valid as we filter out noise before communicating)
-            local_labels(id) = imported_labels(begin);
+            local_labels(id) = ghost_labels(begin);
           }
 
           return;
@@ -387,7 +408,7 @@ void computeMergePairs(ExecutionSpace const &space, CorePoints const &is_core,
         auto min_label = (is_local_valid ? local_label : LLONG_MAX);
         for (int j = begin; j < end; ++j)
         {
-          auto const label_j = imported_labels(j);
+          auto const label_j = ghost_labels(j);
           KOKKOS_ASSERT(label_j != -1);
           min_label = Kokkos::min(label_j, min_label);
         }
@@ -404,7 +425,7 @@ void computeMergePairs(ExecutionSpace const &space, CorePoints const &is_core,
 
         for (int j = begin; j < end; ++j)
         {
-          auto label_j = imported_labels(j);
+          auto label_j = ghost_labels(j);
           if (label_j == min_label)
             continue;
 
