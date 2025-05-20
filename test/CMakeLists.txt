@@ -71,7 +71,11 @@ target_include_directories(ArborX_Test_KokkosExt.exe PRIVATE ${CMAKE_CURRENT_BIN
 add_test(NAME ArborX_Test_KokkosExt COMMAND ArborX_Test_KokkosExt.exe)
 
 add_executable(ArborX_Test_Geometry.exe
-  tstDetailsAlgorithms.cpp
+  tstGeometryCentroid.cpp
+  tstGeometryDistance.cpp
+  tstGeometryExpand.cpp
+  tstGeometryIntersects.cpp
+  tstGeometryMisc.cpp
   tstCompileOnlyGeometry.cpp
   tstRay.cpp
   tstKDOP.cpp
