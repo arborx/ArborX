@@ -17,26 +17,31 @@
 #include <Kokkos_Array.hpp>
 #include <Kokkos_Macros.hpp>
 
-namespace ArborX::Details
+namespace ArborX
 {
-namespace Dispatch
+
+namespace Details::Dispatch
 {
 template <typename Tag1, typename Tag2, typename Geometry1, typename Geometry2>
 struct barycentric;
 }
 
+namespace Experimental
+{
 template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION auto barycentricCoordinates(Geometry1 const &geometry1,
                                                    Geometry2 const &geometry2)
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  return Dispatch::barycentric<GeometryTraits::tag_t<Geometry1>,
-                               GeometryTraits::tag_t<Geometry2>, Geometry1,
-                               Geometry2>::apply(geometry1, geometry2);
+  return Details::Dispatch::barycentric<GeometryTraits::tag_t<Geometry1>,
+                                        GeometryTraits::tag_t<Geometry2>,
+                                        Geometry1, Geometry2>::apply(geometry1,
+                                                                     geometry2);
 }
+} // namespace Experimental
 
-namespace Dispatch
+namespace Details::Dispatch
 {
 
 using namespace GeometryTraits;
@@ -114,8 +119,8 @@ struct barycentric<TetrahedronTag, PointTag, Tetrahedron, Point>
   }
 };
 
-} // namespace Dispatch
+} // namespace Details::Dispatch
 
-} // namespace ArborX::Details
+} // namespace ArborX
 
 #endif

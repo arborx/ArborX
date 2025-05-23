@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(barycentric_triangle)
 {
   using ArborX::Point;
   using ArborX::Triangle;
-  using ArborX::Details::barycentricCoordinates;
+  using ArborX::Experimental::barycentricCoordinates;
 
   Triangle<2> tri{{-1, -1}, {1, -1}, {-1, 1}};
   // clang-format off
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(barycentric_triangle)
 BOOST_AUTO_TEST_CASE(barycentric_tetrahedron)
 {
   using ArborX::Point;
-  using ArborX::Details::barycentricCoordinates;
+  using ArborX::Experimental::barycentricCoordinates;
   using ArborX::ExperimentalHyperGeometry::Tetrahedron;
 
   Tetrahedron<> tet{{0, 0, 0}, {0, 2, 0}, {2, 0, 0}, {0, 0, 2}};
