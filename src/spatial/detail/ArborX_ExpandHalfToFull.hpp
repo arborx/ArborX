@@ -34,12 +34,14 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
   Kokkos::parallel_for(
       "ArborX::Experimental::HalfToFull::count",
       Kokkos::RangePolicy(space, 0, n), KOKKOS_LAMBDA(int i) {
+        int local_update = 0;
         for (int j = offsets_orig(i); j < offsets_orig(i + 1); ++j)
         {
+          ++local_update;
           int const k = indices_orig(j);
-          Kokkos::atomic_inc(&offsets(i));
           Kokkos::atomic_inc(&offsets(k));
         }
+        Kokkos::atomic_add(&offsets(i), local_update);
       });
   KokkosExt::exclusive_scan(space, offsets, offsets, 0);
 
