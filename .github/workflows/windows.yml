@@ -20,7 +20,6 @@ jobs:
         pkgs: boost-test boost-program-options boost-geometry benchmark
         triplet: x64-windows-release
         token: ${{ github.token }}
-        github-binarycache: true
     - uses: actions/checkout@v4
       with:
         repository: kokkos/kokkos
