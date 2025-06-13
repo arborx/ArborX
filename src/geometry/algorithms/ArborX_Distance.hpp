@@ -109,6 +109,16 @@ struct distance<PointTag, SphereTag, Point, Sphere>
   }
 };
 
+// distance sphere-point
+template <typename Sphere, typename Point>
+struct distance<SphereTag, PointTag, Sphere, Point>
+{
+  KOKKOS_FUNCTION static auto apply(Sphere const &sphere, Point const &point)
+  {
+    return Details::distance(point, sphere);
+  }
+};
+
 // distance point-triangle
 template <typename Point, typename Triangle>
 struct distance<PointTag, TriangleTag, Point, Triangle>
@@ -296,6 +306,16 @@ struct distance<SphereTag, BoxTag, Sphere, Box>
 
     auto distance_center_box = Details::distance(sphere.centroid(), box);
     return max(distance_center_box - sphere.radius(), 0.f);
+  }
+};
+
+// distance sphere-box
+template <typename Box, typename Sphere>
+struct distance<BoxTag, SphereTag, Box, Sphere>
+{
+  KOKKOS_FUNCTION static auto apply(Box const &box, Sphere const &sphere)
+  {
+    return Details::distance(sphere, box);
   }
 };
 
