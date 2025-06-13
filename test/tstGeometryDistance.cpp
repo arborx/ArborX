@@ -60,6 +60,8 @@ BOOST_AUTO_TEST_CASE(distance_point_sphere)
   BOOST_TEST(distance(Point{{.5, .5, .5}}, sphere) == 0.);
   BOOST_TEST(distance(Point{{2., 0., 0.}}, sphere) == 1.);
   BOOST_TEST(distance(Point{{1., 1., 1.}}, sphere) == std::sqrt(3.f) - 1.f);
+
+  BOOST_TEST(distance(sphere, Point{2, 0, 0}) == 1);
 }
 
 BOOST_AUTO_TEST_CASE(distance_point_segment)
