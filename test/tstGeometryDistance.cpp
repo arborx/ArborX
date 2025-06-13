@@ -245,15 +245,19 @@ BOOST_AUTO_TEST_CASE(distance_sphere_box)
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
+  Box box;
   // distance between a sphere and a box no intersection
-  BOOST_TEST(distance(sphere, Box{{2.0, 3.0, 4.0}, {2.5, 3.5, 4.5}}) ==
-             std::sqrt(29.f) - 1.f);
+  box = Box{{2.0, 3.0, 4.0}, {2.5, 3.5, 4.5}};
+  BOOST_TEST(distance(sphere, box) == std::sqrt(29.f) - 1.f);
+  BOOST_TEST(distance(box, sphere) == std::sqrt(29.f) - 1.f);
   // distance between a sphere and a box with intersection
   BOOST_TEST(distance(sphere, Box{{0.5, 0.5, 0.5}, {2.5, 3.5, 4.5}}) == 0.f);
   // distance between a sphere included in a box and that box
   BOOST_TEST(distance(sphere, Box{{-2., -2., -2.}, {2., 2., 2.}}) == 0.f);
   // distance between a sphere and a box included in that sphere
-  BOOST_TEST(distance(sphere, Box{{0., 0., 0.}, {0.1, 0.2, 0.3}}) == 0.f);
+  box = Box{{0., 0., 0.}, {0.1, 0.2, 0.3}};
+  BOOST_TEST(distance(sphere, box) == 0.f);
+  BOOST_TEST(distance(box, sphere) == 0.f);
   // distance to empty box
   BOOST_TEST(distance(sphere, Box{}) == infinity);
 }
