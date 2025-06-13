@@ -31,7 +31,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDebugDLL" -DCMAKE_INSTALL_PREFIX=C:\kokkos-install -DKokkos_ENABLE_THREADS=ON ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDebugDLL" -DCMAKE_INSTALL_PREFIX="C:\kokkos-install" -DKokkos_ENABLE_THREADS=ON ..
         cmake --build . --config Release --target install -- -m
     - name: Configure ArborX
       run: |
