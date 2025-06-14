@@ -184,3 +184,20 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(!intersects(ellipse, Box2{{0, 1.5}, {0.5, 2}}));
   BOOST_TEST(!intersects(ellipse, Box2{{2.1, 2.1}, {3, 3}}));
 }
+
+BOOST_AUTO_TEST_CASE(intsersects_segment_triangle)
+{
+  using ArborX::Details::intersects;
+  using Segment = ArborX::Experimental::Segment<3>;
+  using Triangle = ArborX::Triangle<3>;
+
+  constexpr Triangle triangle{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+
+  BOOST_TEST(intersects(Segment{{0, 0, 0}, {1, 1, 1}}, triangle));
+  BOOST_TEST(intersects(Segment{{0, 0, 0}, {1, 0, 0}}, triangle));
+  BOOST_TEST(intersects(Segment{{0, 0, 0}, {0, 1, 0}}, triangle));
+  BOOST_TEST(intersects(Segment{{0, 0, 0}, {0, 0, 1}}, triangle));
+  BOOST_TEST(intersects(Segment{{0, 0, 0}, {0.5, 0.25, 0.25}}, triangle));
+  BOOST_TEST(!intersects(Segment{{0, 0, 0}, {0.45, 0.25, 0.25}}, triangle));
+  BOOST_TEST(!intersects(Segment{{0.9, 0, 0}, {0, 0, 0.9}}, triangle));
+}

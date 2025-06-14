@@ -14,6 +14,7 @@
 #include "ArborX_Distance.hpp"
 #include "ArborX_Expand.hpp"
 #include <ArborX_GeometryTraits.hpp>
+#include <ArborX_Ray.hpp>
 #include <ArborX_Segment.hpp>
 #include <misc/ArborX_Vector.hpp>
 
@@ -512,6 +513,37 @@ struct intersects<BoxTag, SegmentTag, Box, Segment>
                                               Segment const &segment)
   {
     return Details::intersects(segment, box);
+  }
+};
+
+template <typename Segment, typename Triangle>
+struct intersects<SegmentTag, TriangleTag, Segment, Triangle>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Segment const &segment,
+                                              Triangle const &triangle)
+  {
+    static_assert(GeometryTraits::dimension_v<Segment> == 3);
+    using Coordinate = GeometryTraits::coordinate_type_t<Segment>;
+
+    auto dir = segment.b - segment.a;
+    Experimental::Ray<Coordinate> ray(segment.a, dir);
+
+    Coordinate tmin;
+    Coordinate tmax;
+    intersection(ray, triangle, tmin, tmax);
+
+    return tmax >= 0 && tmax <= dir.norm();
+  }
+};
+
+template <typename Triangle, typename Segment>
+struct intersects<TriangleTag, SegmentTag, Triangle, Segment>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Triangle const &triangle,
+                                              Segment const &segment)
+
+  {
+    return Details::intersects(segment, triangle);
   }
 };
 
