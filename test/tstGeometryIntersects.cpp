@@ -163,6 +163,7 @@ BOOST_AUTO_TEST_CASE(intersects)
   BOOST_TEST(intersects(ellipse, Point2{1.f, 1.69f}));
   BOOST_TEST(intersects(ellipse, Point2{1.f, 1.70f}));
 
+  BOOST_TEST(intersects(ellipse, Segment2{{1, 1}, {1, 1}}));
   BOOST_TEST(intersects(ellipse, Segment2{{-1, 1}, {1, -1}}));
   BOOST_TEST(!intersects(ellipse, Segment2{{-1.1, 1}, {1, -1}}));
   BOOST_TEST(intersects(ellipse, Segment2{{0, 0}, {0, 1}}));

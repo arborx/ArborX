@@ -590,6 +590,9 @@ struct intersects<EllipsoidTag, SegmentTag, Ellipsoid, Segment>
   KOKKOS_FUNCTION static constexpr bool apply(Ellipsoid const &ellipsoid,
                                               Segment const &segment)
   {
+    if (Details::equals(segment.a, segment.b))
+      return Details::intersects(ellipsoid, segment.a);
+
     // Preliminaries:
     // - parametric segment formula: a + t(b-a)
     // - ellipsoid formula: (x-c)^T R (x-c) <= 1
