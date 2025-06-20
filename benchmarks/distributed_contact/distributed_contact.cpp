@@ -9,10 +9,17 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_Config.hpp>
+
 #include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedTree.hpp>
 #include <ArborX_Triangle.hpp>
 #include <ArborX_Version.hpp>
+
+#ifdef ARBORX_ENABLE_CALIPER
+#include <caliper/cali-manager.h>
+#include <caliper/cali.h>
+#endif
 
 #include <Kokkos_Core.hpp>
 
@@ -197,6 +204,10 @@ int main_(MPI_Comm const comm)
 
 int main(int argc, char *argv[])
 {
+#ifdef ARBORX_ENABLE_CALIPER
+  CALI_MARK_BEGIN("main");
+#endif
+
   MPI_Init(&argc, &argv);
 
   MPI_Comm const comm = MPI_COMM_WORLD;
@@ -227,7 +238,24 @@ int main(int argc, char *argv[])
   }
   Kokkos::initialize(argc, argv);
 
+#ifdef ARBORX_ENABLE_CALIPER
+  cali::ConfigManager caliper_manager;
+  std::string caliper_config = "profile.mpi"
+                               ",profile.kokkos"
+                               // ",loop-report"
+                               ",runtime-report"
+                               ",calc.inclusive"
+                               ",max_column_width=80";
+  caliper_manager.add(caliper_config.c_str());
+  caliper_manager.start();
+#endif
+
   main_<float>(comm);
+
+#ifdef ARBORX_ENABLE_CALIPER
+  CALI_MARK_END("main");
+  caliper_manager.flush();
+#endif
 
   Kokkos::finalize();
   MPI_Finalize();
