@@ -19,30 +19,33 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_CASE(centroid)
+using CoordinatesList = std::tuple<float, double>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(centroid, Coordinate, CoordinatesList)
 {
   using ArborX::Details::equals;
   using ArborX::Details::returnCentroid;
 
-  ArborX::Box box{{-10.f, 0.f, 10.f}, {0.f, 10.f, 20.f}};
+  ArborX::Box<3, Coordinate> box{{-10.f, 0.f, 10.f}, {0.f, 10.f, 20.f}};
   auto center = returnCentroid(box);
   BOOST_TEST(center[0] == -5.0);
   BOOST_TEST(center[1] == 5.0);
   BOOST_TEST(center[2] == 15.0);
 
-  ArborX::Triangle tri2{{-1.f, -0.5f}, {1.f, -0.5f}, {0.f, 1.f}};
-  BOOST_TEST(equals(returnCentroid(tri2), ArborX::Point{0.f, 0.f}));
+  ArborX::Triangle<2, Coordinate> tri2{{-1, -0.5}, {1, -0.5}, {0, 1}};
+  BOOST_TEST(equals(returnCentroid(tri2), {0, 0}));
 
-  ArborX::Triangle tri3{{0.f, 0.f, -2.f}, {3.f, 0.f, 1.f}, {0.f, 3.f, 1.f}};
-  BOOST_TEST(equals(returnCentroid(tri3), ArborX::Point{1.f, 1.f, 0.f}));
+  ArborX::Triangle<3, Coordinate> tri3{{0, 0, -2}, {3, 0, 1}, {0, 3, 1}};
+  BOOST_TEST(equals(returnCentroid(tri3), {1, 1, 0}));
 
-  ArborX::ExperimentalHyperGeometry::Tetrahedron tet{
-      {0.f, 0.f, -2.f}, {-4.f, 3.f, 4.f}, {1.f, 9.f, 5.f}, {-1.f, 0.f, 1.f}};
-  BOOST_TEST(equals(returnCentroid(tet), ArborX::Point{-1.f, 3.f, 2.f}));
+  ArborX::ExperimentalHyperGeometry::Tetrahedron<Coordinate> tet{
+      {0, 0, -2}, {-4, 3, 4}, {1, 9, 5}, {-1, 0, 1}};
+  BOOST_TEST(equals(returnCentroid(tet), {-1, 3, 2}));
 
-  ArborX::Experimental::Segment segment{{-1.f, -1.f}, {3.f, 3.f}};
-  BOOST_TEST(equals(returnCentroid(segment), ArborX::Point{1.f, 1.f}));
+  ArborX::Experimental::Segment<2, Coordinate> segment{{-1, -1}, {3, 3}};
+  BOOST_TEST(equals(returnCentroid(segment), {1, 1}));
 
-  ArborX::Experimental::Ellipsoid ellipse{{1.f, 0.f}, {{2.f, 1.f}, {1.f, 2.f}}};
-  BOOST_TEST(equals(returnCentroid(ellipse), ArborX::Point{1.f, 0.f}));
+  ArborX::Experimental::Ellipsoid<2, Coordinate> ellipse{{1, 0},
+                                                         {{2, 1}, {1, 2}}};
+  BOOST_TEST(equals(returnCentroid(ellipse), {1, 0}));
 }

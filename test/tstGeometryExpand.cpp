@@ -20,16 +20,20 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_CASE(expand)
+using CoordinatesList = std::tuple<float, double>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(expand, Coordinate, CoordinatesList)
 {
   using ArborX::Details::equals;
   using ArborX::Details::expand;
 
-  using Point = ArborX::Point<3>;
-  using Box = ArborX::Box<3>;
-  using Sphere = ArborX::Sphere<3>;
-  using Triangle = ArborX::Triangle<3>;
-  using Tetrahedron = ArborX::ExperimentalHyperGeometry::Tetrahedron<>;
+  using Point = ArborX::Point<3, Coordinate>;
+  using Box = ArborX::Box<3, Coordinate>;
+  using Sphere = ArborX::Sphere<3, Coordinate>;
+  using Triangle = ArborX::Triangle<3, Coordinate>;
+  using Segment = ArborX::Experimental::Segment<3, Coordinate>;
+  using Tetrahedron =
+      ArborX::ExperimentalHyperGeometry::Tetrahedron<Coordinate>;
 
   Box box;
 
@@ -71,7 +75,6 @@ BOOST_AUTO_TEST_CASE(expand)
   BOOST_TEST(equals(box, Box{{-5, -5, -3}, {5, 8, 7}}));
 
   // expand box with segments
-  using ArborX::Experimental::Segment;
   box = Box{};
   expand(box, Segment{{0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}});
   BOOST_TEST(equals(box, Box{{0, 0, 0}, {1, 1, 1}}));
