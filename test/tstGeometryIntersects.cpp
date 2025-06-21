@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_box, Coordinate, CoordinatesList)
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_box_box, Coordinate, CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Box = ArborX::Box<3>;
+  using Box = ArborX::Box<3, Coordinate>;
 
   // uninitialized box does not intersect with other boxes
   static_assert(!intersects(Box{}, Box{{{1.0, 2.0, 3.0}}, {{4.0, 5.0, 6.0}}}));
@@ -76,8 +76,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_sphere_point, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Point = ArborX::Point<3>;
-  using Sphere = ArborX::Sphere<3>;
+  using Point = ArborX::Point<3, Coordinate>;
+  using Sphere = ArborX::Sphere<3, Coordinate>;
 
   // unit sphere
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
@@ -92,8 +92,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_sphere_box, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Box = ArborX::Box<3>;
-  using Sphere = ArborX::Sphere<3>;
+  using Box = ArborX::Box<3, Coordinate>;
+  using Sphere = ArborX::Sphere<3, Coordinate>;
 
   constexpr Sphere sphere{{{0., 0., 0.}}, 1.};
   BOOST_TEST(intersects(sphere, Box{{{0., 0., 0.}}, {{1., 1., 1.}}}));
@@ -104,9 +104,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_triangle, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Point2 = ArborX::Point<2>;
+  using Point2 = ArborX::Point<2, Coordinate>;
 
-  constexpr ArborX::Triangle<2> triangle{{{0, 0}}, {{1, 0}}, {{0, 2}}};
+  constexpr ArborX::Triangle<2, Coordinate> triangle{
+      {{0, 0}}, {{1, 0}}, {{0, 2}}};
 
   BOOST_TEST(intersects(Point2{{0, 0}}, triangle));
   BOOST_TEST(intersects(Point2{{1, 0}}, triangle));
@@ -125,9 +126,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_triangle_box, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Box = ArborX::Box<3>;
+  using Box = ArborX::Box<3, Coordinate>;
 
-  constexpr ArborX::Triangle<3> triangle3{
+  constexpr ArborX::Triangle<3, Coordinate> triangle3{
       {{1, 0, 0}}, {{0, 1, 0}}, {{0, 0, 1}}};
 
   BOOST_TEST(intersects(triangle3, Box{{{0., 0., 0.}}, {{1., 1., 1.}}}));
@@ -137,21 +138,24 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_triangle_box, Coordinate,
 
   constexpr Box unit_box{{{0, 0, 0}}, {{1, 1, 1}}};
   BOOST_TEST(intersects(
-      ArborX::Triangle<3>{{{0, 0, 0}}, {{0, 1, 0}}, {{1, 0, 0}}}, unit_box));
-  BOOST_TEST(intersects(
-      ArborX::Triangle<3>{{{0, 0, 0}}, {{0, 1, 0}}, {{-1, 0, 0}}}, unit_box));
-  BOOST_TEST(intersects(
-      ArborX::Triangle<3>{{{.1, .1, .1}}, {{.1, .9, .1}}, {{.9, .1, .1}}},
+      ArborX::Triangle<3, Coordinate>{{{0, 0, 0}}, {{0, 1, 0}}, {{1, 0, 0}}},
       unit_box));
+  BOOST_TEST(intersects(
+      ArborX::Triangle<3, Coordinate>{{{0, 0, 0}}, {{0, 1, 0}}, {{-1, 0, 0}}},
+      unit_box));
+  BOOST_TEST(intersects(ArborX::Triangle<3, Coordinate>{{{.1, .1, .1}},
+                                                        {{.1, .9, .1}},
+                                                        {{.9, .1, .1}}},
+                        unit_box));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_tetrahedron, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Point = ArborX::Point<3>;
+  using Point = ArborX::Point<3, Coordinate>;
 
-  constexpr ArborX::ExperimentalHyperGeometry::Tetrahedron<> tet{
+  constexpr ArborX::ExperimentalHyperGeometry::Tetrahedron<Coordinate> tet{
       {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
 
   BOOST_TEST(intersects(Point{0, 0, 0}, tet));
@@ -170,7 +174,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_segment_segment, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Segment2 = ArborX::Experimental::Segment<2>;
+  using Segment2 = ArborX::Experimental::Segment<2, Coordinate>;
 
   constexpr Segment2 seg{{1, 1}, {2, 2}};
   BOOST_TEST(intersects(Segment2{{2, 2}, {3, 3}}, seg));
@@ -189,9 +193,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_segment_box, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Segment2 = ArborX::Experimental::Segment<2>;
+  using Segment2 = ArborX::Experimental::Segment<2, Coordinate>;
 
-  constexpr ArborX::Box<2> box2{{{0.0, 0.0}}, {{1.0, 1.0}}};
+  constexpr ArborX::Box<2, Coordinate> box2{{{0.0, 0.0}}, {{1.0, 1.0}}};
 
   BOOST_TEST(intersects(Segment2{{0, 0}, {0, 0}}, box2));
   BOOST_TEST(intersects(Segment2{{-1, 1}, {1, -1}}, box2));
@@ -211,10 +215,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_ellipse, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Point2 = ArborX::Point<2>;
+  using Point2 = ArborX::Point<2, Coordinate>;
 
   // ellipsoid [2x^2 - 3xy + 2y^2 <= 1]
-  constexpr ArborX::Experimental::Ellipsoid<2> ellipse{
+  constexpr ArborX::Experimental::Ellipsoid<2, Coordinate> ellipse{
       {1.f, 1.f}, {{2.f, -1.5f}, {-1.5f, 2.f}}};
 
   BOOST_TEST(intersects(ellipse, Point2{1.f, 1.f}));
@@ -234,10 +238,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_ellipse_segment, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Segment2 = ArborX::Experimental::Segment<2>;
+  using Segment2 = ArborX::Experimental::Segment<2, Coordinate>;
 
   // ellipsoid [2x^2 - 3xy + 2y^2 <= 1]
-  constexpr ArborX::Experimental::Ellipsoid<2> ellipse{
+  constexpr ArborX::Experimental::Ellipsoid<2, Coordinate> ellipse{
       {1.f, 1.f}, {{2.f, -1.5f}, {-1.5f, 2.f}}};
 
   BOOST_TEST(intersects(ellipse, Segment2{{1, 1}, {1, 1}}));
@@ -253,10 +257,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_ellipse_box, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Box2 = ArborX::Box<2>;
+  using Box2 = ArborX::Box<2, Coordinate>;
 
   // ellipsoid [2x^2 - 3xy + 2y^2 <= 1]
-  constexpr ArborX::Experimental::Ellipsoid<2> ellipse{
+  constexpr ArborX::Experimental::Ellipsoid<2, Coordinate> ellipse{
       {1.f, 1.f}, {{2.f, -1.5f}, {-1.5f, 2.f}}};
 
   BOOST_TEST(intersects(ellipse, Box2{{-10, -10}, {10, 10}}));
@@ -277,8 +281,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_segment_triangle, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
-  using Segment = ArborX::Experimental::Segment<3>;
-  using Triangle = ArborX::Triangle<3>;
+  using Segment = ArborX::Experimental::Segment<3, Coordinate>;
+  using Triangle = ArborX::Triangle<3, Coordinate>;
 
   constexpr Triangle triangle{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
 
