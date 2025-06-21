@@ -29,6 +29,12 @@ else()
   target_compile_options(benchmark_main PRIVATE -w)
 ENDIF()
 
+option(ARBORX_ENABLE_CALIPER "Enable Caliper instrumentation" OFF)
+if(ARBORX_ENABLE_CALIPER)
+  find_package(caliper REQUIRED)
+  add_compile_definitions(ARBORX_ENABLE_CALIPER)
+endif()
+
 add_subdirectory(brute_force_vs_bvh)
 add_subdirectory(cluster)
 add_subdirectory(execution_space_instances)
