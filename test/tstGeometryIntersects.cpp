@@ -11,6 +11,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_Ellipsoid.hpp>
+#include <ArborX_KDOP.hpp>
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Tetrahedron.hpp>
 #include <ArborX_Triangle.hpp>
@@ -293,4 +294,193 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_segment_triangle, Coordinate,
   BOOST_TEST(intersects(Segment{{0, 0, 0}, {0.5, 0.25, 0.25}}, triangle));
   BOOST_TEST(!intersects(Segment{{0, 0, 0}, {0.45, 0.25, 0.25}}, triangle));
   BOOST_TEST(!intersects(Segment{{0.9, 0, 0}, {0, 0, 0.9}}, triangle));
+}
+
+using KDOP_2D_types = std::tuple<ArborX::Experimental::KDOP<2, 4, float>,
+                                 ArborX::Experimental::KDOP<2, 4, double>,
+                                 ArborX::Experimental::KDOP<2, 8, float>,
+                                 ArborX::Experimental::KDOP<2, 8, double>>;
+using KDOP_3D_types = std::tuple<ArborX::Experimental::KDOP<3, 6, float>,
+                                 ArborX::Experimental::KDOP<3, 6, double>,
+                                 ArborX::Experimental::KDOP<3, 14, float>,
+                                 ArborX::Experimental::KDOP<3, 14, double>,
+                                 ArborX::Experimental::KDOP<3, 18, float>,
+                                 ArborX::Experimental::KDOP<3, 18, double>,
+                                 ArborX::Experimental::KDOP<3, 26, float>,
+                                 ArborX::Experimental::KDOP<3, 26, double>>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_2D, KDOP_t, KDOP_2D_types)
+{
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<KDOP_t>;
+  using Point = ArborX::Point<2, Coordinate>;
+
+  KDOP_t x;
+  BOOST_TEST(!intersects(x, x));
+  expand(x, Point{1, 0});
+  expand(x, Point{0, 1});
+  BOOST_TEST(intersects(x, x));
+  BOOST_TEST(!intersects(x, KDOP_t{}));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_2D, KDOP_t, KDOP_2D_types)
+{
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<KDOP_t>;
+  using Point = ArborX::Point<2, Coordinate>;
+  using Box = ArborX::Box<2, Coordinate>;
+
+  KDOP_t x;
+  BOOST_TEST(!intersects(x, Box{}));
+  BOOST_TEST(!intersects(x, Box{{0, 0}, {1, 1}}));
+  expand(x, Point{1, 0});
+  expand(x, Point{0, 1});
+  BOOST_TEST(!intersects(x, Box{}));
+  BOOST_TEST(intersects(x, Box{{0, 0}, {1, 1}}));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop_2D, KDOP_t, KDOP_2D_types)
+{
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<KDOP_t>;
+  using Point = ArborX::Point<2, Coordinate>;
+
+  constexpr bool is_kdop_2_4 = (KDOP_t::n_directions == 2);
+
+  {
+    KDOP_t x;
+    BOOST_TEST(!intersects(Point{1, 1}, x));
+  }
+  {
+    KDOP_t x; // rombus
+    expand(x, Point{0.5f, 0});
+    expand(x, Point{0.5f, 1});
+    expand(x, Point{0, 0.5f});
+    expand(x, Point{1, 0.5f});
+    // unit square corners
+    BOOST_TEST(intersects(Point{0, 0}, x) == is_kdop_2_4);
+    BOOST_TEST(intersects(Point{1, 0}, x) == is_kdop_2_4);
+    BOOST_TEST(intersects(Point{0, 1}, x) == is_kdop_2_4);
+    BOOST_TEST(intersects(Point{1, 1}, x) == is_kdop_2_4);
+    // rombus corners
+    BOOST_TEST(intersects(Point{0.5f, 0}, x));
+    BOOST_TEST(intersects(Point{0.5f, 1}, x));
+    BOOST_TEST(intersects(Point{0, 0.5f}, x));
+    BOOST_TEST(intersects(Point{1, 0.5f}, x));
+    // unit square center
+    BOOST_TEST(intersects(Point{0.5f, 0.5f}, x));
+    // mid rombus diagonals
+    BOOST_TEST(intersects(Point{0.75f, 0.25f}, x));
+    BOOST_TEST(intersects(Point{0.25f, 0.25f}, x));
+    BOOST_TEST(intersects(Point{0.25f, 0.75f}, x));
+    BOOST_TEST(intersects(Point{0.75f, 0.75f}, x));
+    // slightly outside of the diagonals
+    BOOST_TEST(intersects(Point{0.8f, 0.2f}, x) == is_kdop_2_4);
+    BOOST_TEST(intersects(Point{0.2f, 0.2f}, x) == is_kdop_2_4);
+    BOOST_TEST(intersects(Point{0.2f, 0.8f}, x) == is_kdop_2_4);
+    BOOST_TEST(intersects(Point{0.8f, 0.8f}, x) == is_kdop_2_4);
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_kdop_3D, KDOP_t, KDOP_3D_types)
+{
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<KDOP_t>;
+  using Point = ArborX::Point<3, Coordinate>;
+
+  KDOP_t x;
+  BOOST_TEST(!intersects(x, x));
+  expand(x, Point{1, 0, 0});
+  expand(x, Point{0, 1, 0});
+  expand(x, Point{0, 0, 1});
+  BOOST_TEST(intersects(x, x));
+  BOOST_TEST(!intersects(x, KDOP_t{}));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop_box_3D, KDOP_t, KDOP_3D_types)
+{
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<KDOP_t>;
+  using Box = ArborX::Box<3, Coordinate>;
+  using Point = ArborX::Point<3, Coordinate>;
+
+  KDOP_t x;
+  BOOST_TEST(!intersects(x, Box{}));
+  BOOST_TEST(!intersects(x, Box{{0, 0, 0}, {1, 1, 1}}));
+  expand(x, Point{1, 0, 0});
+  expand(x, Point{0, 1, 0});
+  expand(x, Point{0, 0, 1});
+  BOOST_TEST(!intersects(x, Box{}));
+  BOOST_TEST(intersects(x, Box{{0, 0, 0}, {1, 1, 1}}));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop, KDOP_t, KDOP_3D_types)
+{
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<KDOP_t>;
+  using Point = ArborX::Point<3, Coordinate>;
+
+  constexpr bool is_kdop_3_6 = (KDOP_t::n_directions == 3);
+  constexpr bool is_kdop_3_14 = (KDOP_t::n_directions == 7);
+  constexpr bool is_kdop_3_18 = (KDOP_t::n_directions == 9);
+
+  {
+    KDOP_t x;
+    BOOST_TEST(!intersects(Point{1, 1, 1}, x));
+  }
+  {
+    KDOP_t x; // unit cube with (1,1,0)--(1,1,1) edge chopped away
+    // bottom face
+    expand(x, Point{0, 0, 0});
+    expand(x, Point{1, 0, 0});
+    expand(x, Point{1, 0.75, 0});
+    expand(x, Point{0.75, 1, 0});
+    expand(x, Point{0, 1, 0});
+    // top
+    expand(x, Point{0, 0, 1});
+    expand(x, Point{1, 0, 1});
+    expand(x, Point{1, 0.75, 1});
+    expand(x, Point{0.75, 1, 1});
+    expand(x, Point{0, 1, 1});
+    // test intersection with point on the missing edge
+    BOOST_TEST(intersects(Point{1, 1, 0.5}, x) ==
+               (is_kdop_3_6 || is_kdop_3_14));
+    BOOST_TEST(intersects(Point{1, 1, 0.625}, x) ==
+               (is_kdop_3_6 || is_kdop_3_14));
+    BOOST_TEST(intersects(Point{1, 1, 0.375}, x) ==
+               (is_kdop_3_6 || is_kdop_3_14));
+    BOOST_TEST(intersects(Point{1, 1, 0.875}, x) == is_kdop_3_6);
+    BOOST_TEST(intersects(Point{1, 1, 0.125}, x) == is_kdop_3_6);
+    // with both ends of the edge
+    BOOST_TEST(intersects(Point{1, 1, 0}, x) == is_kdop_3_6);
+    BOOST_TEST(intersects(Point{1, 1, 1}, x) == is_kdop_3_6);
+    // with centroid of unit cube
+    BOOST_TEST(intersects(Point{0.5, 0.5, 0.5}, x));
+    // with some point outside the unit cube
+    BOOST_TEST(!intersects(Point{1, 2, 3}, x));
+  }
+  {
+    KDOP_t x; // unit cube with (1,1,1) corner cut off
+    // bottom face
+    expand(x, Point{0, 0, 0});
+    expand(x, Point{1, 0, 0});
+    expand(x, Point{1, 1, 0});
+    expand(x, Point{0, 1, 0});
+    // top
+    expand(x, Point{0, 0, 1});
+    expand(x, Point{1, 0, 1});
+    expand(x, Point{1, 0.75, 1});
+    expand(x, Point{0.75, 1, 1});
+    expand(x, Point{0, 1, 1});
+    // test intersection with center of the missing corner
+    BOOST_TEST(intersects(Point{1, 1, 1}, x) == (is_kdop_3_6 || is_kdop_3_18));
+    // test with points on the edges out of that corner
+    BOOST_TEST(intersects(Point{0.5, 1, 1}, x));
+    BOOST_TEST(intersects(Point{0.875, 1, 1}, x) ==
+               (is_kdop_3_6 || is_kdop_3_18));
+    BOOST_TEST(intersects(Point{1, 0.5, 1}, x));
+    BOOST_TEST(intersects(Point{1, 0.875, 1}, x) ==
+               (is_kdop_3_6 || is_kdop_3_18));
+    BOOST_TEST(intersects(Point{1, 1, 0.5}, x));
+    BOOST_TEST(intersects(Point{1, 1, 0.875}, x) ==
+               (is_kdop_3_6 || is_kdop_3_18));
+    // with centroid of unit cube
+    BOOST_TEST(intersects(Point{0.5, 0.5, 0.5}, x));
+    // with some point outside the unit cube
+    BOOST_TEST(!intersects(Point{1, 2, 3}, x));
+  }
 }
