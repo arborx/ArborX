@@ -16,6 +16,11 @@
 
 #include <Kokkos_Core.hpp>
 
+#ifdef ARBORX_ENABLE_CALIPER
+#include <caliper/cali-manager.h>
+#include <caliper/cali.h>
+#endif
+
 #include <boost/program_options.hpp>
 
 #include <cmath>    // sqrt, cbrt
@@ -286,6 +291,19 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 
 int main(int argc, char *argv[])
 {
+#ifdef ARBORX_ENABLE_CALIPER
+  cali::ConfigManager caliper_manager;
+  std::string caliper_config = "profile.mpi"
+                               ",profile.kokkos"
+                               ",runtime-report"
+                               ",calc.inclusive"
+                               ",max_column_width=80";
+  caliper_manager.add(caliper_config.c_str());
+  caliper_manager.start();
+
+  CALI_CXX_MARK_FUNCTION;
+#endif
+
   MPI_Init(&argc, &argv);
 
   MPI_Comm const comm = MPI_COMM_WORLD;
@@ -419,6 +437,10 @@ int main(int argc, char *argv[])
               << " caught some kind of exception\n";
     success = false;
   }
+
+#ifdef ARBORX_ENABLE_CALIPER
+  caliper_manager.flush();
+#endif
 
   Kokkos::finalize();
 
