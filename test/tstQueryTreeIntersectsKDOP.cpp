@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
       {{0, 0, 3}}, // 12
   };
   ArborX::BoundingVolumeHierarchy const tree(
-      ExecutionSpace{}, Iota<MemorySpace>{static_cast<int>(primitives.size())},
+      ExecutionSpace{}, primitives.size(),
       Kokkos::create_mirror_view_and_copy(
           MemorySpace{},
           Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
