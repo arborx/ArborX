@@ -18,24 +18,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-template <typename MemorySpace>
-struct Iota
-{
-  static_assert(Kokkos::is_memory_space_v<MemorySpace>);
-  using memory_space = MemorySpace;
-  int _n;
-};
-
-template <typename MemorySpace>
-struct ArborX::AccessTraits<Iota<MemorySpace>>
-{
-  using Self = Iota<MemorySpace>;
-
-  using memory_space = typename Self::memory_space;
-  static KOKKOS_FUNCTION size_t size(Self const &self) { return self._n; }
-  static KOKKOS_FUNCTION auto get(Self const &, int i) { return i; }
-};
-
 #include <vector>
 
 #include "Search_UnitTestHelpers.hpp"
