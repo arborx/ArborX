@@ -15,6 +15,7 @@
 #include <ArborX_Box.hpp>
 #include <detail/ArborX_AttachIndices.hpp>
 #include <detail/ArborX_Callbacks.hpp>
+#include <detail/ArborX_Iota.hpp>
 #include <detail/ArborX_PermutedData.hpp>
 #include <detail/ArborX_Predicates.hpp>
 #include <detail/ArborX_SpaceFillingCurves.hpp>
@@ -321,11 +322,6 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   }
 }
 
-struct Iota
-{
-  KOKKOS_FUNCTION unsigned int operator()(int const i) const { return i; }
-};
-
 template <typename Tag, typename ExecutionSpace,
           Details::Concepts::Predicates Predicates, typename OffsetView,
           typename OutView>
@@ -442,7 +438,7 @@ void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   }
   else
   {
-    Iota permute;
+    Iota<typename Tree::memory_space> permute(predicates.size());
     queryImpl(space, tree, predicates, callback, out, offset, permute,
               buffer_status);
   }
