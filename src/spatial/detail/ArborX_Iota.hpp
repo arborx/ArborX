@@ -26,7 +26,17 @@ struct Iota
 {
   static_assert(Kokkos::is_memory_space_v<MemorySpace>);
   using memory_space = MemorySpace;
-  int _n;
+
+  KOKKOS_FUNCTION
+  auto size() const { return _n; }
+
+  template <std::integral T>
+  KOKKOS_FUNCTION T operator()(T i) const
+  {
+    return i;
+  }
+
+  size_t _n;
 };
 
 } // namespace Details
