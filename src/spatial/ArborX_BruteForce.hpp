@@ -57,7 +57,7 @@ public:
   template <typename ExecutionSpace>
   BruteForce(ExecutionSpace const &space, int size,
              IndexableGetter const &indexable_getter)
-      : BruteForce(space, Details::Iota<MemorySpace>{size}, indexable_getter)
+      : BruteForce(space, Details::Iota<MemorySpace>(size), indexable_getter)
   {}
 
   KOKKOS_FUNCTION

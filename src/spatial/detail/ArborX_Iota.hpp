@@ -28,6 +28,11 @@ struct Iota
   using memory_space = MemorySpace;
 
   KOKKOS_FUNCTION
+  Iota(size_t n)
+      : _n(n)
+  {}
+
+  KOKKOS_FUNCTION
   auto size() const { return _n; }
 
   template <std::integral T>

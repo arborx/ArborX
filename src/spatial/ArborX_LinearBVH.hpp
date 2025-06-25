@@ -80,7 +80,7 @@ public:
       ExecutionSpace const &space, int size,
       IndexableGetter const &indexable_getter,
       SpaceFillingCurve const &curve = Experimental::Morton64())
-      : BoundingVolumeHierarchy(space, Details::Iota<MemorySpace>{size},
+      : BoundingVolumeHierarchy(space, Details::Iota<MemorySpace>(size),
                                 indexable_getter, curve)
   {}
 

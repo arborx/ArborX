@@ -390,7 +390,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   }
   else
   {
-    Iota<typename Tree::memory_space> permute{predicates.size()};
+    Iota<typename Tree::memory_space> permute(predicates.size());
     queryImpl(space, tree, predicates, callback, out, offset, permute,
               buffer_status);
   }
