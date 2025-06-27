@@ -17,7 +17,6 @@
 #include <Kokkos_Core.hpp>
 
 #ifdef ARBORX_ENABLE_CALIPER
-#include <caliper/cali-manager.h>
 #include <caliper/cali.h>
 #endif
 
@@ -292,16 +291,12 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 int main(int argc, char *argv[])
 {
 #ifdef ARBORX_ENABLE_CALIPER
-  cali::ConfigManager caliper_manager;
-  std::string caliper_config = "profile.mpi"
-                               ",profile.kokkos"
-                               ",runtime-report"
-                               ",calc.inclusive"
-                               ",max_column_width=80";
-  caliper_manager.add(caliper_config.c_str());
-  caliper_manager.start();
-
-  CALI_CXX_MARK_FUNCTION;
+  // The Caliper output can be managed through CALI_CONFIG environment variable.
+  // For example,
+  //   CALI_CONFIG=runtime-report,profile.mpi,profile.kokkos,calc.inclusive,max_column_width=80
+  //   \
+  //     mpirun -np 4 ./ArborX_Benchmark_DistributedTree.exe
+  CALI_MARK_FUNCTION_BEGIN;
 #endif
 
   MPI_Init(&argc, &argv);
@@ -439,7 +434,7 @@ int main(int argc, char *argv[])
   }
 
 #ifdef ARBORX_ENABLE_CALIPER
-  caliper_manager.flush();
+  CALI_MARK_FUNCTION_END;
 #endif
 
   Kokkos::finalize();
