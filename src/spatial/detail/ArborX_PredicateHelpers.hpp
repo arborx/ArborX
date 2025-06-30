@@ -28,6 +28,8 @@ class PrimitivesIntersect
   using Primitives = Details::AccessValues<UserPrimitives>;
 
 public:
+  using memory_space = typename Primitives::memory_space;
+
   KOKKOS_FUNCTION PrimitivesIntersect(UserPrimitives const &primitives)
       : _primitives(primitives)
   {}
@@ -41,6 +43,8 @@ class PrimitivesOrderedIntersect
   using Primitives = Details::AccessValues<UserPrimitives>;
 
 public:
+  using memory_space = typename Primitives::memory_space;
+
   KOKKOS_FUNCTION PrimitivesOrderedIntersect(UserPrimitives const &primitives)
       : _primitives(primitives)
   {}
@@ -57,6 +61,8 @@ class PrimitivesWithRadius
   using Coordinate = typename GeometryTraits::coordinate_type<Point>::type;
 
 public:
+  using memory_space = typename Primitives::memory_space;
+
   PrimitivesWithRadius(UserPrimitives const &user_primitives, Coordinate r)
       : _primitives(user_primitives)
       , _r(r)
@@ -72,6 +78,8 @@ class PrimitivesNearestK
   using Primitives = Details::AccessValues<UserPrimitives>;
 
 public:
+  using memory_space = typename Primitives::memory_space;
+
   PrimitivesNearestK(UserPrimitives const &user_primitives, int k)
       : _primitives(user_primitives)
       , _k(k)
@@ -119,7 +127,7 @@ private:
   using Self = Experimental::PrimitivesIntersect<Primitives>;
 
 public:
-  using memory_space = typename Primitives::memory_space;
+  using memory_space = typename Self::memory_space;
   using size_type = typename memory_space::size_type;
 
   static KOKKOS_FUNCTION size_type size(Self const &x)
@@ -139,7 +147,7 @@ private:
   using Self = Experimental::PrimitivesOrderedIntersect<Primitives>;
 
 public:
-  using memory_space = typename Primitives::memory_space;
+  using memory_space = typename Self::memory_space;
   using size_type = typename memory_space::size_type;
 
   static KOKKOS_FUNCTION size_type size(Self const &x)
@@ -159,7 +167,7 @@ private:
   using Self = Experimental::PrimitivesWithRadius<Primitives>;
 
 public:
-  using memory_space = typename Primitives::memory_space;
+  using memory_space = typename Self::memory_space;
   using size_type = typename memory_space::size_type;
 
   static KOKKOS_FUNCTION size_type size(Self const &x)
@@ -184,7 +192,7 @@ private:
   using Self = Experimental::PrimitivesNearestK<Primitives>;
 
 public:
-  using memory_space = typename Primitives::memory_space;
+  using memory_space = typename Self::memory_space;
   using size_type = typename memory_space::size_type;
 
   static KOKKOS_FUNCTION size_type size(Self const &x)
