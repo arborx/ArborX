@@ -46,10 +46,11 @@ struct PointsRequiringResolution
   Coordinate _eps;
 };
 
-// FIXME_CLANG(Clang<17): Clang 16 or earlier does not support aggregate
-// initialization type deduction
+// FIXME_CLANG(Clang<=17): Clang 16 and some Clang 17 based compilers do not
+// support aggregate initialization type deduction
 // https://github.com/llvm/llvm-project/issues/54050
-#if defined(__clang__) && (__clang_major__ < 17)
+// Reproducer: https://godbolt.org/z/nEdjb5rP4
+#if defined(__clang__) && KOKKOS_COMPILER_CLANG < 17001
 template <typename Points, typename GhostPoints>
 KOKKOS_DEDUCTION_GUIDE UnifiedPoints(Points, GhostPoints)
     -> UnifiedPoints<Points, GhostPoints>;
