@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
 
   // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
   // are not on MPI rank 0 to prevent Kokkos from printing the help message
-  // multiply.
+  // multiple times.
   if (comm_rank != 0)
   {
     auto *help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
