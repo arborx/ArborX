@@ -43,5 +43,6 @@ endif()
 add_subdirectory(triangulated_surface_distance)
 
 if (ARBORX_ENABLE_MPI)
+  add_subdirectory(distributed_contact)
   add_subdirectory(distributed_tree_driver)
 endif()
