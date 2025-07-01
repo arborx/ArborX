@@ -101,8 +101,9 @@ struct distance<PointTag, SphereTag, Point, Sphere>
   KOKKOS_FUNCTION static auto apply(Point const &point, Sphere const &sphere)
   {
     using Kokkos::max;
+    using Coordinate = GeometryTraits::coordinate_type_t<Sphere>;
     return max(Details::distance(point, sphere.centroid()) - sphere.radius(),
-               0.f);
+               (Coordinate)0);
   }
 };
 
@@ -251,9 +252,10 @@ struct distance<SphereTag, BoxTag, Sphere, Box>
   KOKKOS_FUNCTION static auto apply(Sphere const &sphere, Box const &box)
   {
     using Kokkos::max;
+    using Coordinate = GeometryTraits::coordinate_type_t<Sphere>;
 
     auto distance_center_box = Details::distance(sphere.centroid(), box);
-    return max(distance_center_box - sphere.radius(), 0.f);
+    return max(distance_center_box - sphere.radius(), (Coordinate)0);
   }
 };
 
