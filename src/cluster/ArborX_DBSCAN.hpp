@@ -96,7 +96,7 @@ struct MixedBoxPrimitives
 
 } // namespace Details
 
-template <typename Primitives, typename PermuteFilter>
+template <Concepts::Primitives Primitives, typename PermuteFilter>
 struct AccessTraits<
     Details::PointsWithRadiusReorderedAndFiltered<Primitives, PermuteFilter>>
 {
@@ -216,8 +216,8 @@ struct Parameters
 };
 } // namespace DBSCAN
 
-template <typename ExecutionSpace, typename Primitives, typename Coordinate,
-          typename Labels>
+template <typename ExecutionSpace, Concepts::Primitives Primitives,
+          typename Coordinate, typename Labels>
   requires(!std::same_as<Labels, DBSCAN::Parameters>)
 void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
             Coordinate eps, int core_min_size, Labels &labels,
@@ -521,7 +521,8 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::Profiling::popRegion();
 }
 
-template <typename ExecutionSpace, typename Primitives, typename Coordinate>
+template <typename ExecutionSpace, Concepts::Primitives Primitives,
+          typename Coordinate>
 [[deprecated("Please use dbscan() that takes in labels as an argument")]] auto
 dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
        Coordinate eps, int core_min_size,
