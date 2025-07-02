@@ -24,8 +24,8 @@
 namespace ArborX::Experimental
 {
 
-template <typename ExecutionSpace, typename Primitives, typename Coordinate,
-          typename Labels>
+template <typename ExecutionSpace, Concepts::Primitives Primitives,
+          typename Coordinate, typename Labels>
 void dbscan(MPI_Comm comm, ExecutionSpace const &space,
             Primitives const &primitives, Coordinate eps, int core_min_size,
             Labels &labels,

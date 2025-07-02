@@ -20,7 +20,7 @@ namespace ArborX
 
 namespace Experimental
 {
-template <typename Values, typename Index>
+template <Concepts::AccessTraits Values, typename Index>
 struct AttachIndices
 {
   Values _values;
@@ -28,7 +28,7 @@ struct AttachIndices
 
 // Make sure the default Index matches the default in PairValueIndex
 template <typename Index = typename PairValueIndex<int>::index_type,
-          typename Values = void>
+          Concepts::AccessTraits Values = void>
 auto attach_indices(Values const &values)
 {
   return AttachIndices<Values, Index>{values};
@@ -53,18 +53,14 @@ public:
   }
   KOKKOS_FUNCTION static auto get(Self const &self, int i)
   {
-    using namespace ArborX::Details;
-
-    using value_type = std::decay_t<
-        Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, Values>>;
-    using PredicateTag =
-        Kokkos::detected_t<PredicateTagArchetypeAlias, value_type>;
-
-    if constexpr (is_valid_predicate_tag<PredicateTag>::value)
+    if constexpr (Concepts::Predicates<Values>)
       return attach(Access::get(self._values, i), Index(i));
     else
+    {
+      using value_type = std::decay_t<decltype(Access::get(self._values, 0))>;
       return PairValueIndex<value_type, Index>{Access::get(self._values, i),
                                                Index(i)};
+    }
   }
 };
 
