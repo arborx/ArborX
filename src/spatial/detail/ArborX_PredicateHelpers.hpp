@@ -81,26 +81,26 @@ public:
   int _k;
 };
 
-template <typename Primitives>
+template <Concepts::Primitives Primitives>
 auto make_intersects(Primitives const &primitives)
 {
   return PrimitivesIntersect<Primitives>{primitives};
 }
 
-template <typename Primitives, typename Coordinate>
+template <Concepts::Primitives Primitives, typename Coordinate>
 auto make_intersects(Primitives const &primitives, Coordinate r)
 {
   KOKKOS_ASSERT(r > 0);
   return PrimitivesWithRadius<Primitives>(primitives, r);
 }
 
-template <typename Primitives>
+template <Concepts::Primitives Primitives>
 auto make_ordered_intersects(Primitives const &primitives)
 {
   return PrimitivesOrderedIntersect<Primitives>{primitives};
 }
 
-template <typename Primitives>
+template <Concepts::Primitives Primitives>
 auto make_nearest(Primitives const &primitives, int k)
 {
   return PrimitivesNearestK<Primitives>{primitives, k};
