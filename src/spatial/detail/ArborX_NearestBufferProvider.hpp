@@ -11,6 +11,7 @@
 #ifndef ARBORX_NEAREST_BUFFER_PROVIDER_HPP
 #define ARBORX_NEAREST_BUFFER_PROVIDER_HPP
 
+#include <detail/ArborX_AccessTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
@@ -34,7 +35,7 @@ struct NearestBufferProvider
       , _offset("ArborX::NearestBufferProvider::offset", 0)
   {}
 
-  template <typename ExecutionSpace, typename Predicates>
+  template <typename ExecutionSpace, Concepts::Predicates Predicates>
   NearestBufferProvider(ExecutionSpace const &space,
                         Predicates const &predicates)
       : _buffer("ArborX::NearestBufferProvider::buffer", 0)
@@ -49,7 +50,7 @@ struct NearestBufferProvider
                            Kokkos::make_pair(_offset(i), _offset(i + 1)));
   }
 
-  template <typename ExecutionSpace, typename Predicates>
+  template <typename ExecutionSpace, Concepts::Predicates Predicates>
   void allocateBuffer(ExecutionSpace const &space, Predicates const &predicates)
   {
     auto const n_queries = predicates.size();
