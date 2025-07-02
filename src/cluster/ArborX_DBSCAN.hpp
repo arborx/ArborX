@@ -470,31 +470,18 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
         Kokkos::atomic_inc(&cluster_sizes(labels(i)));
       });
-  if (is_special_case)
-  {
-    // Ideally, this kernel would have had the exactly same form as in the
-    // else() clause. But there's no available valid is_core() for use here:
-    // - CCSCorePoints cannot be used as it always returns true, which is OK
-    //   inside the callback, but not here
-    // - DBSCANCorePoints cannot be used either as num_neigh is not initialized
-    //   in the special case.
-    Kokkos::parallel_for(
-        "ArborX::DBSCAN::mark_noise", Kokkos::RangePolicy(exec_space, 0, n),
-        KOKKOS_LAMBDA(int const i) {
-          if (cluster_sizes(labels(i)) == 1)
-            labels(i) = -1;
-        });
-  }
-  else
-  {
-    Details::DBSCANCorePoints<MemorySpace> is_core{num_neigh, core_min_size};
-    Kokkos::parallel_for(
-        "ArborX::DBSCAN::mark_noise", Kokkos::RangePolicy(exec_space, 0, n),
-        KOKKOS_LAMBDA(int const i) {
-          if (cluster_sizes(labels(i)) == 1 && !is_core(i))
-            labels(i) = -1;
-        });
-  }
+
+  // Mark noise points
+  // Account for the special case where a core point is connected to only
+  // border points that got assigned to other clusters. This will result in a
+  // cluster consisting of a single core point.
+  Details::DBSCANCorePoints<MemorySpace> is_core{num_neigh, core_min_size};
+  Kokkos::parallel_for(
+      "ArborX::DBSCAN::mark_noise", Kokkos::RangePolicy(exec_space, 0, n),
+      KOKKOS_LAMBDA(int const i) {
+        if (cluster_sizes(labels(i)) == 1 && (is_special_case || !is_core(i)))
+          labels(i) = -1;
+      });
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::popRegion();
