@@ -62,8 +62,9 @@ template <typename MemorySpace, typename FloatingCalculationType = double>
 class MovingLeastSquares
 {
 public:
-  template <typename ExecutionSpace, typename SourcePoints,
-            typename TargetPoints, typename CRBFunc = CRBF::Wendland<0>,
+  template <typename ExecutionSpace, Concepts::AccessTraits SourcePoints,
+            Concepts::AccessTraits TargetPoints,
+            typename CRBFunc = CRBF::Wendland<0>,
             typename PolynomialDegree = PolynomialDegree<2>>
   MovingLeastSquares(ExecutionSpace const &space,
                      SourcePoints const &source_points,

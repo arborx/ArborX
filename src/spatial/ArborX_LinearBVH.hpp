@@ -65,7 +65,7 @@ public:
 
   BoundingVolumeHierarchy() = default; // build an empty tree
 
-  template <typename ExecutionSpace, typename Values,
+  template <typename ExecutionSpace, Concepts::Primitives Values,
             typename SpaceFillingCurve = Experimental::Morton64>
   BoundingVolumeHierarchy(
       ExecutionSpace const &space, Values const &values,
@@ -81,13 +81,14 @@ public:
   KOKKOS_FUNCTION
   bounding_volume_type bounds() const noexcept { return _bounds; }
 
-  template <typename ExecutionSpace, typename Predicates, typename Callback>
+  template <typename ExecutionSpace, Concepts::Predicates Predicates,
+            typename Callback>
   void query(ExecutionSpace const &space, Predicates const &predicates,
              Callback const &callback,
              Experimental::TraversalPolicy const &policy =
                  Experimental::TraversalPolicy()) const;
 
-  template <typename ExecutionSpace, typename UserPredicates,
+  template <typename ExecutionSpace, Concepts::Predicates UserPredicates,
             typename CallbackOrView, typename View, typename... Args>
   std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
   query(ExecutionSpace const &space, UserPredicates const &user_predicates,
@@ -140,13 +141,14 @@ private:
   IndexableGetter _indexable_getter;
 };
 
-template <typename ExecutionSpace, typename Values>
+template <typename ExecutionSpace, Concepts::Primitives Values>
 KOKKOS_DEDUCTION_GUIDE BoundingVolumeHierarchy(ExecutionSpace, Values)
     -> BoundingVolumeHierarchy<
         typename Details::AccessValues<Values>::memory_space,
         typename Details::AccessValues<Values>::value_type>;
 
-template <typename ExecutionSpace, typename Values, typename IndexableGetter>
+template <typename ExecutionSpace, Concepts::Primitives Values,
+          typename IndexableGetter>
 KOKKOS_DEDUCTION_GUIDE BoundingVolumeHierarchy(ExecutionSpace, Values,
                                                IndexableGetter)
     -> BoundingVolumeHierarchy<
@@ -165,7 +167,7 @@ using BVH = BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter,
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, typename UserValues,
+template <typename ExecutionSpace, Concepts::Primitives UserValues,
           typename SpaceFillingCurve>
 BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
     BoundingVolumeHierarchy(ExecutionSpace const &space,
@@ -254,7 +256,8 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, typename UserPredicates, typename Callback>
+template <typename ExecutionSpace, Concepts::Predicates UserPredicates,
+          typename Callback>
 void BoundingVolumeHierarchy<
     MemorySpace, Value, IndexableGetter,
     BoundingVolume>::query(ExecutionSpace const &space,
