@@ -183,8 +183,6 @@ BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
 {
   static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
                                                        ExecutionSpace>::value);
-  Details::check_valid_access_traits(user_values);
-
   using Values = Details::AccessValues<UserValues>;
   Values values{user_values}; // NOLINT
 
@@ -266,8 +264,6 @@ void BoundingVolumeHierarchy<
 {
   static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
                                                        ExecutionSpace>::value);
-  Details::check_valid_access_traits(user_predicates,
-                                     Details::CheckReturnTypeTag{});
   Details::check_valid_callback<value_type>(callback, user_predicates);
 
   using Predicates = Details::AccessValues<UserPredicates>;

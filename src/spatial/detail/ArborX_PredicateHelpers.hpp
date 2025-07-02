@@ -84,7 +84,6 @@ public:
 template <typename Primitives>
 auto make_intersects(Primitives const &primitives)
 {
-  Details::check_valid_access_traits(primitives);
   return PrimitivesIntersect<Primitives>{primitives};
 }
 
@@ -92,21 +91,18 @@ template <typename Primitives, typename Coordinate>
 auto make_intersects(Primitives const &primitives, Coordinate r)
 {
   KOKKOS_ASSERT(r > 0);
-  Details::check_valid_access_traits(primitives);
   return PrimitivesWithRadius<Primitives>(primitives, r);
 }
 
 template <typename Primitives>
 auto make_ordered_intersects(Primitives const &primitives)
 {
-  Details::check_valid_access_traits(primitives);
   return PrimitivesOrderedIntersect<Primitives>{primitives};
 }
 
 template <typename Primitives>
 auto make_nearest(Primitives const &primitives, int k)
 {
-  Details::check_valid_access_traits(primitives);
   return PrimitivesNearestK<Primitives>{primitives, k};
 }
 

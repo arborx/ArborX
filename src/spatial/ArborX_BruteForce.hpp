@@ -124,7 +124,6 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
 {
   static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
                                                        ExecutionSpace>::value);
-  Details::check_valid_access_traits<UserValues>(user_values);
 
   using Values = Details::AccessValues<UserValues>;
   Values values{user_values}; // NOLINT
@@ -147,16 +146,14 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, typename UserPredicates, typename Callback,
-          typename Ignore>
+template <typename ExecutionSpace, Concepts::Predicates UserPredicates,
+          typename Callback, typename Ignore>
 void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
     ExecutionSpace const &space, UserPredicates const &user_predicates,
     Callback const &callback, Ignore) const
 {
   static_assert(Details::KokkosExt::is_accessible_from<MemorySpace,
                                                        ExecutionSpace>::value);
-  Details::check_valid_access_traits(user_predicates,
-                                     Details::CheckReturnTypeTag{});
   Details::check_valid_callback<value_type>(callback, user_predicates);
 
   using Predicates = Details::AccessValues<UserPredicates>;

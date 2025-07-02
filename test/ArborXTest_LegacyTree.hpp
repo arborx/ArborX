@@ -21,6 +21,11 @@
 #include <type_traits>
 #include <utility>
 
+// archetypal expression for 'size()' static member function in access traits
+template <typename Traits, typename X>
+using AccessTraitsSizeArchetypeExpression =
+    decltype(Traits::size(std::declval<X const &>()));
+
 template <typename Primitives, typename BoundingVolume>
 class LegacyValues
 {
@@ -31,9 +36,8 @@ public:
   using memory_space = typename Access::memory_space;
   using index_type = unsigned;
   using value_type = ArborX::PairValueIndex<BoundingVolume, index_type>;
-  using size_type =
-      Kokkos::detected_t<ArborX::Details::AccessTraitsSizeArchetypeExpression,
-                         Access, Primitives>;
+  using size_type = Kokkos::detected_t<AccessTraitsSizeArchetypeExpression,
+                                       Access, Primitives>;
 
   LegacyValues(Primitives const &primitives)
       : _primitives(primitives)
