@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.1](https://github.com/arborx/arborx/tree/v2.0.1) (2025-07-01)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v2.0...v2.0.1)
+
+**Fixed bugs:**
+- Fix a bug in predicate helpers requiring `memory_space` typedef [\#1255](https://github.com/arborx/ArborX/pull/1255)
+- Add missing `distance(sphere, point)` and `distance(box, sphere)` [\#1266](https://github.com/arborx/ArborX/pull/1266)
+- Fix hardcoded floats in distance calculations [\#1267](https://github.com/arborx/ArborX/pull/1267)
+- Update minimum clang version for aggregate initialization guide [\#1279](https://github.com/arborx/ArborX/pull/1279)
+
 ## [2.0](https://github.com/arborx/arborx/tree/v2.0) (2025-04-16)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v1.7...v2.0)
