@@ -58,7 +58,7 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
         auto const first = offsets_orig(i);
         auto const last = offsets_orig(i + 1);
         Kokkos::parallel_for(
-            Kokkos::TeamVectorRange(member, last - first), [&](int j) {
+            Kokkos::TeamThreadRange(member, last - first), [&](int j) {
               int const k = indices_orig(first + j);
               indices(Kokkos::atomic_fetch_inc(&counts(i))) = k;
               indices(Kokkos::atomic_fetch_inc(&counts(k))) = i;
