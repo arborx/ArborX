@@ -75,7 +75,7 @@ void check_generic_lambda_support(Callback const &)
 #endif
 }
 
-template <typename Value, typename Callback, typename Predicates,
+template <typename Value, typename Callback, Concepts::Predicates Predicates,
           typename OutputView>
 void check_valid_callback(Callback const &callback, Predicates const &,
                           OutputView const &)
@@ -120,7 +120,7 @@ KOKKOS_FUNCTION bool invoke_callback_and_check_early_exit(Callback &&callback,
   }
 }
 
-template <typename Value, typename Callback, typename Predicates>
+template <typename Value, typename Callback, Concepts::Predicates Predicates>
 void check_valid_callback(Callback const &callback, Predicates const &)
 {
   check_generic_lambda_support(callback);

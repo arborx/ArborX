@@ -24,7 +24,7 @@ struct DistributedTreeImpl
 {
   // spatial queries
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Values, typename Offset>
+            Concepts::Predicates Predicates, typename Values, typename Offset>
   static std::enable_if_t<Kokkos::is_view_v<Values> &&
                           Kokkos::is_view_v<Offset>>
   queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
@@ -32,8 +32,8 @@ struct DistributedTreeImpl
                 Values &values, Offset &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename OutputView, typename OffsetView,
-            typename Callback>
+            Concepts::Predicates Predicates, typename OutputView,
+            typename OffsetView, typename Callback>
   static std::enable_if_t<Kokkos::is_view_v<OutputView> &&
                           Kokkos::is_view_v<OffsetView>>
   queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
@@ -41,7 +41,7 @@ struct DistributedTreeImpl
                 Callback const &callback, OutputView &out, OffsetView &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Callback>
+            Concepts::Predicates Predicates, typename Callback>
   static void queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                             ExecutionSpace const &space,
                             Predicates const &predicates,
@@ -49,8 +49,8 @@ struct DistributedTreeImpl
 
   // nearest neighbors queries
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Callback, typename Indices,
-            typename Offset>
+            Concepts::Predicates Predicates, typename Callback,
+            typename Indices, typename Offset>
   static void
   queryDispatch2RoundImpl(NearestPredicateTag, DistributedTree const &tree,
                           ExecutionSpace const &space,
@@ -58,14 +58,15 @@ struct DistributedTreeImpl
                           Indices &indices, Offset &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Values, typename Offset>
+            Concepts::Predicates Predicates, typename Values, typename Offset>
   static std::enable_if_t<Kokkos::is_view_v<Values> &&
                           Kokkos::is_view_v<Offset>>
   queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Values &values, Offset &offset);
-  template <typename Tree, typename ExecutionSpace, typename Predicates,
-            typename Callback, typename Values, typename Offset>
+  template <typename Tree, typename ExecutionSpace,
+            Concepts::Predicates Predicates, typename Callback, typename Values,
+            typename Offset>
   static std::enable_if_t<Kokkos::is_view_v<Values> &&
                           Kokkos::is_view_v<Offset>>
   queryDispatch(NearestPredicateTag, Tree const &tree,
@@ -73,15 +74,15 @@ struct DistributedTreeImpl
                 Callback const &callback, Values &values, Offset &offset);
 
   // nearest neighbors helpers
-  template <typename ExecutionSpace, typename Tree, typename Predicates,
-            typename Distances>
+  template <typename ExecutionSpace, typename Tree,
+            Concepts::Predicates Predicates, typename Distances>
   static void phaseI(ExecutionSpace const &space, Tree const &tree,
                      Predicates const &predicates,
                      Distances &farthest_distances);
 
-  template <typename ExecutionSpace, typename Tree, typename Predicates,
-            typename Callback, typename Distances, typename Offset,
-            typename Values>
+  template <typename ExecutionSpace, typename Tree,
+            Concepts::Predicates Predicates, typename Callback,
+            typename Distances, typename Offset, typename Values>
   static void phaseII(ExecutionSpace const &space, Tree const &tree,
                       Predicates const &predicates, Callback const &callback,
                       Distances &distances, Offset &offset, Values &values);
