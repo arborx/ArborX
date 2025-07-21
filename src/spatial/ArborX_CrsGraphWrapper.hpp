@@ -20,7 +20,7 @@ namespace ArborX
 {
 
 template <typename Tree, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename CallbackOrView,
+          Details::Concepts::Predicates Predicates, typename CallbackOrView,
           typename View, typename... Args>
 inline void query(Tree const &tree, ExecutionSpace const &space,
                   Predicates const &predicates,

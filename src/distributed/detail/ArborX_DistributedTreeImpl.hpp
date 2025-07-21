@@ -24,7 +24,8 @@ struct DistributedTreeImpl
 {
   // spatial queries
   template <typename DistributedTree, typename ExecutionSpace,
-            Concepts::Predicates Predicates, typename Values, typename Offset>
+            Details::Concepts::Predicates Predicates, typename Values,
+            typename Offset>
     requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
   static void queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                             ExecutionSpace const &space,
@@ -32,7 +33,7 @@ struct DistributedTreeImpl
                             Offset &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
-            Concepts::Predicates Predicates, typename OutputView,
+            Details::Concepts::Predicates Predicates, typename OutputView,
             typename OffsetView, typename Callback>
     requires(Kokkos::is_view_v<OutputView> && Kokkos::is_view_v<OffsetView>)
   static void queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
@@ -41,7 +42,7 @@ struct DistributedTreeImpl
                             OutputView &out, OffsetView &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
-            Concepts::Predicates Predicates, typename Callback>
+            Details::Concepts::Predicates Predicates, typename Callback>
   static void queryDispatch(SpatialPredicateTag, DistributedTree const &tree,
                             ExecutionSpace const &space,
                             Predicates const &predicates,
@@ -49,8 +50,8 @@ struct DistributedTreeImpl
 
   // nearest neighbors queries
   template <typename DistributedTree, typename ExecutionSpace,
-            Concepts::Predicates Predicates, typename Callback, typename Values,
-            typename Offset>
+            Details::Concepts::Predicates Predicates, typename Callback,
+            typename Values, typename Offset>
   static void
   queryDispatch2RoundImpl(NearestPredicateTag, DistributedTree const &tree,
                           ExecutionSpace const &space,
@@ -58,7 +59,8 @@ struct DistributedTreeImpl
                           Values &values, Offset &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
-            Concepts::Predicates Predicates, typename Values, typename Offset>
+            Details::Concepts::Predicates Predicates, typename Values,
+            typename Offset>
     requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
   static void
   queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
@@ -66,8 +68,8 @@ struct DistributedTreeImpl
                 Values &values, Offset &offset);
 
   template <typename Tree, typename ExecutionSpace,
-            Concepts::Predicates Predicates, typename Callback, typename Values,
-            typename Offset>
+            Details::Concepts::Predicates Predicates, typename Callback,
+            typename Values, typename Offset>
     requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
   static void
   queryDispatch(NearestPredicateTag, Tree const &tree,
@@ -76,13 +78,13 @@ struct DistributedTreeImpl
 
   // nearest neighbors helpers
   template <typename ExecutionSpace, typename Tree,
-            Concepts::Predicates Predicates, typename Distances>
+            Details::Concepts::Predicates Predicates, typename Distances>
   static void phaseI(ExecutionSpace const &space, Tree const &tree,
                      Predicates const &predicates,
                      Distances &farthest_distances);
 
   template <typename ExecutionSpace, typename Tree,
-            Concepts::Predicates Predicates, typename Callback,
+            Details::Concepts::Predicates Predicates, typename Callback,
             typename Distances, typename Offset, typename Values>
   static void phaseII(ExecutionSpace const &space, Tree const &tree,
                       Predicates const &predicates, Callback const &callback,
