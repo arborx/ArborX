@@ -63,7 +63,8 @@ public:
 
 } // namespace Details
 
-template <Concepts::Predicates Predicates, typename Permute, bool AttachIndices>
+template <Details::Concepts::Predicates Predicates, typename Permute,
+          bool AttachIndices>
 struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>>
 {
   using PermutedPredicates =

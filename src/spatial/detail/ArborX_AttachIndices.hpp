@@ -20,7 +20,7 @@ namespace ArborX
 
 namespace Experimental
 {
-template <Concepts::AccessTraits Values, typename Index>
+template <Details::Concepts::AccessTraits Values, typename Index>
 struct AttachIndices
 {
   Values _values;
@@ -28,7 +28,7 @@ struct AttachIndices
 
 // Make sure the default Index matches the default in PairValueIndex
 template <typename Index = typename PairValueIndex<int>::index_type,
-          Concepts::AccessTraits Values = void>
+          Details::Concepts::AccessTraits Values = void>
 auto attach_indices(Values const &values)
 {
   return AttachIndices<Values, Index>{values};
@@ -53,7 +53,7 @@ public:
   }
   KOKKOS_FUNCTION static auto get(Self const &self, int i)
   {
-    if constexpr (Concepts::Predicates<Values>)
+    if constexpr (Details::Concepts::Predicates<Values>)
       return attach(Access::get(self._values, i), Index(i));
     else
     {

@@ -71,6 +71,9 @@ struct AccessTraits<
   using memory_space = typename View::memory_space;
 };
 
+namespace Details
+{
+
 namespace Concepts
 {
 
@@ -108,9 +111,6 @@ concept Predicates = AccessTraits<T> && requires(T const &v) {
 };
 
 } // namespace Concepts
-
-namespace Details
-{
 
 template <typename Values>
 class AccessValuesI

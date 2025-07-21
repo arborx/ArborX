@@ -19,7 +19,7 @@
 namespace ArborX::Experimental
 {
 
-template <typename ExecutionSpace, Concepts::Primitives Primitives>
+template <typename ExecutionSpace, Details::Concepts::Primitives Primitives>
 auto hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
              int core_min_size,
              DendrogramImplementation dendrogram_impl =

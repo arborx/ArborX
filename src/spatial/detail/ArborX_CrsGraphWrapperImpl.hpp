@@ -110,7 +110,7 @@ namespace CrsGraphWrapperImpl
 {
 
 template <typename ExecutionSpace, typename Tree,
-          Concepts::Predicates Predicates, typename Callback,
+          Details::Concepts::Predicates Predicates, typename Callback,
           typename OutputView, typename OffsetView, typename PermuteType>
 void queryImpl(ExecutionSpace const &space, Tree const &tree,
                Predicates const &predicates, Callback const &callback,
@@ -284,7 +284,7 @@ struct Iota
 };
 
 template <typename Tag, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename OffsetView,
+          Details::Concepts::Predicates Predicates, typename OffsetView,
           typename OutView>
 std::enable_if_t<std::is_same_v<Tag, SpatialPredicateTag> ||
                  std::is_same_v<Tag, OrderedSpatialPredicateTag>>
@@ -310,7 +310,7 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 }
 
 template <typename Tag, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename OffsetView,
+          Details::Concepts::Predicates Predicates, typename OffsetView,
           typename OutView>
 std::enable_if_t<std::is_same_v<Tag, NearestPredicateTag>>
 allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
@@ -334,7 +334,7 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 // Views are passed by reference here because internally Kokkos::realloc()
 // is called.
 template <typename Tag, typename Tree, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename OutputView,
+          Details::Concepts::Predicates Predicates, typename OutputView,
           typename OffsetView, typename Callback>
 std::enable_if_t<!is_tagged_post_callback<Callback>::value &&
                  Kokkos::is_view_v<OutputView> && Kokkos::is_view_v<OffsetView>>
@@ -405,7 +405,8 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 }
 
 template <typename Tag, typename Tree, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename Indices, typename Offset>
+          Details::Concepts::Predicates Predicates, typename Indices,
+          typename Offset>
 inline std::enable_if_t<Kokkos::is_view_v<Indices> && Kokkos::is_view_v<Offset>>
 queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
               Predicates const &predicates, Indices &indices, Offset &offset,
@@ -417,7 +418,7 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 }
 
 template <typename Tag, typename Tree, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename OutputView,
+          Details::Concepts::Predicates Predicates, typename OutputView,
           typename OffsetView, typename Callback>
 inline std::enable_if_t<is_tagged_post_callback<Callback>::value>
 queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
@@ -435,8 +436,8 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   callback(predicates, offset, indices, out);
 }
 
-template <typename Value, typename Callback, Concepts::Predicates Predicates,
-          typename OutputView>
+template <typename Value, typename Callback,
+          Details::Concepts::Predicates Predicates, typename OutputView>
 std::enable_if_t<!Kokkos::is_view_v<Callback> &&
                  !is_tagged_post_callback<Callback>::value>
 check_valid_callback_if_first_argument_is_not_a_view(
@@ -446,8 +447,8 @@ check_valid_callback_if_first_argument_is_not_a_view(
   check_valid_callback<Value>(callback, predicates, out);
 }
 
-template <typename Value, typename Callback, Concepts::Predicates Predicates,
-          typename OutputView>
+template <typename Value, typename Callback,
+          Details::Concepts::Predicates Predicates, typename OutputView>
 std::enable_if_t<!Kokkos::is_view_v<Callback> &&
                  is_tagged_post_callback<Callback>::value>
 check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
@@ -457,8 +458,8 @@ check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
   // TODO
 }
 
-template <typename Value, typename View, Concepts::Predicates Predicates,
-          typename OutputView>
+template <typename Value, typename View,
+          Details::Concepts::Predicates Predicates, typename OutputView>
 std::enable_if_t<Kokkos::is_view_v<View>>
 check_valid_callback_if_first_argument_is_not_a_view(View const &,
                                                      Predicates const &,

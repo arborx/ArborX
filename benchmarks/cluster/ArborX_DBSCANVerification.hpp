@@ -292,7 +292,7 @@ struct IndexLabelCallback
   }
 };
 
-template <typename ExecutionSpace, Concepts::Primitives Primitives,
+template <typename ExecutionSpace, Details::Concepts::Primitives Primitives,
           typename Labels, typename Coordinate>
 bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
                   Coordinate eps, int core_min_size, Labels const &labels,
@@ -385,7 +385,7 @@ struct IndexRankLabelCoreCallback
   }
 };
 
-template <typename ExecutionSpace, Concepts::Primitives Primitives,
+template <typename ExecutionSpace, Details::Concepts::Primitives Primitives,
           typename Labels, typename Coordinate>
 bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
                   Primitives const &primitives, Coordinate eps,

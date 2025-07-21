@@ -48,7 +48,7 @@ public:
 
   BruteForce() = default;
 
-  template <typename ExecutionSpace, Concepts::Primitives Values>
+  template <typename ExecutionSpace, Details::Concepts::Primitives Values>
   BruteForce(ExecutionSpace const &space, Values const &values,
              IndexableGetter const &indexable_getter = IndexableGetter());
 
@@ -61,12 +61,13 @@ public:
   KOKKOS_FUNCTION
   bounding_volume_type bounds() const noexcept { return _bounds; }
 
-  template <typename ExecutionSpace, Concepts::Predicates Predicates,
+  template <typename ExecutionSpace, Details::Concepts::Predicates Predicates,
             typename Callback, typename Ignore = int>
   void query(ExecutionSpace const &space, Predicates const &predicates,
              Callback const &callback, Ignore = Ignore()) const;
 
-  template <typename ExecutionSpace, Concepts::Predicates UserPredicates,
+  template <typename ExecutionSpace,
+            Details::Concepts::Predicates UserPredicates,
             typename CallbackOrView, typename View, typename... Args>
   std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
   query(ExecutionSpace const &space, UserPredicates const &user_predicates,
@@ -99,12 +100,12 @@ private:
   IndexableGetter _indexable_getter;
 };
 
-template <typename ExecutionSpace, Concepts::Primitives Values>
+template <typename ExecutionSpace, Details::Concepts::Primitives Values>
 KOKKOS_DEDUCTION_GUIDE BruteForce(ExecutionSpace, Values)
     -> BruteForce<typename Details::AccessValues<Values>::memory_space,
                   typename Details::AccessValues<Values>::value_type>;
 
-template <typename ExecutionSpace, Concepts::Primitives Values,
+template <typename ExecutionSpace, Details::Concepts::Primitives Values,
           typename IndexableGetter>
 KOKKOS_DEDUCTION_GUIDE BruteForce(ExecutionSpace, Values, IndexableGetter)
     -> BruteForce<typename Details::AccessValues<Values>::memory_space,
@@ -113,7 +114,7 @@ KOKKOS_DEDUCTION_GUIDE BruteForce(ExecutionSpace, Values, IndexableGetter)
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, Concepts::Primitives UserValues>
+template <typename ExecutionSpace, Details::Concepts::Primitives UserValues>
 BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
     ExecutionSpace const &space, UserValues const &user_values,
     IndexableGetter const &indexable_getter)
@@ -147,7 +148,7 @@ BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
 
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
-template <typename ExecutionSpace, Concepts::Predicates UserPredicates,
+template <typename ExecutionSpace, Details::Concepts::Predicates UserPredicates,
           typename Callback, typename Ignore>
 void BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::query(
     ExecutionSpace const &space, UserPredicates const &user_predicates,

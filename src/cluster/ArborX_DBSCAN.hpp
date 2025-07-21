@@ -97,7 +97,7 @@ struct MixedBoxPrimitives
 
 } // namespace Details
 
-template <Concepts::Primitives Primitives, typename PermuteFilter>
+template <Details::Concepts::Primitives Primitives, typename PermuteFilter>
 struct AccessTraits<
     Details::PointsWithRadiusReorderedAndFiltered<Primitives, PermuteFilter>>
 {
@@ -204,7 +204,7 @@ struct Parameters
 };
 } // namespace DBSCAN
 
-template <typename ExecutionSpace, Concepts::Primitives Primitives,
+template <typename ExecutionSpace, Details::Concepts::Primitives Primitives,
           typename Coordinate>
 Kokkos::View<int *, typename AccessTraits<Primitives>::memory_space>
 dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
