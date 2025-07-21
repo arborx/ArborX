@@ -88,12 +88,14 @@ void test_access_traits_compile_only()
 {
   using Point = ArborX::Point<3>;
 
-  static_assert(ArborX::Concepts::AccessTraits<Kokkos::View<Point *>>);
-  static_assert(ArborX::Concepts::AccessTraits<Kokkos::View<float **>>);
+  static_assert(ArborX::Details::Concepts::AccessTraits<Kokkos::View<Point *>>);
+  static_assert(
+      ArborX::Details::Concepts::AccessTraits<Kokkos::View<float **>>);
 
   Kokkos::View<Point *> p;
   auto p_with_indices = ArborX::Experimental::attach_indices(p);
-  static_assert(ArborX::Concepts::AccessTraits<decltype(p_with_indices)>);
+  static_assert(
+      ArborX::Details::Concepts::AccessTraits<decltype(p_with_indices)>);
   static_assert(std::is_same_v<deduce_type_t<decltype(p_with_indices)>,
                                ArborX::PairValueIndex<Point, unsigned>>);
 
@@ -103,11 +105,11 @@ void test_access_traits_compile_only()
 
   using NearestPredicate = decltype(ArborX::nearest(Point{}));
   Kokkos::View<NearestPredicate *> q;
-  static_assert(ArborX::Concepts::Predicates<decltype(q)>);
+  static_assert(ArborX::Details::Concepts::Predicates<decltype(q)>);
 
   auto q_with_indices = ArborX::Experimental::attach_indices<long>(q);
   using PredicatesWithIndices = decltype(q_with_indices);
-  static_assert(ArborX::Concepts::Predicates<PredicatesWithIndices>);
+  static_assert(ArborX::Details::Concepts::Predicates<PredicatesWithIndices>);
   using predicate = deduce_type_t<PredicatesWithIndices>;
   static_assert(
       std::is_same_v<
@@ -124,20 +126,27 @@ void test_access_traits_compile_only()
   auto q_with_custom_indices =
       ArborX::Experimental::attach_indices<CustomIndex>(q);
   using PredicatesWithCustomIndices = decltype(q_with_custom_indices);
-  static_assert(ArborX::Concepts::Predicates<PredicatesWithCustomIndices>);
+  static_assert(
+      ArborX::Details::Concepts::Predicates<PredicatesWithCustomIndices>);
   using predicate_custom = deduce_type_t<PredicatesWithCustomIndices>;
   static_assert(std::is_same_v<std::decay_t<decltype(ArborX::getData(
                                    std::declval<predicate_custom>()))>,
                                CustomIndex>);
 
-  static_assert(!ArborX::Concepts::AccessTraits<NoAccessTraitsSpecialization>);
-  static_assert(!ArborX::Concepts::AccessTraits<EmptySpecialization>);
-  static_assert(!ArborX::Concepts::AccessTraits<InvalidMemorySpace>);
-  static_assert(!ArborX::Concepts::AccessTraits<MissingSizeMemberFunction>);
-  static_assert(!ArborX::Concepts::AccessTraits<SizeMemberFunctionNotStatic>);
-  static_assert(!ArborX::Concepts::AccessTraits<MissingGetMemberFunction>);
-  static_assert(!ArborX::Concepts::AccessTraits<GetMemberFunctionNotStatic>);
-  static_assert(!ArborX::Concepts::AccessTraits<GetMemberFunctionVoid>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<NoAccessTraitsSpecialization>);
+  static_assert(!ArborX::Details::Concepts::AccessTraits<EmptySpecialization>);
+  static_assert(!ArborX::Details::Concepts::AccessTraits<InvalidMemorySpace>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<MissingSizeMemberFunction>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<SizeMemberFunctionNotStatic>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<MissingGetMemberFunction>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<GetMemberFunctionNotStatic>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<GetMemberFunctionVoid>);
 }
 
 void test_deduce_point_type_from_view()

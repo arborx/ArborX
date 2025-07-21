@@ -27,7 +27,7 @@ namespace ArborX
 namespace Details
 {
 
-template <typename MemorySpace, Concepts::Primitives Primitives,
+template <typename MemorySpace, Details::Concepts::Primitives Primitives,
           typename DenseCellOffsets, typename Permutation>
 struct CountUpToN_DenseBox
 {
@@ -94,7 +94,7 @@ struct CountUpToN_DenseBox
 };
 
 template <typename UnionFind, typename CorePointsType,
-          Concepts::Primitives Primitives, typename DenseCellOffsets,
+          Details::Concepts::Primitives Primitives, typename DenseCellOffsets,
           typename Permutation, typename Tag = DBSCANTag>
 struct FDBSCANDenseBoxCallback
 {
@@ -197,7 +197,7 @@ struct FDBSCANDenseBoxCallback
   }
 };
 
-template <typename ExecutionSpace, Concepts::Primitives Primitives>
+template <typename ExecutionSpace, Details::Concepts::Primitives Primitives>
 Kokkos::View<size_t *, typename Primitives::memory_space> computeCellIndices(
     ExecutionSpace const &exec_space, Primitives const &primitives,
     CartesianGrid<GeometryTraits::dimension_v<typename Primitives::value_type>,
