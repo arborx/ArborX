@@ -37,7 +37,7 @@ struct PairValueDistance
 };
 
 template <typename ExecutionSpace, typename Tree,
-          Concepts::Predicates Predicates, typename Distances>
+          Details::Concepts::Predicates Predicates, typename Distances>
 void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
                                  Predicates const &predicates,
                                  Distances &farthest_distances)
@@ -125,7 +125,7 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
 }
 
 template <typename ExecutionSpace, typename Tree,
-          Concepts::Predicates Predicates, typename Callback,
+          Details::Concepts::Predicates Predicates, typename Callback,
           typename Distances, typename Offset, typename Values>
 void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
                                   Predicates const &predicates,
@@ -175,8 +175,8 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
 }
 
 template <typename Tree, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename Callback, typename Values,
-          typename Offset>
+          Details::Concepts::Predicates Predicates, typename Callback,
+          typename Values, typename Offset>
 void DistributedTreeImpl::queryDispatch2RoundImpl(
     NearestPredicateTag, Tree const &tree, ExecutionSpace const &space,
     Predicates const &predicates, Callback const &callback, Values &values,
@@ -217,7 +217,8 @@ void DistributedTreeImpl::queryDispatch2RoundImpl(
 }
 
 template <typename Tree, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename Values, typename Offset>
+          Details::Concepts::Predicates Predicates, typename Values,
+          typename Offset>
   requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
 void DistributedTreeImpl::queryDispatch(NearestPredicateTag tag,
                                         Tree const &tree,
@@ -230,8 +231,8 @@ void DistributedTreeImpl::queryDispatch(NearestPredicateTag tag,
 }
 
 template <typename Tree, typename ExecutionSpace,
-          Concepts::Predicates Predicates, typename Callback, typename Values,
-          typename Offset>
+          Details::Concepts::Predicates Predicates, typename Callback,
+          typename Values, typename Offset>
   requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
 void DistributedTreeImpl::queryDispatch(NearestPredicateTag, Tree const &tree,
                                         ExecutionSpace const &space,
