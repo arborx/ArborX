@@ -8,7 +8,7 @@
 - Fix a bug in experimental predicate helpers (e.g., `make_intersects`) requiring `memory_space` typedef [\#1255](https://github.com/arborx/ArborX/pull/1255)
 - Add missing `distance(sphere, point)` and `distance(box, sphere)` [\#1266](https://github.com/arborx/ArborX/pull/1266)
 - Fix usage of hardcoded floats in distance calculations [\#1267](https://github.com/arborx/ArborX/pull/1267)
-- Fix Clang 17 build failure for aggregate initialization guide [\#1279](https://github.com/arborx/ArborX/pull/1279)
+- Fix Clang 17 type deduction failures with aggregate initialization [\#1279](https://github.com/arborx/ArborX/pull/1279)
 
 ## [2.0](https://github.com/arborx/arborx/tree/v2.0) (2025-04-16)
 
