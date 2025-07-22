@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.1](https://github.com/arborx/arborx/tree/v2.0.1) (2025-07-01)
+## [2.0.1](https://github.com/arborx/arborx/tree/v2.0.1) (2025-07-17)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v2.0...v2.0.1)
 
