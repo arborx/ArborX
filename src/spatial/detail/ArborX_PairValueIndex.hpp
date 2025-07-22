@@ -31,6 +31,22 @@ struct PairValueIndex
   Index index;
 };
 
+namespace Experimental
+{
+// Callback to store the result indices
+struct ExtractIndex
+{
+  template <typename Query, typename Value, typename Index, typename Output>
+  KOKKOS_FUNCTION void operator()(Query const &,
+                                  PairValueIndex<Value, Index> const &pair,
+                                  Output const &out) const
+  {
+    out(pair.index);
+  }
+};
+
+} // namespace Experimental
+
 namespace Details
 {
 template <typename T>
