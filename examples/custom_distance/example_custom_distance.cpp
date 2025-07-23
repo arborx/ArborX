@@ -99,13 +99,13 @@ int main(int argc, char *argv[])
   query_points_host[0] = {0, 1};
   Kokkos::deep_copy(query_points, query_points_host);
 
-  ArborX::BoundingVolumeHierarchy bvh(
-      space, ArborX::Experimental::attach_indices(points));
+  auto bvh = ArborX::create_index<ArborX::BoundingVolumeHierarchy>(
+      space, points.size(), points);
 
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
-  bvh.query(space, ArborX::Experimental::make_nearest(query_points, 2),
-            ArborX::Experimental::ExtractPairIndexCallback{}, indices, offsets);
+  bvh.query(space, ArborX::Experimental::make_nearest(query_points, 2), indices,
+            offsets);
 
   auto offsets_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
