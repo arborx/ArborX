@@ -14,6 +14,9 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_BruteForce.hpp>
+#include <ArborX_DBSCAN.hpp>
+#include <algorithms/ArborX_Valid.hpp>
+#include <detail/ArborX_DistributedTreeNearestHelpers.hpp>
 #include <detail/ArborX_Distributor.hpp>
 #include <detail/ArborX_Predicates.hpp>
 #include <detail/ArborX_TreeConstruction.hpp>
@@ -26,7 +29,9 @@
 
 #include <mpi.h>
 
-namespace ArborX::Details
+namespace ArborX
+{
+namespace Details
 {
 
 template <typename Points, typename GhostPoints>
@@ -62,12 +67,19 @@ KOKKOS_DEDUCTION_GUIDE PointsRequiringResolution(Points, GhostOffsets, GhostIds,
     -> PointsRequiringResolution<Points, GhostOffsets, GhostIds, Coordinate>;
 #endif
 
-} // namespace ArborX::Details
+template <typename Points, typename Filter>
+struct FilteredPoints
+{
+  Points _points;
+  Filter _filter;
+};
+
+} // namespace Details
 
 template <typename Points, typename GhostPoints>
-struct ArborX::AccessTraits<ArborX::Details::UnifiedPoints<Points, GhostPoints>>
+struct AccessTraits<Details::UnifiedPoints<Points, GhostPoints>>
 {
-  using Self = ArborX::Details::UnifiedPoints<Points, GhostPoints>;
+  using Self = Details::UnifiedPoints<Points, GhostPoints>;
   using memory_space = typename Points::memory_space;
 
   static KOKKOS_FUNCTION auto size(Self const &self)
@@ -84,11 +96,11 @@ struct ArborX::AccessTraits<ArborX::Details::UnifiedPoints<Points, GhostPoints>>
 
 template <typename Points, typename GhostOffsets, typename GhostIds,
           typename Coordinate>
-struct ArborX::AccessTraits<ArborX::Details::PointsRequiringResolution<
-    Points, GhostOffsets, GhostIds, Coordinate>>
+struct AccessTraits<Details::PointsRequiringResolution<Points, GhostOffsets,
+                                                       GhostIds, Coordinate>>
 {
-  using Self = ArborX::Details::PointsRequiringResolution<Points, GhostOffsets,
-                                                          GhostIds, Coordinate>;
+  using Self = Details::PointsRequiringResolution<Points, GhostOffsets,
+                                                  GhostIds, Coordinate>;
   using memory_space = typename Points::memory_space;
 
   static KOKKOS_FUNCTION auto size(Self const &self)
@@ -103,7 +115,25 @@ struct ArborX::AccessTraits<ArborX::Details::PointsRequiringResolution<
   }
 };
 
-namespace ArborX::Details
+template <typename Points, typename Filter>
+struct AccessTraits<Details::FilteredPoints<Points, Filter>>
+{
+  using Self = Details::FilteredPoints<Points, Filter>;
+
+  using memory_space = typename Points::memory_space;
+
+  static KOKKOS_FUNCTION auto size(Self const &w)
+  {
+    return w._filter.extent(0);
+  }
+  static KOKKOS_FUNCTION auto get(Self const &w, size_t i)
+  {
+    auto const index = w._filter(i);
+    return attach(intersects(w._points(index)), index);
+  }
+};
+
+namespace Details
 {
 
 template <typename Index>
@@ -129,32 +159,16 @@ void computeCountsAndOffsets(MPI_Comm comm, Index k, std::vector<int> &counts,
     offsets[i + 1] = counts[i] + offsets[i];
 }
 
-template <typename ExecutionSpace, typename Points>
-auto gatherGlobalBoxes(MPI_Comm comm, ExecutionSpace const &space,
-                       Points const &points)
+template <typename ExecutionSpace, typename Box, typename Boxes>
+void gatherGlobalBoxes(MPI_Comm comm, ExecutionSpace const &space,
+                       Box const &local_box, Boxes &global_boxes)
 {
-  using MemorySpace = typename Points::memory_space;
+  Kokkos::Profiling::ScopedRegion guard(
+      "ArborX::DistributedDBSCAN::gatherGlobalBoxes");
 
-  using Point = typename Points::value_type;
-  constexpr int DIM = GeometryTraits::dimension_v<Point>;
-  using Coordinate = GeometryTraits::coordinate_type_t<Point>;
-  using Box = Box<DIM, Coordinate>;
-
-  int comm_size;
-  MPI_Comm_size(comm, &comm_size);
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
 
-  Box local_box;
-  Details::TreeConstruction::calculateBoundingBoxOfTheScene(
-      space,
-      Details::Indexables{points, Experimental::DefaultIndexableGetter{}},
-      local_box);
-
-  Kokkos::View<Box *, MemorySpace> global_boxes(
-      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::DistributedDBSCAN::rank_boxes"),
-      comm_size);
 #ifdef ARBORX_ENABLE_GPU_AWARE_MPI
   Kokkos::deep_copy(space, Kokkos::subview(global_boxes, comm_rank), local_box);
   space.fence(
@@ -176,8 +190,6 @@ auto gatherGlobalBoxes(MPI_Comm comm, ExecutionSpace const &space,
 
   Kokkos::deep_copy(space, global_boxes, global_boxes_host);
 #endif
-
-  return global_boxes;
 }
 
 struct IndexOnlyCallback
@@ -203,14 +215,31 @@ void computeRanksTo(MPI_Comm comm, ExecutionSpace const &space,
 
   using MemorySpace = typename Points::memory_space;
 
+  using Point = typename Points::value_type;
+  constexpr int DIM = GeometryTraits::dimension_v<Point>;
+  static_assert(
+      std::is_same_v<typename GeometryTraits::coordinate_type_t<Point>,
+                     Coordinate>);
+  using Box = Box<DIM, Coordinate>;
+
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
 
-  auto global_boxes = gatherGlobalBoxes(comm, space, points);
-  using Boxes = decltype(global_boxes);
-  using Box = typename Boxes::value_type;
+  Box local_box;
+  Details::TreeConstruction::calculateBoundingBoxOfTheScene(
+      space,
+      Details::Indexables{points, Experimental::DefaultIndexableGetter{}},
+      local_box);
+
+  Kokkos::View<Box *, MemorySpace> global_boxes(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         prefix + "rank_boxes"),
+      comm_size);
+  gatherGlobalBoxes(comm, space, local_box, global_boxes);
+
+  int const num_points = points.size();
 
   // Filter out: a) local box, and b) boxes that are not close to the local box
   // This changes the local search to neighbor-to-neighbor rather than global,
@@ -229,16 +258,95 @@ void computeRanksTo(MPI_Comm comm, ExecutionSpace const &space,
           return;
 
         if (is_final)
-          primitives(update) = {global_boxes(i), i};
+          primitives(update) = {approx_expand_by_radius(global_boxes(i), eps),
+                                i};
         ++update;
       },
       num_primitives);
   Kokkos::resize(space, primitives, num_primitives);
   Kokkos::resize(space, global_boxes, 0); // free space
 
+  Box void_box = local_box;
+  {
+    auto &void_minc = void_box.minCorner();
+    auto &void_maxc = void_box.maxCorner();
+    auto primitives_host =
+        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), primitives);
+
+    for (int i = 0; i < num_primitives; ++i)
+    {
+      auto const &box = primitives_host(i).value;
+      auto minc = box.minCorner();
+      auto maxc = box.maxCorner();
+
+      auto min_range = KokkosExt::ArithmeticTraits::infinity<Coordinate>::value;
+      int min_d = -1;
+      for (int d = 0; d < DIM; ++d)
+      {
+        // Restrict the rank's box to its intersection with the local box first
+        minc[d] = Kokkos::max(void_minc[d], minc[d]);
+        maxc[d] = Kokkos::min(void_maxc[d], maxc[d]);
+
+        auto range = maxc[d] - minc[d];
+        if (range < min_range)
+        {
+          min_range = range;
+          min_d = d;
+        }
+      }
+      if (min_range < 0) // no intersection
+        continue;
+
+      auto d = min_d;
+      if (minc[d] == void_minc[d])
+        void_minc[d] = maxc[d];
+      else if (maxc[d] == void_maxc[d])
+        void_maxc[d] = minc[d];
+      else if (minc[d] > void_minc[d] && maxc[d] < void_maxc[d])
+      {
+        // One box inside the other. Could choose any of the two regions.
+        if (minc[d] - void_minc[d] > void_maxc[d] - maxc[d])
+          void_maxc[d] = minc[d];
+        else
+          void_minc[d] = maxc[d];
+      }
+    }
+  }
+
+  Kokkos::View<int *, MemorySpace> filter(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, prefix + "filter"),
+      num_points);
+  int num_unfiltered;
+  Kokkos::parallel_scan(
+      prefix + "filter_out_points", Kokkos::RangePolicy(space, 0, num_points),
+      KOKKOS_LAMBDA(int i, int &update, bool is_final) {
+        if (intersects(points(i), void_box))
+          return;
+
+        if (is_final)
+          filter(update) = i;
+        ++update;
+      },
+      num_unfiltered);
+  Kokkos::resize(space, filter, num_unfiltered);
+
   BruteForce index(space, primitives);
-  index.query(space, Experimental::make_intersects(points, eps),
-              IndexOnlyCallback{}, ranks_to, offsets);
+  auto const sparse_predicates =
+      FilteredPoints<Points, decltype(filter)>{points, filter};
+  Offsets sparse_offsets(Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                                            prefix + "offsets"),
+                         0);
+  index.query(space, sparse_predicates, IndexOnlyCallback{}, ranks_to,
+              sparse_offsets);
+
+  KokkosExt::reallocWithoutInitializing(space, offsets, num_points + 1);
+  Kokkos::deep_copy(space, offsets, 0);
+  Kokkos::parallel_for(
+      prefix + "compute_full_counts",
+      Kokkos::RangePolicy(space, 0, num_unfiltered), KOKKOS_LAMBDA(int i) {
+        offsets(filter(i)) = sparse_offsets(i + 1) - sparse_offsets(i);
+      });
+  KokkosExt::exclusive_scan(space, offsets, offsets, 0);
 }
 
 template <typename ExecutionSpace, typename Points, typename Coordinate,
@@ -620,6 +728,7 @@ void relabel(ExecutionSpace const &space, MergePairs const &merge_pairs,
       });
 }
 
-} // namespace ArborX::Details
+} // namespace Details
+} // namespace ArborX
 
 #endif
