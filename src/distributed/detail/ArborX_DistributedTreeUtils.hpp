@@ -13,6 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_Distributor.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 #include <kokkos_ext/ArborX_KokkosExtSort.hpp>
@@ -45,8 +46,9 @@ void countResults(ExecutionSpace const &space, int n_queries,
   KokkosExt::exclusive_scan(space, offset, offset, 0);
 }
 
-template <typename ExecutionSpace, typename Predicates, typename RanksTo,
-          typename Offset, typename FwdQueries, typename FwdIds, typename Ranks>
+template <typename ExecutionSpace, Details::Concepts::Predicates Predicates,
+          typename RanksTo, typename Offset, typename FwdQueries,
+          typename FwdIds, typename Ranks>
 void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
                     Predicates const &queries, RanksTo const &ranks_to,
                     Offset const &offset, FwdQueries &fwd_queries,
@@ -112,8 +114,8 @@ void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
   }
 }
 
-template <typename ExecutionSpace, typename Predicates, typename RanksTo,
-          typename Offset, typename FwdQueries>
+template <typename ExecutionSpace, Details::Concepts::Predicates Predicates,
+          typename RanksTo, typename Offset, typename FwdQueries>
 void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
                     Predicates const &queries, RanksTo const &ranks_to,
                     Offset const &offset, FwdQueries &fwd_queries)
@@ -221,8 +223,9 @@ void communicateResultsBack(MPI_Comm comm, ExecutionSpace const &space,
   }
 }
 
-template <typename ExecutionSpace, typename BottomTree, typename Predicates,
-          typename Callback, typename RanksTo, typename Offset, typename Values>
+template <typename ExecutionSpace, typename BottomTree,
+          Details::Concepts::Predicates Predicates, typename Callback,
+          typename RanksTo, typename Offset, typename Values>
 void forwardQueriesAndCommunicateResults(
     MPI_Comm comm, ExecutionSpace const &space, BottomTree const &bottom_tree,
     Predicates const &predicates, Callback const &callback,
@@ -259,8 +262,8 @@ void forwardQueriesAndCommunicateResults(
   Kokkos::Profiling::popRegion();
 }
 
-template <typename ExecutionSpace, typename Predicates, typename Distances,
-          typename Values, typename Offset>
+template <typename ExecutionSpace, Details::Concepts::Predicates Predicates,
+          typename Distances, typename Values, typename Offset>
 void filterResults(ExecutionSpace const &space, Predicates const &queries,
                    Distances const &distances, Values &values, Offset &offset)
 {
