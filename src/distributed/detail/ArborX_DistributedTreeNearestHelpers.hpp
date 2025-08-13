@@ -101,14 +101,19 @@ struct approx_expand_by_radius<BoxTag, Box>
   template <typename Float>
   KOKKOS_FUNCTION static auto apply(Box const &box, Float r)
   {
+    using namespace KokkosExt::ArithmeticTraits;
+
     Box new_box = box;
     auto &min_corner = new_box.minCorner();
     auto &max_corner = new_box.maxCorner();
     constexpr int DIM = GeometryTraits::dimension_v<Box>;
+    using Coordinate = GeometryTraits::coordinate_type_t<Box>;
     for (int d = 0; d < DIM; ++d)
     {
-      min_corner[d] -= r;
-      max_corner[d] += r;
+      min_corner[d] =
+          Kokkos::nextafter(min_corner[d] - r, finite_min<Coordinate>::value);
+      max_corner[d] =
+          Kokkos::nextafter(max_corner[d] + r, finite_max<Coordinate>::value);
     }
     return new_box;
   }
@@ -120,7 +125,11 @@ struct approx_expand_by_radius<SphereTag, Sphere>
   template <typename Float>
   KOKKOS_FUNCTION static auto apply(Sphere const &sphere, Float r)
   {
-    return Sphere{sphere.centroid(), sphere.radius() + r};
+    using namespace KokkosExt::ArithmeticTraits;
+    using Coordinate = GeometryTraits::coordinate_type_t<Sphere>;
+    return Sphere{
+        sphere.centroid(),
+        Kokkos::nextafter(sphere.radius() + r, finite_max<Coordinate>::value)};
   }
 };
 
