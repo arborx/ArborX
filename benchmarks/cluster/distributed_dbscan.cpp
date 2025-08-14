@@ -67,7 +67,7 @@ bool run_dist_dbscan(MPI_Comm comm, ExecutionSpace const &exec_space,
 
   if (params.verbose && comm_rank == 0)
   {
-    printf("total time          : %10.3f\n",
+    printf("total time        : %10.3f\n",
            ArborXBenchmark::get_time("ArborX::DistributedDBSCAN::total"));
   }
 
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
     std::cout << "Kokkos version    : " << ArborX::Details::KokkosExt::version()
               << std::endl;
-    std::cout << "#MPI ranks         : " << comm_size << std::endl;
+    std::cout << "#MPI ranks        : " << comm_size << std::endl;
   }
 
   // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
