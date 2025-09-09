@@ -13,7 +13,7 @@
 #define ARBORX_DISTRIBUTED_DBSCAN_HELPERS_HPP
 
 #include <ArborX_Box.hpp>
-#include <ArborX_BruteForce.hpp>
+#include <ArborX_LinearBVH.hpp>
 #include <detail/ArborX_Distributor.hpp>
 #include <detail/ArborX_Predicates.hpp>
 #include <detail/ArborX_TreeConstruction.hpp>
@@ -236,7 +236,7 @@ void computeRanksTo(MPI_Comm comm, ExecutionSpace const &space,
   Kokkos::resize(space, primitives, num_primitives);
   Kokkos::resize(space, global_boxes, 0); // free space
 
-  BruteForce index(space, primitives);
+  BoundingVolumeHierarchy index(space, primitives);
   index.query(space, Experimental::make_intersects(points, eps),
               IndexOnlyCallback{}, ranks_to, offsets);
 }
