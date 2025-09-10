@@ -22,7 +22,7 @@ void makeCase(ExecutionSpace const &exec, Value const (&src_arr)[M][N][N],
               Value const (&ref_arr)[M][N][N])
 {
   using DeviceView = Kokkos::View<Value[N][N], MemorySpace>;
-  using HostView = typename DeviceView::HostMirror;
+  using HostView = typename DeviceView::host_mirror_type;
 
   HostView src("Testing::src");
   HostView ref("Testing::ref");
