@@ -23,7 +23,7 @@ void makeCase(ES const &es, std::function<T(T const)> const &tf, T tol = 1e-5)
 {
   using Point = ArborX::Point<1, T>;
   using View = Kokkos::View<T *, typename ES::memory_space>;
-  using HostView = typename View::HostMirror;
+  using HostView = typename View::host_mirror_type;
   static constexpr int range = 15;
 
   HostView input("Testing::input", 4 * range);
