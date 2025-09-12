@@ -648,9 +648,9 @@ struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
 
     if (Details::equals(a, b))
       return Details::intersects(ellipsoid, Segment{a, c});
-    else if (Details::equals(a, c))
+    if (Details::equals(a, c))
       return Details::intersects(ellipsoid, Segment{a, b});
-    else if (Details::equals(b, c))
+    if (Details::equals(b, c))
       return Details::intersects(ellipsoid, Segment{b, a});
 
     auto const &rmt = ellipsoid.rmt();
