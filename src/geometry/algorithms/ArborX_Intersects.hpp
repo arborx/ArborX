@@ -637,23 +637,91 @@ struct intersects<SegmentTag, EllipsoidTag, Segment, Ellipsoid>
 template <typename Ellipsoid, typename Box>
 struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
 {
-  KOKKOS_FUNCTION static constexpr bool apply(Ellipsoid const &ellipsoid,
-                                              Box const &box)
+  template <typename Point>
+  KOKKOS_FUNCTION static constexpr bool
+  intersects_box2d(Ellipsoid const &ellipsoid, Point const &a, Point const &b,
+                   Point const &c)
   {
-    static_assert(GeometryTraits::dimension_v<Box> == 2,
-                  "Ellipsoid-box intersection is only implemented for 2D");
+    using Coordinate = GeometryTraits::coordinate_type_t<Point>;
+    using Segment =
+        Experimental::Segment<GeometryTraits::dimension_v<Point>, Coordinate>;
 
-    auto min_corner = box.minCorner();
-    auto max_corner = box.maxCorner();
-    using ::ArborX::Experimental::Segment;
-    // clang-format off
-    return
-      Details::intersects(ellipsoid.centroid(), box) ||
-      Details::intersects(ellipsoid, Segment{min_corner, {min_corner[0], max_corner[1]}}) ||
-      Details::intersects(ellipsoid, Segment{min_corner, {max_corner[0], min_corner[1]}}) ||
-      Details::intersects(ellipsoid, Segment{max_corner, {min_corner[0], max_corner[1]}}) ||
-      Details::intersects(ellipsoid, Segment{max_corner, {max_corner[0], min_corner[1]}});
-    // clang-format on
+    if (Details::equals(a, b))
+      return Details::intersects(ellipsoid, Segment{a, c});
+    if (Details::equals(a, c))
+      return Details::intersects(ellipsoid, Segment{a, b});
+    if (Details::equals(b, c))
+      return Details::intersects(ellipsoid, Segment{b, a});
+
+    auto const &rmt = ellipsoid.rmt();
+
+    auto ab = b - a;
+    auto ac = c - a;
+    auto c0a = a - ellipsoid.centroid();
+
+    // A11 t^2 + 2*A12 st + A22 s^2 + 2*B1 t + 2*B2 s + C <= 1
+    auto A11 = rmt_multiply(ac, rmt, ac);
+    auto A12 = rmt_multiply(ab, rmt, ac);
+    auto A22 = rmt_multiply(ab, rmt, ab);
+    auto B1 = rmt_multiply(c0a, rmt, ac);
+    auto B2 = rmt_multiply(c0a, rmt, ab);
+    auto C = rmt_multiply(c0a, rmt, c0a);
+
+    auto s = (A12 * B1 - A11 * B2) / (A11 * A22 - A12 * A12);
+    auto t = (A12 * B2 - A22 * B1) / (A11 * A22 - A12 * A12);
+
+    t = Kokkos::clamp(t, (Coordinate)0, (Coordinate)1);
+    s = Kokkos::clamp(s, (Coordinate)0, (Coordinate)1);
+
+    return A11 * t * t + 2 * A12 * t * s + A22 * s * s + 2 * B1 * t +
+               2 * B2 * s + C <=
+           1;
+  }
+
+  static constexpr bool apply(Ellipsoid const &ellipsoid, Box const &box)
+  {
+    constexpr int DIM = GeometryTraits::dimension_v<Ellipsoid>;
+    static_assert(
+        DIM == 2 || DIM == 3,
+        "Ellipsoid-box intersection is only implemented for 2D and 3D");
+
+    // Check if RMT represents a sphere
+    // This is a bit expensive but guarantees that spheres can be replaced by
+    // ellipsoids with no side-effects
+    auto const &rmt = ellipsoid.rmt();
+    bool is_sphere = (rmt[0][0] == rmt[1][1] && rmt[0][1] == 0);
+    if constexpr (DIM == 3)
+      is_sphere &= (rmt[0][0] == rmt[2][2] && rmt[0][2] == 0 && rmt[1][2] == 0);
+    if (is_sphere)
+      return Details::intersects(Sphere{ellipsoid.centroid(), rmt[0][0]}, box);
+
+    if (Details::intersects(ellipsoid.centroid(), box))
+      return true;
+
+    auto minc = box.minCorner();
+    auto maxc = box.maxCorner();
+    if constexpr (DIM == 2)
+    {
+      using Experimental::Segment;
+      // clang-format off
+      return
+        Details::intersects(ellipsoid, Segment{minc, {minc[0], maxc[1]}}) || // left
+        Details::intersects(ellipsoid, Segment{minc, {maxc[0], minc[1]}}) || // bottom
+        Details::intersects(ellipsoid, Segment{maxc, {minc[0], maxc[1]}}) || // top
+        Details::intersects(ellipsoid, Segment{maxc, {maxc[0], minc[1]}});   // right
+      // clang-format on
+    }
+    else
+    {
+      // clang-format off
+      return intersects_box2d(ellipsoid, minc, Point{maxc[0], minc[1], minc[2]}, Point{minc[0], maxc[1], minc[2]}) || // bottom
+             intersects_box2d(ellipsoid, minc, Point{maxc[0], minc[1], minc[2]}, Point{minc[0], minc[1], maxc[2]}) || // front
+             intersects_box2d(ellipsoid, minc, Point{minc[0], maxc[1], minc[2]}, Point{minc[0], minc[1], maxc[2]}) || // left
+             intersects_box2d(ellipsoid, maxc, Point{minc[0], maxc[1], maxc[2]}, Point{maxc[0], minc[1], maxc[2]}) || // top
+             intersects_box2d(ellipsoid, maxc, Point{minc[0], maxc[1], maxc[2]}, Point{maxc[0], maxc[1], minc[2]}) || // back
+             intersects_box2d(ellipsoid, maxc, Point{maxc[0], minc[1], maxc[2]}, Point{maxc[0], maxc[1], minc[2]});   // right
+      // clang-format on
+    }
   }
 };
 
