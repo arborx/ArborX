@@ -67,7 +67,7 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
                                  bool binary = true, int max_num_points = -1,
                                  int comm_rank = 0, int comm_size = 1)
 {
-  if (comm_size > 1 && binary == false)
+  if (comm_size > 1 && !binary)
     throw std::runtime_error(
         "Distributed reading only works with binary files");
 
