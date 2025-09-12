@@ -261,10 +261,11 @@ int main(int argc, char *argv[])
   std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
 
   bpo::options_description desc("Allowed options");
+  bool ascii;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
-      ( "binary", bpo::bool_switch(&params.binary), "binary file indicator")
+      ( "ascii", bpo::bool_switch(&ascii), "ascii file indicator")
       ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
       ( "dimension", bpo::value<int>(&params.dim)->default_value(-1), "dimension of points to generate" )
@@ -283,6 +284,8 @@ int main(int argc, char *argv[])
   bpo::variables_map vm;
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
+
+  params.binary = !ascii;
 
   if (vm.count("help") > 0)
   {

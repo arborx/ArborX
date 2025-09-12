@@ -117,10 +117,11 @@ int main(int argc, char *argv[])
   std::vector<std::string> allowed_dendrograms = {"boruvka", "union-find"};
 
   bpo::options_description desc("Allowed options");
+  bool ascii;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
-      ( "binary", bpo::bool_switch(&params.binary), "binary file indicator")
+      ( "ascii", bpo::bool_switch(&ascii), "ascii file indicator")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
       ( "dendrogram", bpo::value<std::string>(&params.dendrogram)->default_value("boruvka"), ("dendrogram " + vec2string(allowed_dendrograms, " | ")).c_str() )
       ( "dimension", bpo::value<int>(&params.dim)->default_value(-1), "dimension of points to generate" )
@@ -134,6 +135,8 @@ int main(int argc, char *argv[])
   bpo::variables_map vm;
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
+
+  params.binary = !ascii;
 
   if (vm.count("help") > 0)
   {
