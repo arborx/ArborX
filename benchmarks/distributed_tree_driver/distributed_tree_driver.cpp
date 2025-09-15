@@ -16,6 +16,10 @@
 
 #include <Kokkos_Core.hpp>
 
+#ifdef ARBORX_ENABLE_CALIPER
+#include <caliper/cali.h>
+#endif
+
 #include <boost/program_options.hpp>
 
 #include <cmath>    // sqrt, cbrt
@@ -286,6 +290,15 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 
 int main(int argc, char *argv[])
 {
+#ifdef ARBORX_ENABLE_CALIPER
+  // The Caliper output can be managed through CALI_CONFIG environment variable.
+  // For example,
+  //   CALI_CONFIG=runtime-report,profile.mpi,profile.kokkos,calc.inclusive,max_column_width=80
+  //   \
+  //     mpirun -np 4 ./ArborX_Benchmark_DistributedTree.exe
+  CALI_MARK_FUNCTION_BEGIN;
+#endif
+
   MPI_Init(&argc, &argv);
 
   MPI_Comm const comm = MPI_COMM_WORLD;
@@ -419,6 +432,10 @@ int main(int argc, char *argv[])
               << " caught some kind of exception\n";
     success = false;
   }
+
+#ifdef ARBORX_ENABLE_CALIPER
+  CALI_MARK_FUNCTION_END;
+#endif
 
   Kokkos::finalize();
 
