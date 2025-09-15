@@ -254,28 +254,61 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_ellipse_segment, Coordinate,
   BOOST_TEST(!intersects(ellipse, Segment2{{2.1, 0}, {2.1, 3}}));
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_ellipse_box, Coordinate,
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_ellipsoid_box, Coordinate,
                               CoordinatesList)
 {
   using ArborX::Details::intersects;
   using Box2 = ArborX::Box<2, Coordinate>;
+  using Box3 = ArborX::Box<3, Coordinate>;
 
-  // ellipsoid [2x^2 - 3xy + 2y^2 <= 1]
-  constexpr ArborX::Experimental::Ellipsoid<2, Coordinate> ellipse{
+  // ellipsoid [2x^2 - 3xy + 2y^2 <= 1] shifted by (1,1)
+  constexpr ArborX::Experimental::Ellipsoid<2, Coordinate> ellipse2{
       {1.f, 1.f}, {{2.f, -1.5f}, {-1.5f, 2.f}}};
 
-  BOOST_TEST(intersects(ellipse, Box2{{-10, -10}, {10, 10}}));
-  BOOST_TEST(intersects(ellipse, Box2{{0.5, 0.5}, {1.0, 1.0}}));
-  BOOST_TEST(intersects(ellipse, Box2{{-1, -1}, {0, 0}}));
-  BOOST_TEST(intersects(ellipse, Box2{{2, 2}, {3, 3}}));
-  BOOST_TEST(intersects(ellipse, Box2{{-1, -1}, {0, 2}}));
-  BOOST_TEST(intersects(ellipse, Box2{{-1, -1}, {2, 0}}));
-  BOOST_TEST(intersects(ellipse, Box2{{2, 1}, {3, 3}}));
-  BOOST_TEST(intersects(ellipse, Box2{{1, 2}, {3, 3}}));
-  BOOST_TEST(!intersects(ellipse, Box2{{1.5, 0}, {2, 0.5}}));
-  BOOST_TEST(!intersects(ellipse, Box2{{-1, -1}, {-0.1, -0.1}}));
-  BOOST_TEST(!intersects(ellipse, Box2{{0, 1.5}, {0.5, 2}}));
-  BOOST_TEST(!intersects(ellipse, Box2{{2.1, 2.1}, {3, 3}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{-10, -10}, {10, 10}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{0.5, 0.5}, {1.0, 1.0}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{-1, -1}, {0, 0}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{2, 2}, {3, 3}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{-1, -1}, {0, 2}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{-1, -1}, {2, 0}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{1.05, 1.05}, {1.1, 1.1}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{2, 1}, {3, 3}}));
+  BOOST_TEST(intersects(ellipse2, Box2{{1, 2}, {3, 3}}));
+  BOOST_TEST(!intersects(ellipse2, Box2{{1.5, 0}, {2, 0.5}}));
+  BOOST_TEST(!intersects(ellipse2, Box2{{-1, -1}, {-0.1, -0.1}}));
+  BOOST_TEST(!intersects(ellipse2, Box2{{0, 1.5}, {0.5, 2}}));
+  BOOST_TEST(!intersects(ellipse2, Box2{{2.1, 2.1}, {3, 3}}));
+
+  // (spherical) ellipsoid [x^2 + y^2 + z^2 <= 1] shifted by (1,1,1)
+  constexpr ArborX::Experimental::Ellipsoid<3, Coordinate> ellipse3{
+      {1, 1, 1}, {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+  constexpr ArborX::Sphere<3, Coordinate> sphere{{1, 1, 1}, 1};
+
+  BOOST_TEST(intersects(ellipse3, Box3{{-1, -1, -1}, {2, 2, 0}}) ==
+             intersects(sphere, Box3{{-1, -1, -1}, {2, 2, 0}}));
+  BOOST_TEST(
+      intersects(ellipse3, Box3{{0.75, 0.75, 0.75}, {1.25, 1.25, 1.25}}) ==
+      intersects(sphere, Box3{{0.75, 0.75, 0.75}, {1.25, 1.25, 1.25}}));
+  BOOST_TEST(intersects(ellipse3, Box3{{-1, -1, -1}, {3, 3, 3}}) ==
+             intersects(sphere, Box3{{-1, -1, -1}, {3, 3, 3}}));
+  BOOST_TEST(!intersects(ellipse3, Box3{{0, 0, 0}, {0.25, 0.25, 0.25}}) ==
+             !intersects(sphere, Box3{{0, 0, 0}, {0.25, 0.25, 0.25}}));
+
+  // ellipsoid [4x^2 + 4y^2 + 4z^2 - 3xy - 3xz - 3yz <= 1] shifted by (1,1,1)
+  constexpr ArborX::Experimental::Ellipsoid<3, Coordinate> ellipse4{
+      {1, 1, 1},
+      {{4.f, -1.5f, -1.5f}, {-1.5f, 4.f, -1.5f}, {-1.5f, -1.5f, 4.f}}};
+  BOOST_TEST(intersects(ellipse4, Box3{{-1, -1, -1}, {0.45, 0.45, 0.45}}));
+  BOOST_TEST(intersects(ellipse4, Box3{{-1, -1, -1}, {3, 3, 3}}));
+  BOOST_TEST(intersects(ellipse4, Box3{{1, -2, -2}, {3, 2, 2}}));  // left face
+  BOOST_TEST(intersects(ellipse4, Box3{{-3, -2, -2}, {1, 2, 2}})); // right face
+  BOOST_TEST(intersects(ellipse4, Box3{{-2, 1, -2}, {2, 3, 2}}));  // front face
+  BOOST_TEST(intersects(ellipse4, Box3{{-2, -3, -2}, {2, 1, 2}})); // back face
+  BOOST_TEST(intersects(ellipse4, Box3{{-2, -2, 1}, {2, 2, 3}})); // bottom face
+  BOOST_TEST(intersects(ellipse4, Box3{{-2, -3, -2}, {2, 1, 2}})); // top face
+  BOOST_TEST(!intersects(ellipse4, Box3{{0.2, 0.2, 0.2}, {0.3, 0.3, 0.3}}));
+  BOOST_TEST(!intersects(ellipse4, Box3{{-1, -1, -1}, {0.4, 0.4, 0.4}}));
+  BOOST_TEST(!intersects(ellipse4, Box3{{1.7, 1.7, 1.7}, {2, 2, 2}}));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_segment_triangle, Coordinate,
