@@ -24,9 +24,10 @@
 namespace ArborX::Experimental
 {
 
+template <typename Coordinate>
 struct NeighborListPredicateGetter
 {
-  float _radius;
+  Coordinate _radius;
 
   template <typename Point, typename Index>
   KOKKOS_FUNCTION auto
@@ -35,16 +36,18 @@ struct NeighborListPredicateGetter
     static_assert(GeometryTraits::is_point_v<Point>);
 
     constexpr int dim = GeometryTraits::dimension_v<Point>;
-    using Coordinate = typename GeometryTraits::coordinate_type_t<Point>;
+    static_assert(
+        std::is_same_v<GeometryTraits::coordinate_type_t<Point>, Coordinate>);
     return intersects(
         Sphere{Details::convert<::ArborX::Point<dim, Coordinate>>(pair.value),
                _radius});
   }
 };
 
-template <class ExecutionSpace, class Primitives, class Offsets, class Indices>
+template <class ExecutionSpace, class Primitives, typename Coordinate,
+          class Offsets, class Indices>
 void findHalfNeighborList(ExecutionSpace const &space,
-                          Primitives const &primitives, float radius,
+                          Primitives const &primitives, Coordinate radius,
                           Offsets &offsets, Indices &indices)
 {
   Kokkos::Profiling::pushRegion("ArborX::Experimental::HalfNeighborList");
@@ -61,6 +64,8 @@ void findHalfNeighborList(ExecutionSpace const &space,
 
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point_v<Point>);
+  static_assert(
+      std::is_same_v<GeometryTraits::coordinate_type_t<Point>, Coordinate>);
 
   Points points{primitives}; // NOLINT
   int const n = points.size();
@@ -79,7 +84,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
       KOKKOS_LAMBDA(Value const &, Value const &value) {
         Kokkos::atomic_inc(&offsets(value.index));
       },
-      NeighborListPredicateGetter{radius});
+      NeighborListPredicateGetter<Coordinate>{radius});
   KokkosExt::exclusive_scan(space, offsets, offsets, 0);
   KokkosExt::reallocWithoutInitializing(space, indices,
                                         KokkosExt::lastElement(space, offsets));
@@ -95,15 +100,16 @@ void findHalfNeighborList(ExecutionSpace const &space,
       KOKKOS_LAMBDA(Value const &value1, Value const &value2) {
         indices(Kokkos::atomic_fetch_inc(&counts(value2.index))) = value1.index;
       },
-      NeighborListPredicateGetter{radius});
+      NeighborListPredicateGetter<Coordinate>{radius});
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::popRegion();
 }
 
-template <class ExecutionSpace, class Primitives, class Offsets, class Indices>
+template <class ExecutionSpace, class Primitives, typename Coordinate,
+          class Offsets, class Indices>
 void findFullNeighborList(ExecutionSpace const &space,
-                          Primitives const &primitives, float radius,
+                          Primitives const &primitives, Coordinate radius,
                           Offsets &offsets, Indices &indices)
 {
   Kokkos::Profiling::pushRegion("ArborX::Experimental::FullNeighborList");
@@ -139,7 +145,7 @@ void findFullNeighborList(ExecutionSpace const &space,
         Kokkos::atomic_inc(&offsets(value1.index));
         Kokkos::atomic_inc(&offsets(value2.index));
       },
-      NeighborListPredicateGetter{radius});
+      NeighborListPredicateGetter<Coordinate>{radius});
   KokkosExt::exclusive_scan(space, offsets, offsets, 0);
   KokkosExt::reallocWithoutInitializing(space, indices,
                                         KokkosExt::lastElement(space, offsets));
@@ -155,7 +161,7 @@ void findFullNeighborList(ExecutionSpace const &space,
       KOKKOS_LAMBDA(Value const &value1, Value const &value2) {
         indices(Kokkos::atomic_fetch_inc(&counts(value2.index))) = value1.index;
       },
-      NeighborListPredicateGetter{radius});
+      NeighborListPredicateGetter<Coordinate>{radius});
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::Experimental::FullNeighborList::Copy");

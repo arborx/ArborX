@@ -48,9 +48,10 @@ struct Filter
   }
 };
 
-template <class MemorySpace, class ExecutionSpace, class Points>
+template <class MemorySpace, class ExecutionSpace, class Points,
+          typename Coordinate>
 auto compute_reference(ExecutionSpace const &exec_space, Points const &points,
-                       float radius)
+                       Coordinate radius)
 {
   Kokkos::View<int *, ExecutionSpace> offsets("Test::offsets", 0);
   Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
@@ -65,9 +66,9 @@ auto compute_reference(ExecutionSpace const &exec_space, Points const &points,
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices));
 }
 
-template <class ExecutionSpace, class Points>
+template <class ExecutionSpace, class Points, typename Coordinate>
 auto buildFullNeighborList(ExecutionSpace const &exec_space,
-                           Points const &points, float radius)
+                           Points const &points, Coordinate radius)
 {
   Kokkos::View<int *, ExecutionSpace> offsets("Test::offsets", 0);
   Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
@@ -78,9 +79,10 @@ auto buildFullNeighborList(ExecutionSpace const &exec_space,
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, indices));
 }
 
-template <class ExecutionSpace, class Points>
+template <class ExecutionSpace, class Points, typename Coordinate>
 auto buildHalfNeighborListAndExpandToFull(ExecutionSpace const &exec_space,
-                                          Points const &points, float radius)
+                                          Points const &points,
+                                          Coordinate radius)
 {
   Kokkos::View<int *, ExecutionSpace> offsets("Test::offsets", 0);
   Kokkos::View<int *, ExecutionSpace> indices("Test::indices", 0);
@@ -110,14 +112,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_neighbor_list_degenerate, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  auto no_point = ArborXTest::toView<ExecutionSpace>(
-      std::vector<ArborX::Point<3>>{}, "Test::no_point");
+  // TODO: in order to test both float and double, we need instations of the
+  // cartesian product of precisions and device types
+  using Coordinate = float;
+  using Point = ArborX::Point<3, Coordinate>;
+
+  auto no_point = ArborXTest::toView<ExecutionSpace>(std::vector<Point>{},
+                                                     "Test::no_point");
 
   auto single_point = ArborXTest::toView<ExecutionSpace>(
-      std::vector<ArborX::Point<3>>{{0.f, 0.f, 0.f}}, "Test::single_point");
+      std::vector<Point>{{0.f, 0.f, 0.f}}, "Test::single_point");
 
   constexpr auto radius =
-      ArborX::Details::KokkosExt::ArithmeticTraits::infinity<float>::value;
+      ArborX::Details::KokkosExt::ArithmeticTraits::infinity<Coordinate>::value;
 
   ARBORX_TEST_NEIGHBOR_LIST(exec_space, no_point, radius, (std::vector<int>{0}),
                             (std::vector<int>{}));
@@ -132,8 +139,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_neighbor_list, DeviceType,
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
+  // TODO: in order to test both float and double, we need instations of the
+  // cartesian product of precisions and device types
+  using Coordinate = float;
+  using Point = ArborX::Point<3, Coordinate>;
+
   auto points = ArborXTest::toView<ExecutionSpace>(
-      std::vector<ArborX::Point<3>>{
+      std::vector<Point>{
           {0.f, 0.f, 0.f},
           {1.f, 1.f, 1.f},
           {2.f, 2.f, 2.f},
@@ -141,20 +153,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(find_neighbor_list, DeviceType,
       },
       "Test::four_points");
 
-  ARBORX_TEST_NEIGHBOR_LIST(exec_space, points, 1.f,
+  ARBORX_TEST_NEIGHBOR_LIST(exec_space, points, (Coordinate)1,
                             (std::vector<int>{0, 0, 0, 0, 0}),
                             (std::vector<int>{}));
 
-  ARBORX_TEST_NEIGHBOR_LIST(exec_space, points, 2.f,
+  ARBORX_TEST_NEIGHBOR_LIST(exec_space, points, (Coordinate)2,
                             (std::vector<int>{0, 1, 3, 5, 6}),
                             (std::vector<int>{1, 0, 2, 1, 3, 2}));
 
-  ARBORX_TEST_NEIGHBOR_LIST(exec_space, points, 4.f,
+  ARBORX_TEST_NEIGHBOR_LIST(exec_space, points, (Coordinate)4,
                             (std::vector<int>{0, 2, 5, 8, 10}),
                             (std::vector<int>{1, 2, 0, 2, 3, 0, 1, 3, 1, 2}));
 
   ARBORX_TEST_NEIGHBOR_LIST(
-      exec_space, points, 6.f, (std::vector<int>{0, 3, 6, 9, 12}),
+      exec_space, points, (Coordinate)6, (std::vector<int>{0, 3, 6, 9, 12}),
       (std::vector<int>{1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2}));
 }
 
@@ -166,9 +178,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
   using ExecutionSpace = typename DeviceType::execution_space;
   ExecutionSpace exec_space;
 
-  auto points =
-      ArborXTest::make_random_cloud<ArborX::Point<3>>(exec_space, 100);
-  auto radius = .3f;
+  // TODO: in order to test both float and double, we need instations of the
+  // cartesian product of precisions and device types
+  using Coordinate = float;
+  using Point = ArborX::Point<3, Coordinate>;
+
+  auto points = ArborXTest::make_random_cloud<Point>(exec_space, 100);
+  Coordinate radius = .3;
 
   BOOST_TEST(
       Test::buildFullNeighborList(exec_space, points, radius) ==
