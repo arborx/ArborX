@@ -1,0 +1,31 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${ {github.event_name }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  CI2:
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: registry.fedoraproject.org/fedora:rawhide
+      options: --privileged
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Build fedpkg
+        run: dnf -y builddep test/ArborX.spec
+      - name: Build
+        run:  |
+          export CFLAGS='-O0 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=3 -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -mbranch-protection=standard -fasynchronous-unwind-tables -fstack-clash-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer '
+          export CXXFLAGS='-O0 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=3 -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -mbranch-protection=standard -fasynchronous-unwind-tables -fstack-clash-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer '
+          export LDFLAGS='-Wl,-z,relro -Wl,--as-needed  -Wl,-z,pack-relative-relocs -Wl,-z,now -Wl,--build-id=sha1 '
+          export LT_SYS_LIBRARY_PATH=/usr/lib64:
+          export CC=gcc
+          export CXX=g++
+          cmake -S . -B aarch64-redhat-linux-gnu-serial -DCMAKE_C_FLAGS_RELEASE:STRING=-DNDEBUG -DCMAKE_CXX_FLAGS_RELEASE:STRING=-DNDEBUG -DCMAKE_Fortran_FLAGS_RELEASE:STRING=-DNDEBUG -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DCMAKE_INSTALL_DO_STRIP:BOOL=OFF -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_INSTALL_FULL_SBINDIR:PATH=/usr/bin -DCMAKE_INSTALL_SBINDIR:PATH=bin -DINCLUDE_INSTALL_DIR:PATH=/usr/include -DLIB_INSTALL_DIR:PATH=/usr/lib64 -DSYSCONF_INSTALL_DIR:PATH=/etc -DSHARE_INSTALL_PREFIX:PATH=/usr/share -DLIB_SUFFIX=64 -DBUILD_SHARED_LIBS:BOOL=ON -DARBORX_ENABLE_TESTS=ON -DARBORX_ENABLE_EXAMPLES=OFF -DARBORX_ENABLE_BENCHMARKS=OFF -DARBORX_ENABLE_MPI=OFF -DCMAKE_INSTALL_DATADIR=/usr/share -DCMAKE_INSTALL_INCLUDEDIR=/usr/include
+          cmake --build aarch64-redhat-linux-gnu-serial --parallel 1
+          ctest --output-on-failure --test-dir aarch64-redhat-linux-gnu-serial
