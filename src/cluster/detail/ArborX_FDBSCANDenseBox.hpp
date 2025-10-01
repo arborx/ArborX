@@ -26,8 +26,8 @@ namespace ArborX
 namespace Details
 {
 
-template <typename MemorySpace, typename Primitives, typename DenseCellOffsets,
-          typename Permutation>
+template <typename MemorySpace, Details::Concepts::Primitives Primitives,
+          typename DenseCellOffsets, typename Permutation>
 struct CountUpToN_DenseBox
 {
   using Coordinate =
@@ -92,8 +92,9 @@ struct CountUpToN_DenseBox
   }
 };
 
-template <typename UnionFind, typename CorePointsType, typename Primitives,
-          typename DenseCellOffsets, typename Permutation>
+template <typename UnionFind, typename CorePointsType,
+          Details::Concepts::Primitives Primitives, typename DenseCellOffsets,
+          typename Permutation>
 struct FDBSCANDenseBoxCallback
 {
   using Coordinate =
@@ -187,7 +188,7 @@ struct FDBSCANDenseBoxCallback
   }
 };
 
-template <typename ExecutionSpace, typename Primitives>
+template <typename ExecutionSpace, Details::Concepts::Primitives Primitives>
 Kokkos::View<size_t *, typename Primitives::memory_space> computeCellIndices(
     ExecutionSpace const &exec_space, Primitives const &primitives,
     CartesianGrid<GeometryTraits::dimension_v<typename Primitives::value_type>,
