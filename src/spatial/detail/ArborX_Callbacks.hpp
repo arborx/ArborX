@@ -12,7 +12,6 @@
 #define ARBORX_CALLBACKS_HPP
 
 #include <detail/ArborX_AccessTraits.hpp>
-#include <detail/ArborX_Predicates.hpp> // is_valid_predicate_tag
 
 #include <Kokkos_DetectionIdiom.hpp>
 #include <Kokkos_Macros.hpp>
@@ -83,11 +82,9 @@ void check_valid_callback(Callback const &callback, Predicates const &,
   check_generic_lambda_support(callback);
 
   using Predicate = typename AccessValues<Predicates>::value_type;
-  using PredicateTag = typename Predicate::Tag;
 
-  static_assert(is_valid_predicate_tag<PredicateTag>::value &&
-                    std::is_invocable_v<Callback const &, Predicate, Value,
-                                        OutputFunctorHelper<OutputView>>,
+  static_assert(std::is_invocable_v<Callback const &, Predicate, Value,
+                                    OutputFunctorHelper<OutputView>>,
                 "Callback 'operator()' does not have the correct signature");
 
   static_assert(
@@ -128,9 +125,6 @@ void check_valid_callback(Callback const &callback, Predicates const &)
 
   using Predicate = typename AccessValues<Predicates>::value_type;
   using PredicateTag = typename Predicate::Tag;
-
-  static_assert(is_valid_predicate_tag<PredicateTag>::value,
-                "The predicate tag is not valid");
 
   static_assert(std::is_invocable_v<Callback const &, Predicate, Value>,
                 "Callback 'operator()' does not have the correct signature");
