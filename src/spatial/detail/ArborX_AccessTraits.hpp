@@ -22,10 +22,7 @@ namespace ArborX
 {
 
 template <typename T, typename Enable = void>
-struct AccessTraits
-{
-  using not_specialized = void; // tag to detect existence of a specialization
-};
+struct AccessTraits;
 
 template <typename View>
 struct AccessTraits<
@@ -77,8 +74,15 @@ namespace Details
 namespace Concepts
 {
 
+template <class T, auto _x = [] {}>
+concept complete_type = requires {
+  sizeof(T);
+  _x;
+};
+
 template <typename T>
 concept AccessTraits = requires() {
+  requires complete_type<AccessTraits<T>>;
   typename ArborX::AccessTraits<T>::memory_space;
   requires Kokkos::is_memory_space_v<
       typename ArborX::AccessTraits<T>::memory_space>;
