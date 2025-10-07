@@ -31,13 +31,10 @@ struct OrderedSpatialPredicateTag
 
 // nvcc has problems with using std::interal_constant here.
 template <typename PredicateTag>
-struct is_valid_predicate_tag
-{
-  static constexpr bool value =
-      std::is_same<PredicateTag, SpatialPredicateTag>{} ||
-      std::is_same<PredicateTag, NearestPredicateTag>{} ||
-      std::is_same<PredicateTag, OrderedSpatialPredicateTag>{};
-};
+concept is_valid_predicate_tag =
+    (std::same_as<PredicateTag, SpatialPredicateTag> ||
+     std::same_as<PredicateTag, NearestPredicateTag> ||
+     std::same_as<PredicateTag, OrderedSpatialPredicateTag>);
 } // namespace Details
 
 template <typename Geometry>

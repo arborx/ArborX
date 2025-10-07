@@ -80,6 +80,30 @@ struct ArborX::AccessTraits<GetMemberFunctionVoid, Tag>
   static void get(GetMemberFunctionVoid, int) {}
 };
 
+struct MissingPredicateTag
+{};
+template <typename Tag>
+struct ArborX::AccessTraits<MissingPredicateTag, Tag>
+{
+  using memory_space = Kokkos::HostSpace;
+  static int size(MissingPredicateTag) { return 255; }
+  static auto get(MissingPredicateTag, int) { return 0; }
+};
+
+struct InvalidPredicateTag
+{};
+struct CustomTag
+{
+  using Tag = int;
+};
+template <typename Tag>
+struct ArborX::AccessTraits<InvalidPredicateTag, Tag>
+{
+  using memory_space = Kokkos::HostSpace;
+  static int size(InvalidPredicateTag) { return 255; }
+  static auto get(InvalidPredicateTag, int) { return CustomTag{}; }
+};
+
 template <class V>
 using deduce_type_t =
     decltype(ArborX::AccessTraits<V>::get(std::declval<V>(), 0));
@@ -147,6 +171,8 @@ void test_access_traits_compile_only()
       !ArborX::Details::Concepts::AccessTraits<GetMemberFunctionNotStatic>);
   static_assert(
       !ArborX::Details::Concepts::AccessTraits<GetMemberFunctionVoid>);
+  static_assert(!ArborX::Details::Concepts::Predicates<MissingPredicateTag>);
+  static_assert(!ArborX::Details::Concepts::Predicates<InvalidPredicateTag>);
 }
 
 void test_deduce_point_type_from_view()
