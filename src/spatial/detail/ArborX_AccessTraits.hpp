@@ -106,8 +106,8 @@ concept Predicates = AccessTraits<T> && requires(T const &v) {
   {
     ArborX::AccessTraits<T>::get(v, 0)
   } -> HasTag;
-  requires Details::is_valid_predicate_tag<typename std::decay_t<
-      decltype(ArborX::AccessTraits<T>::get(v, 0))>::Tag>::value;
+  requires Details::is_valid_predicate_tag<
+      typename std::decay_t<decltype(ArborX::AccessTraits<T>::get(v, 0))>::Tag>;
 };
 
 } // namespace Concepts
