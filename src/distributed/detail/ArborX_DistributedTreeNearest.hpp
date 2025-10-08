@@ -36,8 +36,8 @@ struct PairValueDistance
   Coordinate distance;
 };
 
-template <typename ExecutionSpace, typename Tree, typename Predicates,
-          typename Distances>
+template <typename ExecutionSpace, typename Tree,
+          Details::Concepts::Predicates Predicates, typename Distances>
 void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
                                  Predicates const &predicates,
                                  Distances &farthest_distances)
@@ -124,9 +124,9 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
       });
 }
 
-template <typename ExecutionSpace, typename Tree, typename Predicates,
-          typename Callback, typename Distances, typename Offset,
-          typename Values>
+template <typename ExecutionSpace, typename Tree,
+          Details::Concepts::Predicates Predicates, typename Callback,
+          typename Distances, typename Offset, typename Values>
 void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
                                   Predicates const &predicates,
                                   Callback const &callback,
@@ -174,8 +174,9 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
   DistributedTree::filterResults(space, predicates, distances, values, offset);
 }
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Callback, typename Values, typename Offset>
+template <typename Tree, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename Callback,
+          typename Values, typename Offset>
 void DistributedTreeImpl::queryDispatch2RoundImpl(
     NearestPredicateTag, Tree const &tree, ExecutionSpace const &space,
     Predicates const &predicates, Callback const &callback, Values &values,
@@ -222,8 +223,9 @@ void DistributedTreeImpl::queryDispatch2RoundImpl(
           values);
 }
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Values, typename Offset>
+template <typename Tree, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename Values,
+          typename Offset>
 std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
                                    ExecutionSpace const &space,
@@ -234,8 +236,9 @@ DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
                           values, offset);
 }
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Callback, typename Values, typename Offset>
+template <typename Tree, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename Callback,
+          typename Values, typename Offset>
 std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(NearestPredicateTag, Tree const &tree,
                                    ExecutionSpace const &space,

@@ -12,13 +12,16 @@
 #ifndef ARBORX_CRS_GRAPH_WRAPPER_HPP
 #define ARBORX_CRS_GRAPH_WRAPPER_HPP
 
+#include <detail/ArborX_AccessTraits.hpp>
+
 #include <Kokkos_Core.hpp>
 
 namespace ArborX
 {
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename CallbackOrView, typename View, typename... Args>
+template <typename Tree, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename CallbackOrView,
+          typename View, typename... Args>
 inline void query(Tree const &tree, ExecutionSpace const &space,
                   Predicates const &predicates,
                   CallbackOrView &&callback_or_view, View &&view,
