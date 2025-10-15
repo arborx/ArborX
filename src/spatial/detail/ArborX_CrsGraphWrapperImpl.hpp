@@ -109,34 +109,35 @@ struct InsertGenerator
 namespace CrsGraphWrapperImpl
 {
 
-struct CopyCountToPerm {};
-struct CopyPermToCount {};
+struct CopyCountToPerm
+{};
+struct CopyPermToCount
+{};
 
 template <typename PermuteType, typename CountView>
 class CopyPermutation
 {
-  public:
-    CopyPermutation(PermuteType& permuted_offset, CountView& counts) :
-      m_permuted_offset(permuted_offset),
-      m_counts(counts)
-    {}
+public:
+  CopyPermutation(PermuteType &permuted_offset, CountView &counts)
+      : m_permuted_offset(permuted_offset)
+      , m_counts(counts)
+  {}
 
-    KOKKOS_INLINE_FUNCTION
-    void operator()(CopyCountToPerm, unsigned int i) const
-    {
-      m_permuted_offset(i) = m_counts(i);
-    }
+  KOKKOS_INLINE_FUNCTION
+  void operator()(CopyCountToPerm, unsigned int i) const
+  {
+    m_permuted_offset(i) = m_counts(i);
+  }
 
-    KOKKOS_INLINE_FUNCTION
-    void operator()(CopyPermToCount, unsigned int i) const
-    {
-      m_counts(i) = m_permuted_offset(i);
-    }
+  KOKKOS_INLINE_FUNCTION
+  void operator()(CopyPermToCount, unsigned int i) const
+  {
+    m_counts(i) = m_permuted_offset(i);
+  }
 
-
-  private:
-    PermuteType m_permuted_offset;
-    CountView m_counts;
+private:
+  PermuteType m_permuted_offset;
+  CountView m_counts;
 };
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
@@ -230,11 +231,11 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     preallocated_offset = KokkosExt::clone(space, offset);
   }
 
-  CopyPermutation<PermutedOffset, CountView> copy_counts(permuted_offset, counts);
+  CopyPermutation<PermutedOffset, CountView> copy_counts(permuted_offset,
+                                                         counts);
   Kokkos::parallel_for(
       "ArborX::CrsGraphWrapper::copy_counts_to_offsets",
-      Kokkos::RangePolicy<CopyCountToPerm>(space, 0, n_queries),
-      copy_counts);
+      Kokkos::RangePolicy<CopyCountToPerm>(space, 0, n_queries), copy_counts);
   KokkosExt::exclusive_scan(space, offset, offset, 0);
 
   int const n_results = KokkosExt::lastElement(space, offset);
@@ -264,7 +265,8 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     Kokkos::Profiling::pushRegion(
         "ArborX::CrsGraphWrapper::two_pass:second_pass");
 
-    CopyPermutation<PermutedOffset, CountView> copy_permutation(permuted_offset, counts);
+    CopyPermutation<PermutedOffset, CountView> copy_permutation(permuted_offset,
+                                                                counts);
     Kokkos::parallel_for(
         "ArborX::CrsGraphWrapper::copy_offsets_to_counts",
         Kokkos::RangePolicy<CopyPermToCount>(space, 0, n_queries),
