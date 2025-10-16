@@ -21,6 +21,8 @@
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
+#include <string>
+
 namespace ArborX
 {
 namespace Details
@@ -109,36 +111,32 @@ struct InsertGenerator
 namespace CrsGraphWrapperImpl
 {
 
-struct CopyCountToPerm
-{};
-struct CopyPermToCount
-{};
-
-template <typename PermuteType, typename CountView>
-class CopyPermutation
+#ifdef KOKKOS_COMPILER_NVCC
+// FIXME_NVCC: Workaround for a segfault observed with some NVIDIA compilers
+// when using parallel_for directly. See #1297.
+template <typename S, typename T>
+class NVCCSegfaultWorkaround
 {
+  S _s;
+  T _t;
+
 public:
-  CopyPermutation(PermuteType &permuted_offset, CountView &counts)
-      : m_permuted_offset(permuted_offset)
-      , m_counts(counts)
-  {}
-
-  KOKKOS_INLINE_FUNCTION
-  void operator()(CopyCountToPerm, unsigned int i) const
+  template <typename ExecutionSpace>
+  NVCCSegfaultWorkaround(ExecutionSpace const &space, S s, T t,
+                         std::string const &label = "")
+      : _s(s)
+      , _t(t)
   {
-    m_permuted_offset(i) = m_counts(i);
+    static_assert(Kokkos::is_execution_space_v<ExecutionSpace>);
+    KOKKOS_ASSERT(s.size() == t.size());
+    Kokkos::parallel_for("ArborX::CrsGraphWrapper::copy_" + label,
+                         Kokkos::RangePolicy(space, 0, s.size()), *this);
   }
 
-  KOKKOS_INLINE_FUNCTION
-  void operator()(CopyPermToCount, unsigned int i) const
-  {
-    m_counts(i) = m_permuted_offset(i);
-  }
-
-private:
-  PermuteType m_permuted_offset;
-  CountView m_counts;
+  KOKKOS_FUNCTION
+  void operator()(int i) const { _s(i) = _t(i); }
 };
+#endif
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
           typename Callback, typename OutputView, typename OffsetView,
@@ -231,11 +229,17 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     preallocated_offset = KokkosExt::clone(space, offset);
   }
 
-  CopyPermutation<PermutedOffset, CountView> copy_counts(permuted_offset,
-                                                         counts);
+#ifdef KOKKOS_COMPILER_NVCC
+  // FIXME_NVCC: Workaround for a segfault observed with some NVIDIA compilers
+  // when using parallel_for directly. See #1297.
+  NVCCSegfaultWorkaround<PermutedOffset, CountView>(
+      space, permuted_offset, counts, "counts_to_offsets");
+#else
   Kokkos::parallel_for(
       "ArborX::CrsGraphWrapper::copy_counts_to_offsets",
-      Kokkos::RangePolicy<CopyCountToPerm>(space, 0, n_queries), copy_counts);
+      Kokkos::RangePolicy(space, 0, n_queries),
+      KOKKOS_LAMBDA(int const i) { permuted_offset(i) = counts(i); });
+#endif
   KokkosExt::exclusive_scan(space, offset, offset, 0);
 
   int const n_results = KokkosExt::lastElement(space, offset);
@@ -265,12 +269,17 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     Kokkos::Profiling::pushRegion(
         "ArborX::CrsGraphWrapper::two_pass:second_pass");
 
-    CopyPermutation<PermutedOffset, CountView> copy_permutation(permuted_offset,
-                                                                counts);
+#ifdef KOKKOS_COMPILER_NVCC
+    // FIXME_NVCC: Workaround for a segfault observed with some NVIDIA compilers
+    // when using parallel_for directly. See #1297.
+    NVCCSegfaultWorkaround<CountView, PermutedOffset>(
+        space, counts, permuted_offset, "offsets_to_counts");
+#else
     Kokkos::parallel_for(
         "ArborX::CrsGraphWrapper::copy_offsets_to_counts",
-        Kokkos::RangePolicy<CopyPermToCount>(space, 0, n_queries),
-        copy_permutation);
+        Kokkos::RangePolicy(space, 0, n_queries),
+        KOKKOS_LAMBDA(int const i) { counts(i) = permuted_offset(i); });
+#endif
 
     KokkosExt::reallocWithoutInitializing(space, out, n_results);
 
