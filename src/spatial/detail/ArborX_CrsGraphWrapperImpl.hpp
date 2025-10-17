@@ -13,6 +13,7 @@
 #define ARBORX_DETAIL_CRS_GRAPH_WRAPPER_IMPL_HPP
 
 #include <ArborX_Box.hpp>
+#include <detail/ArborX_AttachIndices.hpp>
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_PermutedData.hpp>
 #include <detail/ArborX_Predicates.hpp>
@@ -130,12 +131,11 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   CountView counts(Kokkos::view_alloc(space, "ArborX::CrsGraphWrapper::counts"),
                    n_queries);
 
-  using PermutedPredicates =
-      PermutedData<Predicates, PermuteType, true /*AttachIndices*/>;
-  PermutedPredicates permuted_predicates = {predicates, permute};
+  auto permuted_predicates = Experimental::attach_indices<int>(
+      PermutedData<Predicates, PermuteType>{predicates, permute});
 
   using PermutedOffset = PermutedData<OffsetView, PermuteType>;
-  PermutedOffset permuted_offset = {offset, permute};
+  PermutedOffset permuted_offset{offset, permute};
 
   Kokkos::Profiling::pushRegion(
       "ArborX::CrsGraphWrapper::two_pass::first_pass");

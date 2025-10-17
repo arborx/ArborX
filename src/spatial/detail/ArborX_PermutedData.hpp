@@ -20,7 +20,7 @@ namespace ArborX
 namespace Details
 {
 
-template <typename Data, typename Permute, bool AttachIndices = false>
+template <typename Data, typename Permute>
 struct PermutedData
 {
   using memory_space = typename Data::memory_space;
@@ -37,50 +37,31 @@ struct PermutedData
 };
 
 template <typename Data, typename Permute>
-struct PermutedData<Data, Permute, /*AttachIndices=*/true>
-{
-  using memory_space = typename Data::memory_space;
-  using value_type =
-      std::decay_t<decltype(attach(std::declval<Data const &>()(0), 0))>;
-
-  Data _data;
-  Permute _permute;
-
-  KOKKOS_FUNCTION decltype(auto) operator()(int i) const
-  {
-    return attach(_data(_permute(i)), i);
-  }
-  KOKKOS_FUNCTION auto size() const { return _data.size(); }
-};
-
-template <typename Data, typename Permute, bool AttachIndices>
-class AccessValuesI<PermutedData<Data, Permute, AttachIndices>>
-    : public PermutedData<Data, Permute, AttachIndices>
+class AccessValuesI<PermutedData<Data, Permute>>
+    : public PermutedData<Data, Permute>
 {
 public:
-  using self_type = PermutedData<Data, Permute, AttachIndices>;
+  using self_type = PermutedData<Data, Permute>;
 };
 
 } // namespace Details
 
-template <typename Predicates, typename Permute, bool AttachIndices>
-struct AccessTraits<Details::PermutedData<Predicates, Permute, AttachIndices>>
+template <typename Data, typename Permute>
+struct AccessTraits<Details::PermutedData<Data, Permute>>
 {
-  using PermutedPredicates =
-      Details::PermutedData<Predicates, Permute, AttachIndices>;
+  using Self = Details::PermutedData<Data, Permute>;
 
-  using memory_space = typename Predicates::memory_space;
+  using memory_space = typename Data::memory_space;
 
-  KOKKOS_FUNCTION static std::size_t
-  size(PermutedPredicates const &permuted_predicates)
+  KOKKOS_FUNCTION static std::size_t size(Self const &permuted_data)
   {
-    return permuted_predicates.size();
+    return permuted_data.size();
   }
 
-  KOKKOS_FUNCTION static decltype(auto)
-  get(PermutedPredicates const &permuted_predicates, std::size_t index)
+  KOKKOS_FUNCTION static decltype(auto) get(Self const &permuted_data,
+                                            std::size_t index)
   {
-    return permuted_predicates(index);
+    return permuted_data(index);
   }
 };
 
