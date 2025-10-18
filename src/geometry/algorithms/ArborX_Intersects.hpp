@@ -678,6 +678,7 @@ struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
            1;
   }
 
+  KOKKOS_FUNCTION
   static constexpr bool apply(Ellipsoid const &ellipsoid, Box const &box)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Ellipsoid>;
