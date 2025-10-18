@@ -118,6 +118,27 @@ struct intersects<PointTag, SphereTag, Point, Sphere>
   }
 };
 
+// check if a sphere intersects with a triangle
+template <typename Sphere, typename Triangle>
+struct intersects<SphereTag, TriangleTag, Sphere, Triangle>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Sphere const &sphere,
+                                              Triangle const &triangle)
+  {
+    return Details::distance(sphere.centroid(), triangle) <= sphere.radius();
+  }
+};
+
+template <typename Triangle, typename Sphere>
+struct intersects<TriangleTag, SphereTag, Triangle, Sphere>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Triangle const &triangle,
+                                              Sphere const &sphere)
+  {
+    return Details::intersects(sphere, triangle);
+  }
+};
+
 template <typename Point, typename Triangle>
 struct intersects<PointTag, TriangleTag, Point, Triangle>
 {

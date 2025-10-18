@@ -101,6 +101,40 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_sphere_box, Coordinate,
   BOOST_TEST(!intersects(sphere, Box{{{1., 2., 3.}}, {{4., 5., 6.}}}));
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_sphere_triangle, Coordinate,
+                              CoordinatesList)
+{
+  using ArborX::Details::intersects;
+  using Triangle = ArborX::Triangle<3, Coordinate>;
+  using Sphere = ArborX::Sphere<3, Coordinate>;
+
+  constexpr Sphere sphere{{{0., 1., 1.}}, 2.};
+
+  constexpr auto triangle1a = // normal pointing away from sphere center
+      Triangle{{{1., 0., 0.}}, {{1., 2., 0.}}, {{1., 0., 2.}}};
+  constexpr auto triangle1b =
+      Triangle{{{2., 0., 0.}}, {{2., 2., 0.}}, {{2., 0., 2.}}};
+  constexpr auto triangle1c =
+      Triangle{{{3., 0., 0.}}, {{3., 0., 2.}}, {{3., 0., 2.}}};
+  constexpr auto triangle2a = // normal pointing towards sphere center
+      Triangle{{{1., 0., 0.}}, {{1., 0., 2.}}, {{1., 2., 0.}}};
+  constexpr auto triangle3a = // normal orthogonal to sphere radial vector
+      Triangle{{{1., 1., 1.}}, {{2., 1., 1.}}, {{1., 1., 2.}}};
+
+  // Sphere-Triangle
+  BOOST_TEST(intersects(sphere, triangle1a));  // inside
+  BOOST_TEST(intersects(sphere, triangle1b));  // boundary
+  BOOST_TEST(!intersects(sphere, triangle1c)); // outside
+  BOOST_TEST(intersects(sphere, triangle2a));
+  BOOST_TEST(intersects(sphere, triangle3a));
+  // Triangle-Sphere
+  BOOST_TEST(intersects(triangle1a, sphere));  // inside
+  BOOST_TEST(intersects(triangle1b, sphere));  // boundary
+  BOOST_TEST(!intersects(triangle1c, sphere)); // outside
+  BOOST_TEST(intersects(triangle2a, sphere));
+  BOOST_TEST(intersects(triangle3a, sphere));
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_triangle, Coordinate,
                               CoordinatesList)
 {
