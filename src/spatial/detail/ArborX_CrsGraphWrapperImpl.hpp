@@ -128,9 +128,9 @@ public:
       , _t(t)
   {
     static_assert(Kokkos::is_execution_space_v<ExecutionSpace>);
-    KOKKOS_ASSERT(s.size() == t.size());
+    auto const n = Kokkos::min(s.size(), t.size());
     Kokkos::parallel_for("ArborX::CrsGraphWrapper::copy_" + label,
-                         Kokkos::RangePolicy(space, 0, s.size()), *this);
+                         Kokkos::RangePolicy(space, 0, n), *this);
   }
 
   KOKKOS_FUNCTION
