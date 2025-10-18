@@ -22,6 +22,8 @@
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
+#include <string>
+
 namespace ArborX
 {
 namespace Details
@@ -109,6 +111,33 @@ struct InsertGenerator
 
 namespace CrsGraphWrapperImpl
 {
+
+#ifdef KOKKOS_COMPILER_NVCC
+// FIXME_NVCC: Workaround for a segfault observed with some NVIDIA compilers
+// when using parallel_for directly. See #1297.
+template <typename S, typename T>
+class NVCCSegfaultWorkaround
+{
+  S _s;
+  T _t;
+
+public:
+  template <typename ExecutionSpace>
+  NVCCSegfaultWorkaround(ExecutionSpace const &space, S s, T t,
+                         std::string const &label = "")
+      : _s(s)
+      , _t(t)
+  {
+    static_assert(Kokkos::is_execution_space_v<ExecutionSpace>);
+    auto const n = Kokkos::min(s.size(), t.size());
+    Kokkos::parallel_for("ArborX::CrsGraphWrapper::copy_" + label,
+                         Kokkos::RangePolicy(space, 0, n), *this);
+  }
+
+  KOKKOS_FUNCTION
+  void operator()(int i) const { _s(i) = _t(i); }
+};
+#endif
 
 template <typename ExecutionSpace, typename Tree, typename Predicates,
           typename Callback, typename OutputView, typename OffsetView,
@@ -200,10 +229,17 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     preallocated_offset = KokkosExt::clone(space, offset);
   }
 
+#ifdef KOKKOS_COMPILER_NVCC
+  // FIXME_NVCC: Workaround for a segfault observed with some NVIDIA compilers
+  // when using parallel_for directly. See #1297.
+  NVCCSegfaultWorkaround<PermutedOffset, CountView>(
+      space, permuted_offset, counts, "counts_to_offsets");
+#else
   Kokkos::parallel_for(
       "ArborX::CrsGraphWrapper::copy_counts_to_offsets",
       Kokkos::RangePolicy(space, 0, n_queries),
       KOKKOS_LAMBDA(int const i) { permuted_offset(i) = counts(i); });
+#endif
   KokkosExt::exclusive_scan(space, offset, offset, 0);
 
   int const n_results = KokkosExt::lastElement(space, offset);
@@ -233,10 +269,17 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     Kokkos::Profiling::pushRegion(
         "ArborX::CrsGraphWrapper::two_pass:second_pass");
 
+#ifdef KOKKOS_COMPILER_NVCC
+    // FIXME_NVCC: Workaround for a segfault observed with some NVIDIA compilers
+    // when using parallel_for directly. See #1297.
+    NVCCSegfaultWorkaround<CountView, PermutedOffset>(
+        space, counts, permuted_offset, "offsets_to_counts");
+#else
     Kokkos::parallel_for(
         "ArborX::CrsGraphWrapper::copy_offsets_to_counts",
         Kokkos::RangePolicy(space, 0, n_queries),
         KOKKOS_LAMBDA(int const i) { counts(i) = permuted_offset(i); });
+#endif
 
     KokkosExt::reallocWithoutInitializing(space, out, n_results);
 
