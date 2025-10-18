@@ -682,6 +682,7 @@ struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
   static constexpr bool apply(Ellipsoid const &ellipsoid, Box const &box)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Ellipsoid>;
+    using Coordinate = GeometryTraits::coordinate_type_t<Ellipsoid>;
     static_assert(
         DIM == 2 || DIM == 3,
         "Ellipsoid-box intersection is only implemented for 2D and 3D");
@@ -694,7 +695,10 @@ struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
     if constexpr (DIM == 3)
       is_sphere &= (rmt[0][0] == rmt[2][2] && rmt[0][2] == 0 && rmt[1][2] == 0);
     if (is_sphere)
-      return Details::intersects(Sphere{ellipsoid.centroid(), rmt[0][0]}, box);
+    {
+      Coordinate const r = 1 / Kokkos::sqrt(rmt[0][0]);
+      return Details::intersects(Sphere{ellipsoid.centroid(), r}, box);
+    }
 
     if (Details::intersects(ellipsoid.centroid(), box))
       return true;
