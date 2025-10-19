@@ -18,10 +18,22 @@
 #include <vector>
 
 template <typename T>
-struct ArborX::AccessTraits<std::vector<T>>
+struct PointCloud
 {
-  static std::size_t size(std::vector<T> const &v) { return v.size(); }
-  static T const &get(std::vector<T> const &v, std::size_t i) { return v[i]; }
+  std::vector<T> data;
+};
+
+template <typename T>
+struct ArborX::AccessTraits<PointCloud<T>>
+{
+  static std::size_t size(PointCloud<T> const &cloud)
+  {
+    return cloud.data.size();
+  }
+  static T const &get(PointCloud<T> const &cloud, std::size_t i)
+  {
+    return cloud.data[i];
+  }
   using memory_space = Kokkos::HostSpace;
 };
 
@@ -40,17 +52,17 @@ int main(int argc, char *argv[])
     return Point{rd(), rd(), rd()};
   });
 
+  PointCloud<Point> point_cloud{points};
+
   // Pass directly the vector of points to use the access traits defined above
-  ArborX::BoundingVolumeHierarchy bvh{
-      Kokkos::DefaultHostExecutionSpace{},
-      ArborX::Experimental::attach_indices(points)};
+  ArborX::BoundingVolumeHierarchy bvh{Kokkos::DefaultHostExecutionSpace{},
+                                      point_cloud};
 
   // As a supported alternative, wrap the vector in an unmanaged View
   bvh = ArborX::BoundingVolumeHierarchy{
       Kokkos::DefaultHostExecutionSpace{},
-      ArborX::Experimental::attach_indices(
-          Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>{
-              points.data(), points.size()})};
+      Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>{
+          points.data(), points.size()}};
 
   return 0;
 }

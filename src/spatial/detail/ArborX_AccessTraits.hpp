@@ -75,6 +75,17 @@ struct AccessTraits<
   using memory_space = typename View::memory_space;
 };
 
+template <typename T>
+struct AccessTraits<std::vector<T>>
+{
+  using memory_space = typename Kokkos::HostSpace;
+
+  using Vector = std::vector<T>;
+
+  static T &get(Vector const &v, int i) { return v[i]; }
+  static typename Vector::size_type size(Vector const &v) { return v.size(); }
+};
+
 namespace Details
 {
 
