@@ -49,13 +49,13 @@ struct DistributedTreeImpl
 
   // nearest neighbors queries
   template <typename DistributedTree, typename ExecutionSpace,
-            typename Predicates, typename Callback, typename Indices,
+            typename Predicates, typename Callback, typename Values,
             typename Offset>
   static void
   queryDispatch2RoundImpl(NearestPredicateTag, DistributedTree const &tree,
                           ExecutionSpace const &space,
                           Predicates const &queries, Callback const &callback,
-                          Indices &indices, Offset &offset);
+                          Values &values, Offset &offset);
 
   template <typename DistributedTree, typename ExecutionSpace,
             typename Predicates, typename Values, typename Offset>
@@ -64,6 +64,7 @@ struct DistributedTreeImpl
   queryDispatch(NearestPredicateTag tag, DistributedTree const &tree,
                 ExecutionSpace const &space, Predicates const &queries,
                 Values &values, Offset &offset);
+
   template <typename Tree, typename ExecutionSpace, typename Predicates,
             typename Callback, typename Values, typename Offset>
   static std::enable_if_t<Kokkos::is_view_v<Values> &&

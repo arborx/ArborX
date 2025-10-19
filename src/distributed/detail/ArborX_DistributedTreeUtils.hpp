@@ -46,11 +46,12 @@ void countResults(ExecutionSpace const &space, int n_queries,
 }
 
 template <typename ExecutionSpace, typename Predicates, typename RanksTo,
-          typename Offset, typename FwdQueries, typename FwdIds, typename Ranks>
+          typename Offset, typename FwdQueries, typename FwdIds,
+          typename FwdRanks>
 void forwardQueries(MPI_Comm comm, ExecutionSpace const &space,
                     Predicates const &queries, RanksTo const &ranks_to,
                     Offset const &offset, FwdQueries &fwd_queries,
-                    FwdIds &fwd_ids, Ranks &fwd_ranks)
+                    FwdIds &fwd_ids, FwdRanks &fwd_ranks)
 {
   std::string prefix = "ArborX::DistributedTree::query::forwardQueries";
 
