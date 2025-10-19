@@ -181,19 +181,12 @@ void DistributedTreeImpl::queryDispatch2RoundImpl(
     Predicates const &predicates, Callback const &callback, Values &values,
     Offset &offset)
 {
-  std::string prefix = "ArborX::DistributedTree::query::nearest";
+  std::string prefix = "ArborX::DistributedTree::query::nearest_2round";
 
   Kokkos::Profiling::ScopedRegion guard(prefix);
 
   static_assert(is_constrained_callback_v<Callback>);
-
-  if (tree.empty())
-  {
-    KokkosExt::reallocWithoutInitializing(space, values, 0);
-    KokkosExt::reallocWithoutInitializing(space, offset, predicates.size() + 1);
-    Kokkos::deep_copy(space, offset, 0);
-    return;
-  }
+  KOKKOS_ASSERT(!tree.empty());
 
   // Set the type for the distances to be that of the distance to a leaf node.
   // It is possible that that is a higher precision compared to internal nodes,
@@ -243,6 +236,14 @@ DistributedTreeImpl::queryDispatch(NearestPredicateTag, Tree const &tree,
                                    Callback const &callback, Values &values,
                                    Offset &offset)
 {
+  if (tree.empty())
+  {
+    KokkosExt::reallocWithoutInitializing(space, values, 0);
+    KokkosExt::reallocWithoutInitializing(space, offset, predicates.size() + 1);
+    Kokkos::deep_copy(space, offset, 0);
+    return;
+  }
+
   if constexpr (is_constrained_callback_v<Callback>)
   {
     queryDispatch2RoundImpl(NearestPredicateTag{}, tree, space, predicates,
