@@ -72,7 +72,7 @@ auto buildMesh(MPI_Comm comm,
   int const num_triangles = triangles.size();
 
   Coordinate const d = 0.8;
-  int rows_per_dim = 40;
+  int rows_per_dim = 5;
 
   int N = std::cbrt(comm_size);
   int Nx = comm_rank / (N * N);
