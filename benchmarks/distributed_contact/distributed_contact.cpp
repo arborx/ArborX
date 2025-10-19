@@ -72,7 +72,7 @@ auto buildMesh(MPI_Comm comm,
   int const num_triangles = triangles.size();
 
   Coordinate const d = 0.8;
-  int rows_per_dim = 40;
+  int rows_per_dim = 5;
 
   int N = std::cbrt(comm_size);
   int Nx = comm_rank / (N * N);
@@ -147,6 +147,23 @@ int main_(MPI_Comm const comm)
   auto [points, triangles] = readTriangles<Coordinate>("unit_sphere.txt");
   auto [primitives_v, predicates_v] = buildMesh(comm, points, triangles);
 
+  auto const num_primitives = primitives_v.size();
+  auto const num_predicates = predicates_v.size();
+
+  int comm_size;
+  MPI_Comm_size(comm, &comm_size);
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+  if (comm_rank == 0)
+  {
+    std::cout << "#primitives (local) : " << num_primitives << std::endl;
+    std::cout << "#predicates (local) : " << num_predicates << std::endl;
+    std::cout << "#primitives (global): "
+              << num_primitives * (long long)comm_size << std::endl;
+    std::cout << "#predicates (global): "
+              << num_predicates * (long long)comm_size << std::endl;
+  }
+
   ExecutionSpace space;
 
   Kokkos::View<Box *, MemorySpace> primitives(
@@ -204,10 +221,11 @@ int main(int argc, char *argv[])
 
   if (comm_rank == 0)
   {
-    std::cout << "ArborX version: " << ArborX::version() << std::endl;
-    std::cout << "ArborX hash   : " << ArborX::gitCommitHash() << std::endl;
-    std::cout << "Kokkos version: " << ArborX::Details::KokkosExt::version()
+    std::cout << "ArborX version      : " << ArborX::version() << std::endl;
+    std::cout << "ArborX hash         : " << ArborX::gitCommitHash()
               << std::endl;
+    std::cout << "Kokkos version      : "
+              << ArborX::Details::KokkosExt::version() << std::endl;
   }
 
   // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
