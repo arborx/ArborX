@@ -29,6 +29,10 @@ if(Kokkos_ENABLE_HIP AND NOT Kokkos_ENABLE_ROCTHRUST)
   message(WARNING "Kokkos installation lacks rocThrust support.\nThis will negatively impact performance on AMD GPUs.")
 endif()
 
+if(Kokkos_ENABLE_SYCL AND NOT Kokkos_ENABLE_ONEDPL)
+  message(WARNING "Kokkos installation lacks oneDPL support.\nThis will negatively impact performance on Intel GPUs.")
+endif()
+
 # Refer to the alias target in examples and benchmarks so they can be built
 # against an installed ArborX
 add_library(ArborX::ArborX ALIAS ArborX)
