@@ -25,32 +25,8 @@ set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_20)
 # within a subdirectory.
 add_dependencies(ArborX record_hash)
 
-include(CMakeDependentOption)
-cmake_dependent_option(ARBORX_ENABLE_ROCTHRUST "Enable rocThrust support" ON "Kokkos_ENABLE_HIP" OFF)
-if(Kokkos_ENABLE_HIP AND ARBORX_ENABLE_ROCTHRUST)
-  find_package(rocthrust REQUIRED CONFIG)
-  target_link_libraries(ArborX INTERFACE roc::rocthrust)
-endif()
-
-if(Kokkos_ENABLE_HIP AND NOT ARBORX_ENABLE_ROCTHRUST)
-  message(WARNING "rocThrust is NOT enabled.\nThis will negatively impact performance on AMD GPUs.")
-endif()
-
-cmake_dependent_option(ARBORX_ENABLE_ONEDPL "Enable oneDPL support" ON "Kokkos_ENABLE_SYCL" OFF)
-if(Kokkos_ENABLE_SYCL AND ARBORX_ENABLE_ONEDPL)
-  include(CheckIncludeFileCXX)
-  check_include_file_cxx(oneapi/dpl/execution ARBORX_COMPILER_HAS_ONEDPL_EXECUTION_HEADER)
-  check_include_file_cxx(oneapi/dpl/algorithm ARBORX_COMPILER_HAS_ONEDPL_ALGORITHM_HEADER)
-  if (ARBORX_COMPILER_HAS_ONEDPL_EXECUTION_HEADER AND
-      ARBORX_COMPILER_HAS_ONEDPL_ALGORITHM_HEADER)
-    set(ARBORX_CXX_COMPILER_BUNDLED_ONEDPL TRUE)
-  else()
-    set(ARBORX_CXX_COMPILER_BUNDLED_ONEDPL FALSE)
-  endif()
-  if(NOT ARBORX_CXX_COMPILER_BUNDLED_ONEDPL)
-    find_package(oneDPL REQUIRED)
-    target_link_libraries(ArborX INTERFACE oneDPL)
-  endif()
+if(Kokkos_ENABLE_HIP AND NOT Kokkos_ENABLE_ROCTHRUST)
+  message(WARNING "Kokkos found does not have rocThrust enabled.\nThis will negatively impact performance on AMD GPUs.")
 endif()
 
 # Refer to the alias target in examples and benchmarks so they can be built
@@ -62,6 +38,9 @@ if(ARBORX_ENABLE_MPI)
   find_package(MPI REQUIRED)
   target_link_libraries(ArborX INTERFACE MPI::MPI_CXX)
 endif()
+
+include(CMakeDependentOption)
+
 cmake_dependent_option(ARBORX_ENABLE_CUDA_AWARE_MPI
                        "Allow using device data in MPI communication"
                        OFF "ARBORX_ENABLE_MPI" OFF)
