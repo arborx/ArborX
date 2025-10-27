@@ -49,6 +49,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
                       "|ArborX::Sorting::"
                       "|ArborX::SpaceFillingCurve::"
                       "|Kokkos::SortImpl::BinSortFunctor::"
+                      "|Kokkos::sort_by_key"
                       "|Kokkos::Serial::" // unsure what's going on
                       ").*");
         BOOST_TEST(std::regex_match(label, re),
@@ -109,6 +110,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
                       "|ArborX::CrsGraphWrapper::"
                       "|ArborX::Sorting::"
                       "|Kokkos::SortImpl::BinSortFunctor::"
+                      "|Kokkos::sort_by_key"
                       ").*");
         BOOST_TEST(std::regex_match(label, re),
                    "\"" << label << "\" does not match the regular expression");
