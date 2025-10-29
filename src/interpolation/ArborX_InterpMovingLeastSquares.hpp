@@ -107,9 +107,11 @@ public:
                   "Target and source points must have the same dimension");
 
     _num_neighbors =
-        num_neighbors ? *num_neighbors
-                      : Details::polynomialBasisSize<dimension,
-                                                     PolynomialDegree::value>();
+        num_neighbors
+            ? *num_neighbors
+            : (Details::polynomialBasisSize<dimension,
+                                            PolynomialDegree::value>() +
+               1);
 
     TargetAccess target_access{target_points}; // NOLINT
     SourceAccess source_access{source_points}; // NOLINT

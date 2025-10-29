@@ -182,3 +182,62 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   mls1.interpolate(space, srcv1, eval1);
   ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
 }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_exact, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  // Test interpolation on a cartesian-type grid where using the minimal number
+  // of neighbors (6 for quadratic polynomials in 2d) wasn't sufficient for an
+  // exact interpolation for a function contained in the ansatz space.
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+  ExecutionSpace space{};
+
+  int n_target = 4;
+  Kokkos::View<ArborX::Point<2, float> *, Kokkos::HostSpace>
+      target_coordinates_host("target_coordinates", n_target);
+  target_coordinates_host(0) = {.211325, .788675};
+  target_coordinates_host(1) = {.788675, .788675};
+  target_coordinates_host(2) = {.788675, .211325};
+  target_coordinates_host(3) = {.211325, .211325};
+
+  auto target_coordinates = Kokkos::create_mirror_view_and_copy(
+      MemorySpace{}, target_coordinates_host);
+  Kokkos::View<float *, MemorySpace> target_values("target_values", n_target);
+
+  // quadratic functions should be interpolated exactly
+  auto values = [](float x, float y) { return 2 * x * x + y * x + y * y; };
+
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy(space, 0, n_target), KOKKOS_LAMBDA(int const i) {
+        target_values(i) =
+            values(target_coordinates(i)[0], target_coordinates(i)[1]);
+      });
+
+  int n_source_1d = (1 << 1) + 1;
+  float h_source = 2. / (1 << 1);
+
+  Kokkos::View<ArborX::Point<2, float> *, MemorySpace> source_coordinates(
+      "source_coordinates", std::pow(n_source_1d, 2));
+  Kokkos::View<float *, MemorySpace> source_values("source_values",
+                                                   std::pow(n_source_1d, 2));
+  Kokkos::View<float *, MemorySpace> interpolated_values("interpolated_values",
+                                                         n_target);
+
+  Kokkos::parallel_for(
+      Kokkos::MDRangePolicy(space, {0, 0}, {n_source_1d, n_source_1d}),
+      KOKKOS_LAMBDA(int const i, int const j) {
+        int source_index = i * n_source_1d + j;
+        source_coordinates(source_index) = {-1. + i * h_source,
+                                            -1. + j * h_source};
+        source_values(source_index) =
+            values(-1. + i * h_source, -1. + j * h_source);
+      });
+  ArborX::Interpolation::MovingLeastSquares<MemorySpace, float> mls(
+      space, source_coordinates, target_coordinates,
+      ArborX::Interpolation::CRBF::Wendland<0>{},
+      ArborX::Interpolation::PolynomialDegree<2>{});
+  mls.interpolate(space, source_values, interpolated_values);
+  ARBORX_MDVIEW_TEST_TOL(interpolated_values, target_values,
+                         10 * Kokkos::Experimental::epsilon_v<float>);
+}
