@@ -214,6 +214,18 @@ private:
         coefficients(neighbor) +=
             moment(0, i) * vandermonde(neighbor, i) * phi(neighbor);
     }
+#ifndef NDEBUG
+    using value_type = float;
+    value_type some_of_coeffs = 0;
+    for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
+      some_of_coeffs += coefficients(neighbor);
+    value_type tolerance = 10 * std::numeric_limits<value_type>::epsilon();
+    if (std::abs(some_of_coeffs - 1.) > tolerance)
+    {
+      Kokkos::printf("%e vs. %e\n", some_of_coeffs - 1., tolerance);
+      Kokkos::abort("Constants will not be interpolated exactly!");
+    }
+#endif
   }
 
   TargetAccess _target_access;
