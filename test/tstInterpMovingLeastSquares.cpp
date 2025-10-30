@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_exact, DeviceType,
       });
 
   int n_source_1d = (1 << 1) + 1;
-  float h_source = 2. / (1 << 1);
+  float h_source = 2.f / (1 << 1);
 
   Kokkos::View<ArborX::Point<2, float> *, MemorySpace> source_coordinates(
       "source_coordinates", std::pow(n_source_1d, 2));
@@ -228,10 +228,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_exact, DeviceType,
       Kokkos::MDRangePolicy(space, {0, 0}, {n_source_1d, n_source_1d}),
       KOKKOS_LAMBDA(int const i, int const j) {
         int source_index = i * n_source_1d + j;
-        source_coordinates(source_index) = {-1. + i * h_source,
-                                            -1. + j * h_source};
+        source_coordinates(source_index) = {-1.f + i * h_source,
+                                            -1.f + j * h_source};
         source_values(source_index) =
-            values(-1. + i * h_source, -1. + j * h_source);
+            values(-1.f + i * h_source, -1.f + j * h_source);
       });
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, float> mls(
       space, source_coordinates, target_coordinates,
