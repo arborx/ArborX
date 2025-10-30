@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
           float ray_energy = (total_energy * dx * dy * dz) / rays_per_box;
           for (int j = offsets(i); j < offsets(i + 1); ++j)
           {
-            const auto &v = values(permutation(j));
+            auto const &v = values(permutation(j));
             float const energy_deposited =
                 lost_energy(ray_energy, v.optical_path_length);
             ray_energy += energy_deposited;

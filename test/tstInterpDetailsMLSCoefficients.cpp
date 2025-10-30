@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
         srcp0(i, 1) = {{2. * i + 2}};
         tgtp0(i) = {{2. * i + 1}};
 
-        auto f = [](const Point0 &) { return 3.; };
+        auto f = [](Point0 const &) { return 3.; };
 
         srcv0(i, 0) = f(srcp0(i, 0));
         srcv0(i, 1) = f(srcp0(i, 1));
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients, DeviceType, ARBORX_DEVICE_TYPES)
         }
         tgtp1(i) = {{double(u), double(v)}};
 
-        auto f = [](const Point1 &p) { return p[0] * p[1] + 4 * p[0]; };
+        auto f = [](Point1 const &p) { return p[0] * p[1] + 4 * p[0]; };
 
         for (int j = 0; j < 8; j++)
           srcv1(i, j) = f(srcp1(i, j));
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
         srcp0(i, 1) = {{2. * i + 2, 0.}};
         tgtp0(i) = {{2. * i + 1, 0.}};
 
-        auto f = [](const Point0 &) { return 3.; };
+        auto f = [](Point0 const &) { return 3.; };
 
         srcv0(i, 0) = f(srcp0(i, 0));
         srcv0(i, 1) = f(srcp0(i, 1));
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(mls_coefficients_edge_cases, DeviceType,
         }
         tgtp1(i) = {{u * 2., v * 2.}};
 
-        auto f = [](const Point1 &p) { return p[0] * p[1] + 4 * p[0]; };
+        auto f = [](Point1 const &p) { return p[0] * p[1] + 4 * p[0]; };
 
         for (int j = 0; j < 8; j++)
           srcv1(i, j) = f(srcp1(i, j));
