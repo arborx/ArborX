@@ -111,7 +111,7 @@ public:
             ? *num_neighbors
             : (Details::polynomialBasisSize<dimension,
                                             PolynomialDegree::value>() +
-               1);
+               2);
 
     TargetAccess target_access{target_points}; // NOLINT
     SourceAccess source_access{source_points}; // NOLINT
