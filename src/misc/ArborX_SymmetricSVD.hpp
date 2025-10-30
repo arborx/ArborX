@@ -77,6 +77,33 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
   return result;
 }
 
+// Compute x, y and theta such that
+// +---+---+              +---+---+
+// | a | b |              | x | 0 |
+// +---+---+ = R(theta) * +---+---+ * R(theta)^T
+// | b | c |              | 0 | y |
+// +---+---+              +---+---+
+template <typename Value>
+KOKKOS_FUNCTION void svd2x2(Value a, Value b, Value c, Value &x, Value &y,
+                            Value &cos_theta, Value &sin_theta)
+{
+  if (a == c)
+  {
+    cos_theta = Kokkos::sqrt(Value(2)) / 2;
+    sin_theta = cos_theta;
+    x = a + b;
+    y = a - b;
+  }
+  else
+  {
+    auto const u = (2 * b) / (a - c);
+    auto const v = 1 / Kokkos::sqrt(u * u + 1);
+    cos_theta = Kokkos::sqrt((1 + v) / 2);
+    sin_theta = Kokkos::copysign(Kokkos::sqrt((1 - v) / 2), u);
+    x = (a + c + (a - c) / v) / 2;
+    y = a + c - x;
+  }
+}
 // SVD of a symmetric matrix
 // We must find U, E (diagonal and positive) and V such that A = U.E.V^T
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
@@ -123,44 +150,11 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
     if (max_val <= epsilon)
       break;
 
-    auto const a = mat(p, p);
-    auto const b = mat(p, q);
-    auto const c = mat(q, q);
-
-    // Our submatrix is now
-    // +-----------+-----------+   +---+---+
-    // | mat(p, p) | mat(p, q) |   | a | b |
-    // +-----------+-----------+ = +---+---+
-    // | mat(q, p) | mat(q, q) |   | b | c |
-    // +-----------+-----------+   +---+---+
-
-    // Let's compute x, y and theta such that
-    // +---+---+              +---+---+
-    // | a | b |              | x | 0 |
-    // +---+---+ = R(theta) * +---+---+ * R(theta)^T
-    // | b | c |              | 0 | y |
-    // +---+---+              +---+---+
-
     Value cos_theta;
     Value sin_theta;
     Value x;
     Value y;
-    if (a == c)
-    {
-      cos_theta = Kokkos::sqrt(Value(2)) / 2;
-      sin_theta = cos_theta;
-      x = a + b;
-      y = a - b;
-    }
-    else
-    {
-      auto const u = (2 * b) / (a - c);
-      auto const v = 1 / Kokkos::sqrt(u * u + 1);
-      cos_theta = Kokkos::sqrt((1 + v) / 2);
-      sin_theta = Kokkos::copysign(Kokkos::sqrt((1 - v) / 2), u);
-      x = (a + c + (a - c) / v) / 2;
-      y = a + c - x;
-    }
+    svd2x2(mat(p, p), mat(p, q), mat(q, q), x, y, cos_theta, sin_theta);
 
     // Now let's compute the following new values for 'unit' and 'mat'
     // mat  <- R'(theta)^T . mat . R'(theta)
