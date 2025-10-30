@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
   Kokkos::parallel_for(
       "Testing::moving_least_squares::for0", Kokkos::RangePolicy(space, 0, 4),
       KOKKOS_LAMBDA(int const i) {
-        auto f = [](const Point0 &) { return 3.; };
+        auto f = [](Point0 const &) { return 3.; };
 
         srcp0(i) = {{2. * i}};
         srcv0(i) = f(srcp0(i));
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
         int v = (i % 2) * 2 - 1;
         int x = (i / 3) - 1;
         int y = (i % 3) - 1;
-        auto f = [](const Point1 &p) { return p[0] * p[1] + 4 * p[0]; };
+        auto f = [](Point1 const &p) { return p[0] * p[1] + 4 * p[0]; };
 
         srcp1(i) = {{x * 2., y * 2.}};
         srcv1(i) = f(srcp1(i));
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   Kokkos::parallel_for(
       "Testing::moving_least_squares_edge_cases::for0",
       Kokkos::RangePolicy(space, 0, 4), KOKKOS_LAMBDA(int const i) {
-        auto f = [](const Point0 &) { return 3.; };
+        auto f = [](Point0 const &) { return 3.; };
 
         srcp0(i) = {{2. * i, 0.}};
         srcv0(i) = f(srcp0(i));
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
         int v = (i % 2) * 2 - 1;
         int x = (i / 3) - 1;
         int y = (i % 3) - 1;
-        auto f = [](const Point1 &p) { return p[0] * p[1] + 4 * p[0]; };
+        auto f = [](Point1 const &p) { return p[0] * p[1] + 4 * p[0]; };
 
         srcp1(i) = {{x * 2., y * 2.}};
         srcv1(i) = f(srcp1(i));
