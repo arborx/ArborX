@@ -87,23 +87,61 @@ template <typename Value>
 KOKKOS_FUNCTION void svd2x2(Value a, Value b, Value c, Value &x, Value &y,
                             Value &cos_theta, Value &sin_theta)
 {
-  if (a == c)
+  if (b == 0)
   {
-    cos_theta = Kokkos::sqrt(Value(2)) / 2;
-    sin_theta = cos_theta;
-    x = a + b;
-    y = a - b;
+    cos_theta = 1;
+    sin_theta = 0;
+    x = a;
+    y = c;
+    return;
+  }
+
+  auto const trace = a + c;
+  auto const diff = a - c;
+  auto const root = Kokkos::sqrt(diff * diff + 4 * b * b);
+
+  if (trace > 0)
+  {
+    x = (trace + root) / 2;
+    auto x_inv = 1 / x;
+    y = (a * x_inv) * c - (b * x_inv) * b;
+  }
+  else if (trace < 0)
+  {
+    y = (trace - root) / 2;
+    auto y_inv = 1 / y;
+    x = (a * y_inv) * c - (b * y_inv) * b;
   }
   else
   {
-    auto const u = (2 * b) / (a - c);
-    auto const v = 1 / Kokkos::sqrt(u * u + 1);
-    cos_theta = Kokkos::sqrt((1 + v) / 2);
-    sin_theta = Kokkos::copysign(Kokkos::sqrt((1 - v) / 2), u);
-    x = (a + c + (a - c) / v) / 2;
-    y = a + c - x;
+    x = root / 2;
+    y = -root / 2;
+  }
+
+  auto const alpha = (diff > 0 ? diff + root : diff - root);
+  auto const beta = 2 * b;
+
+  if (Kokkos::abs(alpha) > Kokkos::abs(beta))
+  {
+    auto const cot_theta = -beta / alpha;
+    sin_theta = Kokkos::rsqrt(1 + cot_theta * cot_theta);
+    cos_theta = cot_theta * sin_theta;
+  }
+  else
+  {
+    auto const tan_theta = -alpha / beta;
+    cos_theta = Kokkos::rsqrt(1 + tan_theta * tan_theta);
+    sin_theta = tan_theta * cos_theta;
+  }
+
+  if (diff > 0)
+  {
+    auto const t = cos_theta;
+    cos_theta = -sin_theta;
+    sin_theta = t;
   }
 }
+
 // SVD of a symmetric matrix
 // We must find U, E (diagonal and positive) and V such that A = U.E.V^T
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
