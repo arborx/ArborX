@@ -256,17 +256,25 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
   int const size = mat.extent(0);
 
   using Value = typename Matrix::non_const_value_type;
-  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<Value>;
 
-  // We compute the max to get a range of the invertible eigenvalues
-  auto max_eigen = epsilon;
+  // Compute the max to get a range of the invertible eigenvalues
+  Value max_eigen = 0;
   for (int i = 0; i < size; i++)
     max_eigen = Kokkos::max(Kokkos::abs(diag(i)), max_eigen);
-  auto const threshold = max_eigen * epsilon;
 
-  // We invert the diagonal of 'mat', except if "0" is found
+  constexpr auto epsilon = Kokkos::Experimental::epsilon_v<Value>;
+  Value zero_scaling = epsilon;
+  if constexpr (std::is_same_v<Value, double>)
+    zero_scaling = 1e-10;
+
+  // Set a threshold below which eigenvalues are considered to be "0"
+  auto const threshold = Kokkos::max(max_eigen * zero_scaling, 5 * epsilon);
+
+  // Invert diagonal ignoring "0"
   for (int i = 0; i < size; i++)
     diag(i) = (Kokkos::abs(diag(i)) < threshold) ? 0 : 1 / diag(i);
+
+  // We invert the diagonal of 'mat', except if "0" is found
 
   // Then we fill out 'mat' as the pseudo inverse
   for (int i = 0; i < size; i++)
@@ -274,7 +282,7 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
     {
       mat(i, j) = 0;
       for (int k = 0; k < size; k++)
-        mat(i, j) += diag(k) * unit(i, k) * unit(j, k);
+        mat(i, j) += unit(i, k) * diag(k) * unit(j, k);
     }
 }
 
