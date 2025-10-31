@@ -54,7 +54,8 @@ void makeCase(ExecutionSpace const &exec, Value const (&src_arr)[M][N][N],
                 inv(p, q) += unit(p, s) * diag(s) * unit(q, s);
             }
         });
-    ARBORX_MDVIEW_TEST_TOL(src, inv, Kokkos::Experimental::epsilon_v<float>);
+    ARBORX_MDVIEW_TEST_TOL(src, inv,
+                           50 * Kokkos::Experimental::epsilon_v<Value>);
 
     // Test pseudo-inverse through SVD
     Kokkos::deep_copy(exec, inv, src);
@@ -63,7 +64,8 @@ void makeCase(ExecutionSpace const &exec, Value const (&src_arr)[M][N][N],
         KOKKOS_LAMBDA(int) {
           ArborX::Details::symmetricPseudoInverseSVDKernel(inv, diag, unit);
         });
-    ARBORX_MDVIEW_TEST_TOL(ref, inv, Kokkos::Experimental::epsilon_v<float>);
+    ARBORX_MDVIEW_TEST_TOL(ref, inv,
+                           50 * Kokkos::Experimental::epsilon_v<Value>);
   }
 }
 

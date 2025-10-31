@@ -77,6 +77,71 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
   return result;
 }
 
+// Compute x, y and theta such that
+// +---+---+              +---+---+
+// | a | b |              | x | 0 |
+// +---+---+ = R(theta) * +---+---+ * R(theta)^T
+// | b | c |              | 0 | y |
+// +---+---+              +---+---+
+template <typename Value>
+KOKKOS_FUNCTION void svd2x2(Value a, Value b, Value c, Value &x, Value &y,
+                            Value &cos_theta, Value &sin_theta)
+{
+  if (b == 0)
+  {
+    cos_theta = 1;
+    sin_theta = 0;
+    x = a;
+    y = c;
+    return;
+  }
+
+  auto const trace = a + c;
+  auto const diff = a - c;
+  auto const root = Kokkos::sqrt(diff * diff + 4 * b * b);
+
+  if (trace > 0)
+  {
+    x = (trace + root) / 2;
+    auto t = 1 / x;
+    y = (a * t) * c - (b * t) * b;
+  }
+  else if (trace < 0)
+  {
+    y = (trace - root) / 2;
+    auto t = 1 / y;
+    x = (a * t) * c - (b * t) * b;
+  }
+  else
+  {
+    x = root / 2;
+    y = -root / 2;
+  }
+
+  auto const alpha = diff + (diff > 0 ? root : -root);
+  auto const beta = 2 * b;
+
+  if (Kokkos::abs(alpha) > Kokkos::abs(beta))
+  {
+    auto const t = -beta / alpha;
+    sin_theta = 1 / Kokkos::sqrt(1 + t * t);
+    cos_theta = t * sin_theta;
+  }
+  else
+  {
+    auto const t = -alpha / beta;
+    cos_theta = 1 / Kokkos::sqrt(1 + t * t);
+    sin_theta = t * cos_theta;
+  }
+
+  if (diff > 0)
+  {
+    auto const t = cos_theta;
+    cos_theta = -sin_theta;
+    sin_theta = t;
+  }
+}
+
 // SVD of a symmetric matrix
 // We must find U, E (diagonal and positive) and V such that A = U.E.V^T
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
@@ -115,7 +180,7 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
     for (int j = 0; j < size; j++)
       unit(i, j) = Value(i == j);
 
-  static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+  static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<Value>;
   while (true)
   {
     // We have a guarantee that p < q
@@ -123,44 +188,11 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
     if (max_val <= epsilon)
       break;
 
-    auto const a = mat(p, p);
-    auto const b = mat(p, q);
-    auto const c = mat(q, q);
-
-    // Our submatrix is now
-    // +-----------+-----------+   +---+---+
-    // | mat(p, p) | mat(p, q) |   | a | b |
-    // +-----------+-----------+ = +---+---+
-    // | mat(q, p) | mat(q, q) |   | b | c |
-    // +-----------+-----------+   +---+---+
-
-    // Let's compute x, y and theta such that
-    // +---+---+              +---+---+
-    // | a | b |              | x | 0 |
-    // +---+---+ = R(theta) * +---+---+ * R(theta)^T
-    // | b | c |              | 0 | y |
-    // +---+---+              +---+---+
-
     Value cos_theta;
     Value sin_theta;
     Value x;
     Value y;
-    if (a == c)
-    {
-      cos_theta = Kokkos::sqrt(Value(2)) / 2;
-      sin_theta = cos_theta;
-      x = a + b;
-      y = a - b;
-    }
-    else
-    {
-      auto const u = (2 * b) / (a - c);
-      auto const v = 1 / Kokkos::sqrt(u * u + 1);
-      cos_theta = Kokkos::sqrt((1 + v) / 2);
-      sin_theta = Kokkos::copysign(Kokkos::sqrt((1 - v) / 2), u);
-      x = (a + c + (a - c) / v) / 2;
-      y = a + c - x;
-    }
+    svd2x2(mat(p, p), mat(p, q), mat(q, q), x, y, cos_theta, sin_theta);
 
     // Now let's compute the following new values for 'unit' and 'mat'
     // mat  <- R'(theta)^T . mat . R'(theta)
@@ -224,17 +256,25 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
   int const size = mat.extent(0);
 
   using Value = typename Matrix::non_const_value_type;
-  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
 
-  // We compute the max to get a range of the invertible eigenvalues
-  auto max_eigen = epsilon;
+  // Compute the max to get a range of the invertible eigenvalues
+  Value max_eigen = 0;
   for (int i = 0; i < size; i++)
     max_eigen = Kokkos::max(Kokkos::abs(diag(i)), max_eigen);
-  auto const threshold = max_eigen * epsilon;
 
-  // We invert the diagonal of 'mat', except if "0" is found
+  constexpr auto epsilon = Kokkos::Experimental::epsilon_v<Value>;
+  Value zero_scaling = epsilon;
+  if constexpr (std::is_same_v<Value, double>)
+    zero_scaling = 1e-10;
+
+  // Set a threshold below which eigenvalues are considered to be "0"
+  auto const threshold = Kokkos::max(max_eigen * zero_scaling, 5 * epsilon);
+
+  // Invert diagonal ignoring "0"
   for (int i = 0; i < size; i++)
     diag(i) = (Kokkos::abs(diag(i)) < threshold) ? 0 : 1 / diag(i);
+
+  // We invert the diagonal of 'mat', except if "0" is found
 
   // Then we fill out 'mat' as the pseudo inverse
   for (int i = 0; i < size; i++)
@@ -242,7 +282,7 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
     {
       mat(i, j) = 0;
       for (int k = 0; k < size; k++)
-        mat(i, j) += diag(k) * unit(i, k) * unit(j, k);
+        mat(i, j) += unit(i, k) * diag(k) * unit(j, k);
     }
 }
 
