@@ -1,0 +1,43 @@
+name: rpmbuild
+on:
+  push:
+    branches:
+      - master
+      - rpmbuild
+  pull_request:
+
+concurrency:
+  group: ${ {github.event_name }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true 
+
+jobs:
+  rpmbuild:
+    continue-on-error: ${{ matrix.config.continue-on-error == 'true' }}
+    strategy:
+      matrix:
+        config:
+          - {arch: 'arm64'}
+          - {arch: 'amd64'}
+    runs-on: ${{ matrix.config.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    container: fedora:latest
+    steps:
+      - name: Install fedpkg
+        run: dnf -y install fedpkg
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: ArborX
+      - name: Prepare rpmbuild
+        run: |
+          mkdir ArborX.rpm
+          tar -cvzf ArborX-9999.tar.gz ArborX/
+          cp ArborX-9999.tar.gz ArborX/.github/workflows/ArborX.spec ArborX.rpm
+      - name: Install build deps
+        working-directory: ArborX.rpm
+        run: |
+          dnf -y builddep ArborX.spec
+      - name: Build rpm
+        working-directory: ArborX.rpm
+        run: |
+          fedpkg --verbose --debug local
+
