@@ -81,8 +81,8 @@ void findHalfNeighborList(ExecutionSpace const &space,
   Kokkos::deep_copy(space, offsets, 0);
   HalfTraversal(
       space, bvh,
-      KOKKOS_LAMBDA(Value const &, Value const &value) {
-        Kokkos::atomic_inc(&offsets(value.index));
+      KOKKOS_LAMBDA(Value const &value1, Value const &) {
+        Kokkos::atomic_inc(&offsets(value1.index));
       },
       NeighborListPredicateGetter<Coordinate>{radius});
   KokkosExt::exclusive_scan(space, offsets, offsets, 0);
@@ -98,7 +98,7 @@ void findHalfNeighborList(ExecutionSpace const &space,
   HalfTraversal(
       space, bvh,
       KOKKOS_LAMBDA(Value const &value1, Value const &value2) {
-        indices(Kokkos::atomic_fetch_inc(&counts(value2.index))) = value1.index;
+        indices(Kokkos::atomic_fetch_inc(&counts(value1.index))) = value2.index;
       },
       NeighborListPredicateGetter<Coordinate>{radius});
 
@@ -159,7 +159,7 @@ void findFullNeighborList(ExecutionSpace const &space,
   HalfTraversal(
       space, bvh,
       KOKKOS_LAMBDA(Value const &value1, Value const &value2) {
-        indices(Kokkos::atomic_fetch_inc(&counts(value2.index))) = value1.index;
+        indices(Kokkos::atomic_fetch_inc(&counts(value1.index))) = value2.index;
       },
       NeighborListPredicateGetter<Coordinate>{radius});
 
@@ -174,11 +174,10 @@ void findFullNeighborList(ExecutionSpace const &space,
           typename Kokkos::TeamPolicy<ExecutionSpace>::member_type const
               &member) {
         auto const i = member.league_rank();
-        auto const first = offsets(i);
-        auto const last = counts_copy(i);
         Kokkos::parallel_for(
-            Kokkos::TeamVectorRange(member, last - first), [&](int j) {
-              int const k = indices(first + j);
+            Kokkos::TeamVectorRange(member, offsets(i), counts_copy(i)),
+            [&](int j) {
+              int const k = indices(j);
               indices(Kokkos::atomic_fetch_inc(&counts(k))) = i;
             });
       });
