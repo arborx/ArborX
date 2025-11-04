@@ -60,6 +60,8 @@ struct CountUpToN_DenseBox
   template <typename Query, typename Value>
   KOKKOS_FUNCTION auto operator()(Query const &query, Value const &value) const
   {
+    using Experimental::distance;
+
     int const k = value.index;
     auto const i = getData(query);
 
@@ -129,6 +131,8 @@ struct FDBSCANDenseBoxCallback
   template <typename Query, typename Value>
   KOKKOS_FUNCTION auto operator()(Query const &query, Value const &value) const
   {
+    using Experimental::distance;
+
     int const k = value.index;
     auto const i = ArborX::getData(query);
 

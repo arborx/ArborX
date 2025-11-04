@@ -171,7 +171,7 @@ struct FindComponentNearestNeighbors
     auto const distance = [bounding_volume_i =
                                HappyTreeFriends::getIndexable(_bvh, i),
                            &bvh = _bvh](int j) {
-      using Details::distance;
+      using Experimental::distance;
       return HappyTreeFriends::isLeaf(bvh, j)
                  ? distance(bounding_volume_i,
                             HappyTreeFriends::getIndexable(bvh, j))
@@ -763,6 +763,7 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
         auto const label_j = labels(j);
         if (label_i != label_j)
         {
+          using Experimental::distance;
           auto const r =
               metric(HappyTreeFriends::getValue(bvh, i).index,
                      HappyTreeFriends::getValue(bvh, j).index,

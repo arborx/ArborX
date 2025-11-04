@@ -23,27 +23,30 @@
 #include <Kokkos_MathematicalFunctions.hpp>
 #include <Kokkos_MinMax.hpp>
 
-namespace ArborX::Details
+namespace ArborX
 {
-namespace Dispatch
+namespace Details::Dispatch
 {
 template <typename Tag1, typename Tag2, typename Geometry1, typename Geometry2>
 struct distance;
-
 }
 
+namespace Experimental
+{
 template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION auto distance(Geometry1 const &geometry1,
                                      Geometry2 const &geometry2)
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  return Dispatch::distance<GeometryTraits::tag_t<Geometry1>,
-                            GeometryTraits::tag_t<Geometry2>, Geometry1,
-                            Geometry2>::apply(geometry1, geometry2);
+  return Details::Dispatch::distance<GeometryTraits::tag_t<Geometry1>,
+                                     GeometryTraits::tag_t<Geometry2>,
+                                     Geometry1, Geometry2>::apply(geometry1,
+                                                                  geometry2);
 }
+} // namespace Experimental
 
-namespace Dispatch
+namespace Details::Dispatch
 {
 
 using namespace GeometryTraits;
@@ -74,7 +77,8 @@ struct distance<PointTag, BoxTag, Point, Box>
 {
   KOKKOS_FUNCTION static auto apply(Point const &point, Box const &box)
   {
-    return Details::distance(point, Experimental::closestPoint(point, box));
+    return Experimental::distance(point,
+                                  Experimental::closestPoint(point, box));
   }
 };
 
@@ -83,7 +87,7 @@ struct distance<BoxTag, PointTag, Box, Point>
 {
   KOKKOS_FUNCTION static auto apply(Box const &box, Point const &point)
   {
-    return Details::distance(point, box);
+    return Experimental::distance(point, box);
   }
 };
 
@@ -95,7 +99,8 @@ struct distance<PointTag, SphereTag, Point, Sphere>
   {
     using Kokkos::max;
     using Coordinate = GeometryTraits::coordinate_type_t<Sphere>;
-    return max(Details::distance(point, sphere.centroid()) - sphere.radius(),
+    return max(Experimental::distance(point, sphere.centroid()) -
+                   sphere.radius(),
                (Coordinate)0);
   }
 };
@@ -106,7 +111,7 @@ struct distance<SphereTag, PointTag, Sphere, Point>
 {
   KOKKOS_FUNCTION static auto apply(Sphere const &sphere, Point const &point)
   {
-    return Details::distance(point, sphere);
+    return Experimental::distance(point, sphere);
   }
 };
 
@@ -121,7 +126,7 @@ struct distance<PointTag, TriangleTag, Point, Triangle>
 
   KOKKOS_FUNCTION static auto apply(Point const &p, Triangle const &triangle)
   {
-    return Details::distance(p, Experimental::closestPoint(p, triangle));
+    return Experimental::distance(p, Experimental::closestPoint(p, triangle));
   }
 };
 
@@ -152,10 +157,10 @@ struct distance<PointTag, TetrahedronTag, Point, Tetrahedron>
       bool same_half_space =
           (normal.dot(v[(j + 3) % N] - v[j]) * normal.dot(point - v[j]) >= 0);
       if (!same_half_space)
-        min_distance =
-            Kokkos::min(min_distance,
-                        Details::distance(point, Triangle{v[j], v[(j + 1) % N],
-                                                          v[(j + 2) % N]}));
+        min_distance = Kokkos::min(
+            min_distance,
+            Experimental::distance(
+                point, Triangle{v[j], v[(j + 1) % N], v[(j + 2) % N]}));
     }
     return (min_distance != fmax ? min_distance : static_cast<Coordinate>(0));
   }
@@ -170,7 +175,7 @@ struct distance<TetrahedronTag, PointTag, Tetrahedron, Point>
 
   KOKKOS_FUNCTION static auto apply(Tetrahedron const &tet, Point const &p)
   {
-    return Details::distance(p, tet);
+    return Experimental::distance(p, tet);
   }
 };
 
@@ -219,7 +224,7 @@ struct distance<SphereTag, BoxTag, Sphere, Box>
     using Kokkos::max;
     using Coordinate = GeometryTraits::coordinate_type_t<Sphere>;
 
-    auto distance_center_box = Details::distance(sphere.centroid(), box);
+    auto distance_center_box = Experimental::distance(sphere.centroid(), box);
     return max(distance_center_box - sphere.radius(), (Coordinate)0);
   }
 };
@@ -230,7 +235,7 @@ struct distance<BoxTag, SphereTag, Box, Sphere>
 {
   KOKKOS_FUNCTION static auto apply(Box const &box, Sphere const &sphere)
   {
-    return Details::distance(sphere, box);
+    return Experimental::distance(sphere, box);
   }
 };
 
@@ -239,12 +244,13 @@ struct distance<PointTag, SegmentTag, Point, Segment>
 {
   KOKKOS_FUNCTION static auto apply(Point const &point, Segment const &segment)
   {
-    return Details::distance(point, Experimental::closestPoint(point, segment));
+    return Experimental::distance(point,
+                                  Experimental::closestPoint(point, segment));
   }
 };
 
-} // namespace Dispatch
+} // namespace Details::Dispatch
 
-} // namespace ArborX::Details
+} // namespace ArborX
 
 #endif

@@ -61,7 +61,7 @@ struct DistanceCallback
                                   Value const &value,
                                   OutputFunctor const &out) const
   {
-    using ArborX::Details::distance;
+    using ArborX::Experimental::distance;
     out(distance(ArborX::getGeometry(predicate), value));
   }
 };

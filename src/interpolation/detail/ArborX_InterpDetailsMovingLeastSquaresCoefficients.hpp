@@ -161,7 +161,7 @@ private:
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
     {
       CoefficientsType const norm =
-          ArborX::Details::distance(source_points(neighbor), target_point);
+          ArborX::Experimental::distance(source_points(neighbor), target_point);
       radius = Kokkos::max(radius, norm);
     }
     // The one at the limit would be 0 due to how CRBFs work
