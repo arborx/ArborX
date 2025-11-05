@@ -176,7 +176,7 @@ private:
                                                    0);
     if constexpr (Mode == Details::BoruvkaMode::HDBSCAN)
     {
-      KokkosExt::reallocWithoutInitializing(space, edges_mapping, n - 1);
+      KokkosExt::reallocWithoutInitializing(space, edges_mapping, n);
       KokkosExt::reallocWithoutInitializing(space, sided_parents, n - 1);
       KokkosExt::reallocWithoutInitializing(space, dendrogram_parents,
                                             2 * n - 1);
