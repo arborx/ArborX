@@ -534,7 +534,7 @@ void assignVertexParents(ExecutionSpace const &space, Labels const &labels,
                          EdgesMapping const &edges_mapping, BVH const &bvh,
                          Parents parents)
 {
-  auto const n = edges_mapping.extent_int(0) + 1;
+  auto const n = edges_mapping.extent_int(0);
   int const vertices_offset = n - 1;
 
   Kokkos::parallel_for(
