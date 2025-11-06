@@ -180,7 +180,7 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
     for (int j = 0; j < size; j++)
       unit(i, j) = Value(i == j);
 
-  static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+  static constexpr auto epsilon = Kokkos::Experimental::epsilon_v<Value>;
   while (true)
   {
     // We have a guarantee that p < q
@@ -262,7 +262,7 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
   for (int i = 0; i < size; i++)
     max_eigen = Kokkos::max(Kokkos::abs(diag(i)), max_eigen);
 
-  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+  constexpr auto epsilon = Kokkos::Experimental::epsilon_v<Value>;
   Value zero_scaling = epsilon;
 
   // Set a threshold below which eigenvalues are considered to be "0"
