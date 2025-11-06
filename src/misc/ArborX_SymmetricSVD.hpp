@@ -17,6 +17,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
+#include <Kokkos_Swap.hpp>
 
 namespace ArborX::Details
 {
@@ -105,7 +106,7 @@ KOKKOS_FUNCTION void svd2x2(Value a, Value b, Value c, Value &x, Value &y,
   auto tan_theta = Kokkos::copysign(
       1 / (Kokkos::abs(tau) + Kokkos::sqrt(1 + tau * tau)), tau);
 
-  // TODO: rhypot
+  // FIXME: use rhypot
   cos_theta = Kokkos::rsqrt(1 + tan_theta * tan_theta);
   sin_theta = -tan_theta * cos_theta;
 
@@ -143,6 +144,7 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &A, Diagonal &D, Unitary &U)
                                    typename Unitary::value_type>,
                 "All input matrices must have the same value type");
   KOKKOS_ASSERT(A.extent(0) == D.extent(0) && D.extent(0) == U.extent(0));
+
   using Value = typename Matrix::non_const_value_type;
   int const n = A.extent(0);
 
@@ -165,37 +167,32 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &A, Diagonal &D, Unitary &U)
     Value y;
     svd2x2(A(p, p), A(p, q), A(q, q), x, y, cos_theta, sin_theta);
 
-    // Now let's compute the following new values for 'U' and 'A'
-    // A  <- R'(theta)^T . A . R'(theta)
-    // U <- U . R'(theta)
-
-    // R'(theta)^T . A . R'(theta)
-    for (int i = 0; i < p; i++)
-    {
-      auto const es_ip = A(i, p);
-      auto const es_iq = A(i, q);
-      A(i, p) = cos_theta * es_ip + sin_theta * es_iq;
-      A(i, q) = -sin_theta * es_ip + cos_theta * es_iq;
-    }
+    // A = R(theta) * A * R(theta)^T
     A(p, p) = x;
-    A(p, q) = 0;
-    for (int i = p + 1; i < q; i++)
-    {
-      auto const es_pi = A(p, i);
-      auto const es_iq = A(i, q);
-      A(p, i) = cos_theta * es_pi + sin_theta * es_iq;
-      A(i, q) = -sin_theta * es_pi + cos_theta * es_iq;
-    }
     A(q, q) = y;
-    for (int i = q + 1; i < n; i++)
+    A(p, q) = 0;
+    for (int i = 0; i < n; ++i)
     {
-      auto const es_pi = A(p, i);
-      auto const es_qi = A(q, i);
-      A(p, i) = cos_theta * es_pi + sin_theta * es_qi;
-      A(q, i) = -sin_theta * es_pi + cos_theta * es_qi;
+      if (i == p || i == q)
+        continue;
+
+      auto ip = i;
+      auto pi = p;
+      auto iq = i;
+      auto qi = q;
+
+      if (i > p)
+        Kokkos::kokkos_swap(ip, pi);
+      if (i > q)
+        Kokkos::kokkos_swap(iq, qi);
+
+      auto const a_ip = A(ip, pi);
+      auto const a_iq = A(iq, qi);
+      A(ip, pi) = cos_theta * a_ip + sin_theta * a_iq;
+      A(iq, qi) = -sin_theta * a_ip + cos_theta * a_iq;
     }
 
-    // U . R'(theta)
+    // U = U * R(theta)^T
     for (int i = 0; i < n; i++)
     {
       auto const u_ip = U(i, p);
