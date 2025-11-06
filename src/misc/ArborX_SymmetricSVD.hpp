@@ -77,8 +77,63 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &mat)
   return result;
 }
 
+// Function to perform a single Jacobi rotation
+template <typename Matrix, typename Unit>
+KOKKOS_FUNCTION void jacobi_rotate(Matrix &A, Unit &V, int p, int q)
+{
+  using Value = typename Matrix::non_const_value_type;
+
+  Value app = A(p, p);
+  Value aqq = A(q, q);
+  Value apq = A(p, q);
+
+  // Calculate rotation angle phi ensuring |sin(phi)| < |cos(phi)|, see
+  // https://en.wikipedia.org/wiki/Jacobi_rotation#Numerically_stable_computation
+  // or §8.4 in
+  // Golub, Gene H.; Van Loan, Charles F. (1996), Matrix Computations (3rd ed.),
+  // Baltimore: Johns Hopkins University Press, ISBN 978-0-8018-5414-9
+  Value tau = (aqq - app) / (2.0 * apq);
+  Value t = 1.0 / (abs(tau) + sqrt(1.0 + tau * tau));
+  if (tau < 0)
+    t = -t;
+
+  Value c = 1.0 / sqrt(1.0 + t * t); // cos(phi)
+  Value s = t * c;                   // sin(phi)
+
+  // Update the matrix A (A' = J^T * A * J)
+  Value new_app = app - t * apq;
+  Value new_aqq = aqq + t * apq;
+
+  A(p, p) = new_app;
+  A(q, q) = new_aqq;
+  A(p, q) = A(q, p) = 0.0; // The goal of the rotation
+
+  int n = A.extent_int(0);
+
+  // Update the remaining off-diagonal elements in row/column p and q
+  for (int i = 0; i < n; ++i)
+  {
+    if (i != p && i != q)
+    {
+      Value aip = A(i, p);
+      Value aiq = A(i, q);
+      A(i, p) = A(p, i) = c * aip - s * aiq;
+      A(i, q) = A(q, i) = s * aip + c * aiq;
+    }
+  }
+
+  // Update the eigenvector matrix V (V' = V * J)
+  for (int i = 0; i < n; ++i)
+  {
+    Value vip = V(i, p);
+    Value viq = V(i, q);
+    V(i, p) = c * vip - s * viq;
+    V(i, q) = s * vip + c * viq;
+  }
+}
+
 // SVD of a symmetric matrix
-// We must find U, E (diagonal and positive) and V such that A = U.E.V^T
+// We must find U, E (diagonal and non-negative) and V such that A = U.E.V^T
 // We also suppose, as the input, that A is symmetric, so U = SV where S is
 // a sign matrix (only 1 or -1 on the diagonal, 0 elsewhere).
 // Thus A = U.ES.U^T.
@@ -115,7 +170,9 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
     for (int j = 0; j < size; j++)
       unit(i, j) = Value(i == j);
 
-  static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+  static constexpr Value epsilon = Kokkos::Experimental::epsilon_v<Value>;
+
+  // Iterative diagonalization
   while (true)
   {
     // We have a guarantee that p < q
@@ -123,86 +180,11 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
     if (max_val <= epsilon)
       break;
 
-    auto const a = mat(p, p);
-    auto const b = mat(p, q);
-    auto const c = mat(q, q);
-
-    // Our submatrix is now
-    // +-----------+-----------+   +---+---+
-    // | mat(p, p) | mat(p, q) |   | a | b |
-    // +-----------+-----------+ = +---+---+
-    // | mat(q, p) | mat(q, q) |   | b | c |
-    // +-----------+-----------+   +---+---+
-
-    // Let's compute x, y and theta such that
-    // +---+---+              +---+---+
-    // | a | b |              | x | 0 |
-    // +---+---+ = R(theta) * +---+---+ * R(theta)^T
-    // | b | c |              | 0 | y |
-    // +---+---+              +---+---+
-
-    Value cos_theta;
-    Value sin_theta;
-    Value x;
-    Value y;
-    if (a == c)
-    {
-      cos_theta = Kokkos::sqrt(Value(2)) / 2;
-      sin_theta = cos_theta;
-      x = a + b;
-      y = a - b;
-    }
-    else
-    {
-      auto const u = (2 * b) / (a - c);
-      auto const v = 1 / Kokkos::sqrt(u * u + 1);
-      cos_theta = Kokkos::sqrt((1 + v) / 2);
-      sin_theta = Kokkos::copysign(Kokkos::sqrt((1 - v) / 2), u);
-      x = (a + c + (a - c) / v) / 2;
-      y = a + c - x;
-    }
-
-    // Now let's compute the following new values for 'unit' and 'mat'
-    // mat  <- R'(theta)^T . mat . R'(theta)
-    // unit <- unit . R'(theta)
-
-    // R'(theta)^T . mat . R'(theta)
-    for (int i = 0; i < p; i++)
-    {
-      auto const es_ip = mat(i, p);
-      auto const es_iq = mat(i, q);
-      mat(i, p) = cos_theta * es_ip + sin_theta * es_iq;
-      mat(i, q) = -sin_theta * es_ip + cos_theta * es_iq;
-    }
-    mat(p, p) = x;
-    mat(p, q) = 0;
-    for (int i = p + 1; i < q; i++)
-    {
-      auto const es_pi = mat(p, i);
-      auto const es_iq = mat(i, q);
-      mat(p, i) = cos_theta * es_pi + sin_theta * es_iq;
-      mat(i, q) = -sin_theta * es_pi + cos_theta * es_iq;
-    }
-    mat(q, q) = y;
-    for (int i = q + 1; i < size; i++)
-    {
-      auto const es_pi = mat(p, i);
-      auto const es_qi = mat(q, i);
-      mat(p, i) = cos_theta * es_pi + sin_theta * es_qi;
-      mat(q, i) = -sin_theta * es_pi + cos_theta * es_qi;
-    }
-
-    // unit . R'(theta)
-    for (int i = 0; i < size; i++)
-    {
-      auto const u_ip = unit(i, p);
-      auto const u_iq = unit(i, q);
-      unit(i, p) = cos_theta * u_ip + sin_theta * u_iq;
-      unit(i, q) = -sin_theta * u_ip + cos_theta * u_iq;
-    }
+    jacobi_rotate(mat, unit, p, q);
   }
 
-  for (int i = 0; i < size; i++)
+  // Extract eigenvalues from the diagonal of the resulting A
+  for (int i = 0; i < size; ++i)
     diag(i) = mat(i, i);
 }
 
@@ -224,13 +206,13 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
   int const size = mat.extent(0);
 
   using Value = typename Matrix::non_const_value_type;
-  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<float>;
+  constexpr Value epsilon = Kokkos::Experimental::epsilon_v<Value>;
 
   // We compute the max to get a range of the invertible eigenvalues
   auto max_eigen = epsilon;
   for (int i = 0; i < size; i++)
     max_eigen = Kokkos::max(Kokkos::abs(diag(i)), max_eigen);
-  auto const threshold = max_eigen * epsilon;
+  auto const threshold = size * max_eigen * epsilon;
 
   // We invert the diagonal of 'mat', except if "0" is found
   for (int i = 0; i < size; i++)
