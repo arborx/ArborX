@@ -96,50 +96,21 @@ KOKKOS_FUNCTION void svd2x2(Value a, Value b, Value c, Value &x, Value &y,
     return;
   }
 
-  auto const trace = a + c;
-  auto const diff = a - c;
-  auto const root = Kokkos::sqrt(diff * diff + 4 * b * b);
+  // Calculate rotation angle theta ensuring |sin(theta)| <= |cos(theta)|, see
+  // https://en.wikipedia.org/wiki/Jacobi_rotation#Numerically_stable_computation
+  // or §8.4 in
+  // Golub, Gene H.; Van Loan, Charles F. (1996), Matrix Computations (3rd ed.),
+  // Baltimore: Johns Hopkins University Press, ISBN 978-0-8018-5414-9
+  auto tau = (c - a) / (2 * b);
+  auto tan_theta = Kokkos::copysign(
+      1 / (Kokkos::abs(tau) + Kokkos::sqrt(1 + tau * tau)), tau);
 
-  if (trace > 0)
-  {
-    x = (trace + root) / 2;
-    auto x_inv = 1 / x;
-    y = (a * x_inv) * c - (b * x_inv) * b;
-  }
-  else if (trace < 0)
-  {
-    y = (trace - root) / 2;
-    auto y_inv = 1 / y;
-    x = (a * y_inv) * c - (b * y_inv) * b;
-  }
-  else
-  {
-    x = root / 2;
-    y = -root / 2;
-  }
+  // TODO: rhypot
+  cos_theta = Kokkos::rsqrt(1 + tan_theta * tan_theta);
+  sin_theta = -tan_theta * cos_theta;
 
-  auto const alpha = (diff > 0 ? diff + root : diff - root);
-  auto const beta = 2 * b;
-
-  if (Kokkos::abs(alpha) > Kokkos::abs(beta))
-  {
-    auto const cot_theta = -beta / alpha;
-    sin_theta = Kokkos::rsqrt(1 + cot_theta * cot_theta);
-    cos_theta = cot_theta * sin_theta;
-  }
-  else
-  {
-    auto const tan_theta = -alpha / beta;
-    cos_theta = Kokkos::rsqrt(1 + tan_theta * tan_theta);
-    sin_theta = tan_theta * cos_theta;
-  }
-
-  if (diff > 0)
-  {
-    auto const t = cos_theta;
-    cos_theta = -sin_theta;
-    sin_theta = t;
-  }
+  x = a - tan_theta * b;
+  y = c + tan_theta * b;
 }
 
 // SVD of a symmetric matrix
@@ -234,6 +205,7 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &mat, Diag &diag, Unit &unit)
     }
   }
 
+  // Extract eigenvalues from the diagonal of the resulting A
   for (int i = 0; i < size; i++)
     diag(i) = mat(i, i);
 }
