@@ -262,15 +262,13 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &mat, Diag &diag,
   for (int i = 0; i < size; i++)
     max_eigen = Kokkos::max(Kokkos::abs(diag(i)), max_eigen);
 
+  // The standard tolerance for forming pseudo-inverse is to only invert
+  // singular values that are max(m,n) * \epsilon * ||A||_2.
+  // ||A||_2 is equal to the max singular value (max abs diagonal).
   constexpr auto epsilon = Kokkos::Experimental::epsilon_v<Value>;
-  Value zero_scaling = epsilon;
-
-  // Set a threshold below which eigenvalues are considered to be "0"
-  auto const threshold = Kokkos::max(max_eigen * zero_scaling, epsilon);
-
-  // Invert diagonal ignoring "0"
+  auto const tolerance = size * max_eigen * epsilon;
   for (int i = 0; i < size; i++)
-    diag(i) = (Kokkos::abs(diag(i)) < threshold) ? 0 : 1 / diag(i);
+    diag(i) = (Kokkos::abs(diag(i)) <= tolerance) ? 0 : 1 / diag(i);
 
   // Then we fill out 'mat' as the pseudo inverse
   for (int i = 0; i < size; i++)
