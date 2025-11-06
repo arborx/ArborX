@@ -85,17 +85,11 @@ KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &A)
 // | b | c |              | 0 | y |
 // +---+---+              +---+---+
 template <typename Value>
-KOKKOS_FUNCTION void svd2x2(Value a, Value b, Value c, Value &x, Value &y,
-                            Value &cos_theta, Value &sin_theta)
+KOKKOS_FUNCTION void
+jacobiRotationCoefficients(Value a, Value b, Value c, Value &x, Value &y,
+                           Value &cos_theta, Value &sin_theta)
 {
-  if (b == 0)
-  {
-    cos_theta = 1;
-    sin_theta = 0;
-    x = a;
-    y = c;
-    return;
-  }
+  KOKKOS_ASSERT(b != 0);
 
   // Calculate rotation angle theta ensuring |sin(theta)| <= |cos(theta)|, see
   // https://en.wikipedia.org/wiki/Jacobi_rotation#Numerically_stable_computation
@@ -165,7 +159,8 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &A, Diagonal &D, Unitary &U)
     Value sin_theta;
     Value x;
     Value y;
-    svd2x2(A(p, p), A(p, q), A(q, q), x, y, cos_theta, sin_theta);
+    jacobiRotationCoefficients(A(p, p), A(p, q), A(q, q), x, y, cos_theta,
+                               sin_theta);
 
     // A = R(theta) * A * R(theta)^T
     A(p, p) = x;
