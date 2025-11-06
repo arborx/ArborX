@@ -265,11 +265,11 @@ BOOST_AUTO_TEST_CASE(ray_box_distance)
 
   // clang-format off
   // origin is within the box
-  BOOST_TEST(ArborX::Experimental::distance(Ray{{.5, .5, .5}, {1, 0, 0}}, unit_box) == 0.f);
+  BOOST_TEST(distance(Ray{{.5, .5, .5}, {1, 0, 0}}, unit_box) == 0.f);
   // origin outside box, ray hitting box
-  BOOST_TEST(ArborX::Experimental::distance(Ray{{.5, .5, -.5}, {0, 0, 1}}, unit_box) == .5f);
+  BOOST_TEST(distance(Ray{{.5, .5, -.5}, {0, 0, 1}}, unit_box) == .5f);
   // origin outside box, ray missing box
-  BOOST_TEST(ArborX::Experimental::distance(Ray{{.5, .5, -.5}, {0, 0, -1}}, unit_box) == inf);
+  BOOST_TEST(distance(Ray{{.5, .5, -.5}, {0, 0, -1}}, unit_box) == inf);
 }
 
 // NOTE until boost 1.70 need to cast both operands when comparing floating

@@ -225,7 +225,6 @@ void computeRanksTo(MPI_Comm comm, ExecutionSpace const &space,
       prefix + "filter_out_global_boxes",
       Kokkos::RangePolicy(space, 0, comm_size),
       KOKKOS_LAMBDA(int i, int &update, bool is_final) {
-        using Experimental::distance;
         if (i == comm_rank ||
             distance(global_boxes(i), global_boxes(comm_rank)) > eps)
           return;

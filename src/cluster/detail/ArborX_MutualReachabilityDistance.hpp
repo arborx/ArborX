@@ -39,7 +39,6 @@ struct MaxDistance
   {
     size_type const i = value.index;
     size_type const j = getData(predicate);
-    using Experimental::distance;
     using Kokkos::max;
     auto const distance_ij = distance(_primitives(i), _primitives(j));
     // NOTE using knowledge that each nearest predicate traversal is performed

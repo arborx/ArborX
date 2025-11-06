@@ -200,8 +200,6 @@ struct CallbackWithDistance
   KOKKOS_FUNCTION void operator()(Query const &query, Value const &value,
                                   Output const &out) const
   {
-    using Experimental::distance;
-
     if constexpr (UseValues)
     {
       OutValue out_value;

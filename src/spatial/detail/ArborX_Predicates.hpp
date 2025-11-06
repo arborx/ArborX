@@ -57,7 +57,7 @@ struct Nearest
   template <class OtherGeometry>
   KOKKOS_FUNCTION auto distance(OtherGeometry const &other) const
   {
-    using Experimental::distance;
+    using ::ArborX::distance;
     return distance(_geometry, other);
   }
 
@@ -104,7 +104,7 @@ struct OrderedSpatial
   template <class OtherGeometry>
   KOKKOS_FUNCTION auto distance(OtherGeometry const &other) const
   {
-    using Experimental::distance;
+    using ::ArborX::distance;
     return distance(_geometry, other);
   }
 

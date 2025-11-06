@@ -36,8 +36,7 @@ struct CustomInlineCallback
   KOKKOS_FUNCTION void operator()(Query const &, int index,
                                   Insert const &insert) const
   {
-    auto const distance_to_origin =
-        ArborX::Experimental::distance(points(index), origin);
+    auto const distance_to_origin = ArborX::distance(points(index), origin);
     insert({index, distance_to_origin});
   }
 };
@@ -58,7 +57,6 @@ struct CustomPostCallback
   {
     using ExecutionSpace = typename Points::execution_space;
 
-    using ArborX::Experimental::distance;
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
     Kokkos::parallel_for(
@@ -86,8 +84,7 @@ initialize_values(Points const &points, float const delta)
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n), KOKKOS_LAMBDA(int i) {
         ArborX::Point const origin{(Coordinate)0, (Coordinate)0, (Coordinate)0};
-        values_device(i) = {
-            i, delta + ArborX::Experimental::distance(points(i), origin)};
+        values_device(i) = {i, delta + ArborX::distance(points(i), origin)};
       });
   std::vector<PairIndexDistance> values(n);
   Kokkos::deep_copy(
@@ -253,8 +250,7 @@ struct CustomInlineCallbackWithAttachment
   KOKKOS_FUNCTION void operator()(Query const &query, int index,
                                   Insert const &insert) const
   {
-    auto const distance_to_origin =
-        ArborX::Experimental::distance(points(index), origin);
+    auto const distance_to_origin = ArborX::distance(points(index), origin);
 
     auto data = ArborX::getData(query);
     insert({index, data + distance_to_origin});
@@ -276,7 +272,6 @@ struct CustomPostCallbackWithAttachment
                   OutView &out) const
   {
     using ExecutionSpace = typename Points::execution_space;
-    using ArborX::Experimental::distance;
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
     Kokkos::parallel_for(

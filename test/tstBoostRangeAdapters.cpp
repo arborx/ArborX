@@ -49,7 +49,6 @@ BOOST_AUTO_TEST_CASE(range_algorithms)
 BOOST_AUTO_TEST_CASE(point_cloud)
 {
   using Point = ArborX::Point<3>;
-  using ArborX::Experimental::distance;
   double const seed = 3.14;
   std::default_random_engine generator(seed);
   std::uniform_real_distribution<float> distribution(-1.f, 1.f);

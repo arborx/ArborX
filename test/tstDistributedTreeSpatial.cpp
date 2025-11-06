@@ -260,7 +260,7 @@ struct CustomInlineCallbackWithAttachment
   {
     auto data = ArborX::getData(query);
     float const distance_to_origin =
-        ArborX::Experimental::distance(points(pair.index), origin);
+        ArborX::distance(points(pair.index), origin);
 
     insert(distance_to_origin + data);
   }
@@ -281,7 +281,6 @@ struct CustomPostCallbackWithAttachment
                   OutView &out) const
   {
     using ExecutionSpace = typename DeviceType::execution_space;
-    using ArborX::Experimental::distance;
     auto const n = offset.extent(0) - 1;
     Kokkos::realloc(out, in.extent(0));
     Kokkos::parallel_for(
@@ -352,8 +351,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(callback_with_attachment, DeviceType,
   Kokkos::View<float *, DeviceType> ref("Testing::ref", n_results);
   Kokkos::parallel_for(
       Kokkos::RangePolicy<ExecutionSpace>(0, n_results), KOKKOS_LAMBDA(int i) {
-        ref(i) = float(ArborX::Experimental::distance(points(i), origin) + 1) +
-                 comm_rank;
+        ref(i) = float(ArborX::distance(points(i), origin) + 1) + comm_rank;
       });
 
   {
