@@ -95,8 +95,13 @@ public:
     // point.
 
     // We first change the origin of the evaluation to be at the target point
-    // within about unit distance. This lets us use p(0) which is [1 0 ... 0].
-    sourceRecentering(target_point, source_points);
+    // within about unit distance which is equivalent to recentering and scaling
+    // the monomial basis. This lets us use p(0) which is [1 0 ... 0] and leads
+    // to a more stable algorithm, see, e.g., (3.8) in
+    // Mirzaei, Davoud. "Analysis of moving least squares approximation
+    // revisited." Journal of Computational and Applied Mathematics 282 (2015):
+    // 237-250.
+    sourceNormalization(target_point, source_points);
 
     // This computes PHI given the source points.
     phiComputation(source_points, phi);
@@ -148,8 +153,9 @@ private:
 
   // Recenters the source points so that the target is at the origin within
   // about unit distance
-  KOKKOS_FUNCTION void sourceRecentering(TargetPoint const &target_point,
-                                         LocalSourcePoints &source_points) const
+  KOKKOS_FUNCTION void
+  sourceNormalization(TargetPoint const &target_point,
+                      LocalSourcePoints &source_points) const
   {
     CoefficientsType radius = Kokkos::Experimental::epsilon_v<CoefficientsType>;
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
