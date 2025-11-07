@@ -215,7 +215,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
         for (int i = 0; i < num_targets; ++i)
           target_values(i) = f(target_coords(i));
       });
-  auto host_target_coords = Kokkos::create_mirror_view(target_coords);
 
   std::vector<double> expected_errors({
       2.e-7,
@@ -248,8 +247,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
     Kokkos::parallel_for(
         Kokkos::RangePolicy(space, 0, num_targets),
         KOKKOS_LAMBDA(int target_index) {
-          int const start_x = host_target_coords[target_index][0] / h;
-          int const start_y = host_target_coords[target_index][1] / h;
+          int const start_x = target_coords(target_index)[0] / h;
+          int const start_y = target_coords(target_index)[1] / h;
           for (int i = -2; i <= 2; ++i)
             for (int j = -2; j <= 2; ++j)
             {
