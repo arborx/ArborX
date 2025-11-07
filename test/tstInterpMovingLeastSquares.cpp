@@ -239,22 +239,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
     // We construct 25 points around each target point to avoid constructing a
     // full mesh grid. 25 points is sufficient to find the 6 nearest neighbors
     // needed for the 2nd-order polynomial basis.
-    Kokkos::View<Point *, MemorySpace> source_coords("source_coords",
-                                                     25 * num_targets);
-    Kokkos::View<double *, MemorySpace> source_values("source_values",
-                                                      25 * num_targets);
+    int const n_points_per_target_1d = 5;
+    int const n_points_per_target =
+        n_points_per_target_1d * n_points_per_target_1d;
+    Kokkos::View<Point *, MemorySpace> source_coords(
+        "source_coords", n_points_per_target * num_targets);
+    Kokkos::View<double *, MemorySpace> source_values(
+        "source_values", n_points_per_target * num_targets);
     Kokkos::parallel_for(
         Kokkos::RangePolicy(space, 0, num_targets),
         KOKKOS_LAMBDA(int target_index) {
-          int const start_x = host_target_coords[target_index][0] / h - 2;
-          int const start_y = host_target_coords[target_index][1] / h - 2;
-          for (int i = 0; i < 5; ++i)
-            for (int j = 0; j < 5; ++j)
+          int const start_x = host_target_coords[target_index][0] / h;
+          int const start_y = host_target_coords[target_index][1] / h;
+          for (int i = -2; i <= 2; ++i)
+            for (int j = -2; j <= 2; ++j)
             {
-              source_coords(target_index * 25 + i * 5 +
-                            j) = {(start_x + i) * h, (start_y + j) * h};
-              source_values(target_index * 25 + i * 5 + j) =
-                  f(source_coords(target_index * 25 + i * 5 + j));
+              source_coords(target_index * n_points_per_target +
+                            (i + 2) * n_points_per_target_1d + j +
+                            2) = {(start_x + i) * h, (start_y + j) * h};
+              source_values(target_index * n_points_per_target +
+                            (i + 2) * n_points_per_target_1d + (j + 2)) =
+                  f(source_coords(target_index * n_points_per_target +
+                                  (i + 2) * n_points_per_target_1d + (j + 2)));
             }
         });
 
