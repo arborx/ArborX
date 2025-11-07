@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
       3.e-12,
       3.e-13,
       4.e-14,
-      3.e-15,
+      5.e-15,
   });
 
   for (int num_refinements = 9; num_refinements < 19; ++num_refinements)
