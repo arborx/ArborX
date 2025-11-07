@@ -18,6 +18,8 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
+#include <iomanip>
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
@@ -195,8 +197,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
 
   using Point = ArborX::Point<2, double>;
 
-  auto f = KOKKOS_LAMBDA(double x, double y)
-  {
+  auto f = [](double x, double y) {
     return Kokkos::sin(4 * x) + Kokkos::sin(2 * y);
   };
 
@@ -214,32 +215,65 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
         for (int i = 0; i < num_targets; ++i)
           target_values(i) = f(target_coords(i)[0], target_coords(i)[1]);
       });
+  auto host_target_coords = Kokkos::create_mirror_view(target_coords);
 
-  constexpr int num_refinements = 11;
-  constexpr int n = (1 << num_refinements) + 1;
-  constexpr double h = 2. / (n - 1);
-  constexpr int num_sources = n * n;
+  std::vector<double> expected_errors({
+      2.e-7,
+      5.e-8,
+      1.e-8,
+      7.e-10,
+      2.e-10,
+      1.e-11,
+      3.e-12,
+      3.e-13,
+      4.e-14,
+      3.e-15,
+  });
 
-  std::cout << "h = " << h << std::endl;
+  for (int num_refinements = 9; num_refinements < 19; ++num_refinements)
+  {
+    int n = (1 << num_refinements) + 1;
+    double h = 2. / (n - 1);
 
-  Kokkos::View<Point *, MemorySpace> source_coords("source_coords",
-                                                   num_sources);
-  Kokkos::View<double *, MemorySpace> source_values("source_values",
-                                                    num_sources);
-  Kokkos::parallel_for(
-      Kokkos::MDRangePolicy(space, {0, 0}, {n, n}),
-      KOKKOS_LAMBDA(int const i, int const j) {
-        int index = i * n + j;
-        source_coords(index) = {-1 + i * h, -1 + j * h};
-        source_values(index) =
-            f(source_coords(index)[0], source_coords(index)[1]);
-      });
+    std::vector<Point> host_points;
+    std::vector<double> host_values;
 
-  ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
-      space, source_coords, target_coords);
-  Kokkos::View<double *, MemorySpace> interpolated_values("interpolated_values",
-                                                          num_targets);
-  mls.interpolate(space, source_values, interpolated_values);
+    // Consider 25 points around each target point which is more than enough to
+    // find the 6 nearest neighbors needed for the 2nd-order polynomial basis
+    // used here.
+    for (unsigned int target_index = 0; target_index < target_coords.size();
+         ++target_index)
+    {
+      int const start_x = host_target_coords[target_index][0] / h - 2;
+      int const start_y = host_target_coords[target_index][1] / h - 2;
+      for (int i = 0; i < 5; ++i)
+        for (int j = 0; j < 5; ++j)
+        {
+          host_points.push_back({(start_x + i) * h, (start_y + j) * h});
+          host_values.push_back(f((start_x + i) * h, (start_y + j) * h));
+        }
+    }
 
-  ARBORX_MDVIEW_TEST_TOL(interpolated_values, target_values, 2e-7);
+    Kokkos::View<Point *, MemorySpace> source_coords("source_coords",
+                                                     host_points.size());
+    Kokkos::View<double *, MemorySpace> source_values("source_values",
+                                                      host_points.size());
+    Kokkos::deep_copy(
+        source_coords,
+        Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+            host_points.data(), host_points.size()));
+    Kokkos::deep_copy(
+        source_values,
+        Kokkos::View<double *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+            host_values.data(), host_values.size()));
+
+    ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
+        space, source_coords, target_coords);
+    Kokkos::View<double *, MemorySpace> interpolated_values(
+        "interpolated_values", num_targets);
+    mls.interpolate(space, source_values, interpolated_values);
+
+    ARBORX_MDVIEW_TEST_TOL(interpolated_values, target_values,
+                           expected_errors[num_refinements - 9]);
+  }
 }
