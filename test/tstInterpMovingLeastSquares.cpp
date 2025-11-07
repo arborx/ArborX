@@ -236,17 +236,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
     int n = (1 << num_refinements) + 1;
     double h = 2. / (n - 1);
 
-    // Consider 25 points around each target point which is more than enough to
-    // find the 6 nearest neighbors needed for the 2nd-order polynomial basis
-    // used here.
+    // We construct 25 points around each target point to avoid constructing a
+    // full mesh grid. 25 points is sufficient to find the 6 nearest neighbors
+    // needed for the 2nd-order polynomial basis.
     Kokkos::View<Point *, MemorySpace> source_coords("source_coords",
                                                      25 * num_targets);
     Kokkos::View<double *, MemorySpace> source_values("source_values",
                                                       25 * num_targets);
-
-    // Consider 25 points around each target point which is more than enough to
-    // find the 6 nearest neighbors needed for the 2nd-order polynomial basis
-    // used here.
     Kokkos::parallel_for(
         Kokkos::RangePolicy(space, 0, num_targets),
         KOKKOS_LAMBDA(int target_index) {
