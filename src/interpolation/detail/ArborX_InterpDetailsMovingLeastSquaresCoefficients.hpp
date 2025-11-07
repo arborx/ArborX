@@ -94,11 +94,16 @@ public:
     // - PHI is the diagonal weight matrix / CRBF evaluated at each source
     // point.
 
-    // We first change the origin of the evaluation to be at the target point.
-    // This lets us use p(0) which is [1 0 ... 0].
-    sourceRecentering(target_point, source_points);
+    // We first change the origin of the evaluation to be at the target point
+    // within about unit distance which is equivalent to recentering and scaling
+    // the monomial basis. This lets us use p(0) which is [1 0 ... 0] and leads
+    // to a more stable algorithm, see, e.g., (3.8) in
+    // Mirzaei, Davoud. "Analysis of moving least squares approximation
+    // revisited." Journal of Computational and Applied Mathematics 282 (2015):
+    // 237-250.
+    sourceNormalization(target_point, source_points);
 
-    // This computes PHI given the source points (radius is computed inside)
+    // This computes PHI given the source points.
     phiComputation(source_points, phi);
 
     // This builds the Vandermonde (P) matrix
@@ -146,32 +151,34 @@ private:
     return val;
   }
 
-  // Recenters the source points so that the target is at the origin
-  KOKKOS_FUNCTION void sourceRecentering(TargetPoint const &target_point,
-                                         LocalSourcePoints &source_points) const
+  // Recenters the source points so that the target is at the origin within
+  // about unit distance
+  KOKKOS_FUNCTION void
+  sourceNormalization(TargetPoint const &target_point,
+                      LocalSourcePoints &source_points) const
   {
+    CoefficientsType radius = Kokkos::Experimental::epsilon_v<CoefficientsType>;
+    for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
+    {
+      CoefficientsType const norm =
+          ArborX::Details::distance(source_points(neighbor), target_point);
+      radius = Kokkos::max(radius, norm);
+    }
+    // The one at the limit would be 0 due to how CRBFs work
+    radius *= CoefficientsType(1.1);
+
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
       for (int k = 0; k < dimension; k++)
-        source_points(neighbor)[k] -= target_point[k];
+        source_points(neighbor)[k] =
+            (source_points(neighbor)[k] - target_point[k]) / radius;
   }
 
   // Computes the weight matrix
   KOKKOS_FUNCTION void phiComputation(LocalSourcePoints const &source_points,
                                       LocalPhi &phi) const
   {
-    CoefficientsType radius = Kokkos::Experimental::epsilon_v<CoefficientsType>;
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
-    {
-      CoefficientsType const norm =
-          ArborX::Details::distance(source_points(neighbor), SourcePoint{});
-      radius = Kokkos::max(radius, norm);
-    }
-
-    // The one at the limit would be 0 due to how CRBFs work
-    radius *= CoefficientsType(1.1);
-
-    for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
-      phi(neighbor) = CRBF::evaluate<CRBFunc>(source_points(neighbor), radius);
+      phi(neighbor) = CRBF::evaluate<CRBFunc>(source_points(neighbor));
   }
 
   // Computes the vandermonde matrix

@@ -18,6 +18,8 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
+#include <iomanip>
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
@@ -186,17 +188,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
                               DeviceType, ARBORX_DEVICE_TYPES)
 {
-  // Test interpolation on a cartesian-type grid where using the minimal number
-  // of neighbors (6 for quadratic polynomials in 2d) wasn't sufficient for an
-  // exact interpolation for a function contained in the ansatz space.
+  // Test interpolation on a cartesian-type grid and check convergence behavior
+  // under mesh refinement.
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
   ExecutionSpace space{};
 
   using Point = ArborX::Point<2, double>;
 
-  auto f = [](double x, double y) {
-    return Kokkos::sin(4 * x) + Kokkos::sin(2 * y);
+  auto f = KOKKOS_LAMBDA(Point p)
+  {
+    return Kokkos::sin(4 * p[0]) + Kokkos::sin(2 * p[1]);
   };
 
   constexpr int num_targets = 4;
@@ -211,34 +213,62 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
         target_coords(2) = {.788675, .211325};
         target_coords(3) = {.211325, .211325};
         for (int i = 0; i < num_targets; ++i)
-          target_values(i) = f(target_coords(i)[0], target_coords(i)[1]);
+          target_values(i) = f(target_coords(i));
       });
 
-  constexpr int num_refinements = 9;
-  constexpr int n = (1 << num_refinements) + 1;
-  constexpr double h = 2. / (n - 1);
-  constexpr int num_sources = n * n;
+  std::vector<double> expected_errors({
+      2.e-7,
+      5.e-8,
+      1.e-8,
+      7.e-10,
+      2.e-10,
+      1.e-11,
+      3.e-12,
+      3.e-13,
+      4.e-14,
+      5.e-15,
+  });
 
-  std::cout << "h = " << h << std::endl;
+  for (int num_refinements = 9; num_refinements < 19; ++num_refinements)
+  {
+    int n = (1 << num_refinements) + 1;
+    double h = 2. / (n - 1);
 
-  Kokkos::View<Point *, MemorySpace> source_coords("source_coords",
-                                                   num_sources);
-  Kokkos::View<double *, MemorySpace> source_values("source_values",
-                                                    num_sources);
-  Kokkos::parallel_for(
-      Kokkos::MDRangePolicy(space, {0, 0}, {n, n}),
-      KOKKOS_LAMBDA(int const i, int const j) {
-        int index = i * n + j;
-        source_coords(index) = {-1 + i * h, -1 + j * h};
-        source_values(index) =
-            f(source_coords(index)[0], source_coords(index)[1]);
-      });
+    // We construct 25 points around each target point to avoid constructing a
+    // full mesh grid. 25 points is sufficient to find the 6 nearest neighbors
+    // needed for the 2nd-order polynomial basis.
+    int const n_points_per_target_1d = 5;
+    int const n_points_per_target =
+        n_points_per_target_1d * n_points_per_target_1d;
+    Kokkos::View<Point *, MemorySpace> source_coords(
+        "source_coords", n_points_per_target * num_targets);
+    Kokkos::View<double *, MemorySpace> source_values(
+        "source_values", n_points_per_target * num_targets);
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy(space, 0, num_targets),
+        KOKKOS_LAMBDA(int target_index) {
+          int const start_x = target_coords(target_index)[0] / h;
+          int const start_y = target_coords(target_index)[1] / h;
+          for (int i = -2; i <= 2; ++i)
+            for (int j = -2; j <= 2; ++j)
+            {
+              int const linear_index = target_index * n_points_per_target +
+                                       (i + 2) * n_points_per_target_1d +
+                                       (j + 2);
+              source_coords(linear_index) = {(start_x + i) * h,
+                                             (start_y + j) * h};
+              source_values(linear_index) = f(source_coords(linear_index));
+            }
+        });
 
-  ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
-      space, source_coords, target_coords);
-  Kokkos::View<double *, MemorySpace> interpolated_values("interpolated_values",
-                                                          num_targets);
-  mls.interpolate(space, source_values, interpolated_values);
+    ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
+        space, source_coords, target_coords);
+    Kokkos::View<double *, MemorySpace> interpolated_values(
+        "interpolated_values", num_targets);
+    mls.interpolate(space, source_values, interpolated_values);
 
-  ARBORX_MDVIEW_TEST_TOL(interpolated_values, target_values, 2e-7);
+    std::cout << "num_refinements: " << num_refinements << '\n';
+    ARBORX_MDVIEW_TEST_TOL(interpolated_values, target_values,
+                           expected_errors[num_refinements - 9]);
+  }
 }
