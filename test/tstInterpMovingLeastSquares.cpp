@@ -195,7 +195,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
 
   using Point = ArborX::Point<2, double>;
 
-  auto f = [](double x, double y) {
+  auto f = KOKKOS_LAMBDA(double x, double y)
+  {
     return Kokkos::sin(4 * x) + Kokkos::sin(2 * y);
   };
 
@@ -214,7 +215,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
           target_values(i) = f(target_coords(i)[0], target_coords(i)[1]);
       });
 
-  constexpr int num_refinements = 9;
+  constexpr int num_refinements = 11;
   constexpr int n = (1 << num_refinements) + 1;
   constexpr double h = 2. / (n - 1);
   constexpr int num_sources = n * n;
