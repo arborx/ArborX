@@ -197,9 +197,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
 
   using Point = ArborX::Point<2, double>;
 
-  auto f = KOKKOS_LAMBDA(double x, double y)
+  auto f = KOKKOS_LAMBDA(Point p)
   {
-    return Kokkos::sin(4 * x) + Kokkos::sin(2 * y);
+    return Kokkos::sin(4 * p[0]) + Kokkos::sin(2 * p[1]);
   };
 
   constexpr int num_targets = 4;
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
         target_coords(2) = {.788675, .211325};
         target_coords(3) = {.211325, .211325};
         for (int i = 0; i < num_targets; ++i)
-          target_values(i) = f(target_coords(i)[0], target_coords(i)[1]);
+          target_values(i) = f(target_coords(i));
       });
   auto host_target_coords = Kokkos::create_mirror_view(target_coords);
 
@@ -236,37 +236,31 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
     int n = (1 << num_refinements) + 1;
     double h = 2. / (n - 1);
 
-    std::vector<Point> host_points;
-    std::vector<double> host_values;
+    // Consider 25 points around each target point which is more than enough to
+    // find the 6 nearest neighbors needed for the 2nd-order polynomial basis
+    // used here.
+    Kokkos::View<Point *, MemorySpace> source_coords("source_coords",
+                                                     25 * num_targets);
+    Kokkos::View<double *, MemorySpace> source_values("source_values",
+                                                      25 * num_targets);
 
     // Consider 25 points around each target point which is more than enough to
     // find the 6 nearest neighbors needed for the 2nd-order polynomial basis
     // used here.
-    for (unsigned int target_index = 0; target_index < target_coords.size();
-         ++target_index)
-    {
-      int const start_x = host_target_coords[target_index][0] / h - 2;
-      int const start_y = host_target_coords[target_index][1] / h - 2;
-      for (int i = 0; i < 5; ++i)
-        for (int j = 0; j < 5; ++j)
-        {
-          host_points.push_back({(start_x + i) * h, (start_y + j) * h});
-          host_values.push_back(f((start_x + i) * h, (start_y + j) * h));
-        }
-    }
-
-    Kokkos::View<Point *, MemorySpace> source_coords("source_coords",
-                                                     host_points.size());
-    Kokkos::View<double *, MemorySpace> source_values("source_values",
-                                                      host_points.size());
-    Kokkos::deep_copy(
-        source_coords,
-        Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-            host_points.data(), host_points.size()));
-    Kokkos::deep_copy(
-        source_values,
-        Kokkos::View<double *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-            host_values.data(), host_values.size()));
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy(space, 0, num_targets),
+        KOKKOS_LAMBDA(int target_index) {
+          int const start_x = host_target_coords[target_index][0] / h - 2;
+          int const start_y = host_target_coords[target_index][1] / h - 2;
+          for (int i = 0; i < 5; ++i)
+            for (int j = 0; j < 5; ++j)
+            {
+              source_coords(target_index * 25 + i * 5 +
+                            j) = {(start_x + i) * h, (start_y + j) * h};
+              source_values(target_index * 25 + i * 5 + j) =
+                  f(source_coords(target_index * 25 + i * 5 + j));
+            }
+        });
 
     ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
         space, source_coords, target_coords);
