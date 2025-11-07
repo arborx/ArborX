@@ -197,7 +197,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
 
   using Point = ArborX::Point<2, double>;
 
-  auto f = [](double x, double y) {
+  auto f = KOKKOS_LAMBDA(double x, double y)
+  {
     return Kokkos::sin(4 * x) + Kokkos::sin(2 * y);
   };
 
