@@ -270,6 +270,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
         "interpolated_values", num_targets);
     mls.interpolate(space, source_values, interpolated_values);
 
+    std::cout << "num_refinements: " << num_refinements << '\n';
     ARBORX_MDVIEW_TEST_TOL(interpolated_values, target_values,
                            expected_errors[num_refinements - 9]);
   }
