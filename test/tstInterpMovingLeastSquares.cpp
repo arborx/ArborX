@@ -253,13 +253,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
           for (int i = -2; i <= 2; ++i)
             for (int j = -2; j <= 2; ++j)
             {
-              source_coords(target_index * n_points_per_target +
-                            (i + 2) * n_points_per_target_1d + j +
-                            2) = {(start_x + i) * h, (start_y + j) * h};
-              source_values(target_index * n_points_per_target +
-                            (i + 2) * n_points_per_target_1d + (j + 2)) =
-                  f(source_coords(target_index * n_points_per_target +
-                                  (i + 2) * n_points_per_target_1d + (j + 2)));
+              int const linear_index = target_index * n_points_per_target +
+                                       (i + 2) * n_points_per_target_1d +
+                                       (j + 2);
+              source_coords(linear_index) = {(start_x + i) * h,
+                                             (start_y + j) * h};
+              source_values(linear_index) = f(source_coords(linear_index));
             }
         });
 
