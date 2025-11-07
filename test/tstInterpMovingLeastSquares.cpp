@@ -188,9 +188,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
                               DeviceType, ARBORX_DEVICE_TYPES)
 {
-  // Test interpolation on a cartesian-type grid where using the minimal number
-  // of neighbors (6 for quadratic polynomials in 2d) wasn't sufficient for an
-  // exact interpolation for a function contained in the ansatz space.
+  // Test interpolation on a cartesian-type grid and check convergence behavior
+  // under mesh refinement.
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
   ExecutionSpace space{};
