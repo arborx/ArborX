@@ -193,6 +193,22 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
     VERIFY_DBSCAN(points, r, 2);
     VERIFY_DBSCAN(points, r, 3);
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+    // Test deprecated DBSCAN interface
+    BOOST_TEST(
+        verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
+                     dbscan(space, points, r - (Coordinate)0.1, 2, params)));
+    BOOST_TEST(
+        verifyDBSCAN(space, points, r, 2, dbscan(space, points, r, 2, params)));
+    BOOST_TEST(
+        verifyDBSCAN(space, points, r, 3, dbscan(space, points, r, 3, params)));
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
     // Test non-View primitives
     HiddenView<decltype(points)> hidden_points{points};
     VERIFY_DBSCAN(hidden_points, r - (Coordinate)0.1, 2);

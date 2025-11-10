@@ -206,10 +206,10 @@ struct Parameters
 
 template <typename ExecutionSpace, typename Primitives, typename Coordinate,
           typename Labels>
-std::enable_if_t<!std::is_same_v<Labels, DBSCAN::Parameters>>
-dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
-       Coordinate eps, int core_min_size, Labels &labels,
-       DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
+  requires(!std::same_as<Labels, DBSCAN::Parameters>)
+void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
+            Coordinate eps, int core_min_size, Labels &labels,
+            DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
 
