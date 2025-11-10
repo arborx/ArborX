@@ -224,12 +224,13 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
+  using Labels = Kokkos::View<int *, MemorySpace>;
 #ifdef KOKKOS_ENABLE_SERIAL
   using UnionFind = Details::UnionFind<
-      MemorySpace,
+      Labels,
       /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
 #else
-  using UnionFind = Details::UnionFind<MemorySpace>;
+  using UnionFind = Details::UnionFind<Labels>;
 #endif
 
   using Point = typename Points::value_type;
@@ -251,7 +252,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::View<int *, MemorySpace> num_neigh("ArborX::DBSCAN::num_neighbors",
                                              0);
 
-  Kokkos::View<int *, MemorySpace> labels("ArborX::DBSCAN::labels", 0);
+  Labels labels("ArborX::DBSCAN::labels", 0);
 
   if (parameters._implementation == DBSCAN::Implementation::FDBSCAN)
   {

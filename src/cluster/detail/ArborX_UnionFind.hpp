@@ -70,14 +70,16 @@
 namespace ArborX::Details
 {
 
-template <typename MemorySpace, bool DoSerial = false>
+template <typename Labels, bool DoSerial = false>
 struct UnionFind
 {
-  using memory_space = MemorySpace;
+  using memory_space = typename Labels::memory_space;
+  using index_type = typename Labels::value_type;
+  static_assert(std::is_integral_v<index_type>);
 
-  Kokkos::View<int *, MemorySpace> _labels;
+  Labels _labels;
 
-  UnionFind(Kokkos::View<int *, MemorySpace> labels)
+  UnionFind(Labels labels)
       : _labels(labels)
   {}
 
@@ -111,11 +113,11 @@ struct UnionFind
   int representative(int const i) const
   {
     // ##### ECL license (see LICENSE.ECL) #####
-    int curr = _labels(i);
+    auto curr = _labels(i);
     if (curr != i)
     {
-      int next;
-      int prev = i;
+      index_type next;
+      auto prev = i;
       while (curr > (next = _labels(curr)))
       {
         _labels(prev) = next;
@@ -151,8 +153,8 @@ struct UnionFind
     // until there is no data race on the parent.
     // ```
 
-    int vstat = representative(i);
-    int ostat = representative(j);
+    auto vstat = representative(i);
+    auto ostat = representative(j);
 
     if constexpr (DoSerial)
     {
