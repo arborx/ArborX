@@ -73,6 +73,7 @@ add_test(NAME ArborX_Test_KokkosExt COMMAND ArborX_Test_KokkosExt.exe)
 add_executable(ArborX_Test_Geometry.exe
   tstGeometryBarycentricCoordinates.cpp
   tstGeometryCentroid.cpp
+  tstGeometryClosestPoint.cpp
   tstGeometryDistance.cpp
   tstGeometryExpand.cpp
   tstGeometryIntersects.cpp
