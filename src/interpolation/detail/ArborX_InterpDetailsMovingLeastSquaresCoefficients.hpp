@@ -115,10 +115,29 @@ public:
 
     // We need the inverse of P^T.PHI.P, and because it is symmetric, we can use
     // the symmetric SVD algorithm to get it.
-    ::ArborX::Details::symmetricSVDKernel(moment, svd_diag,
+    ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
+
+    // Check if matrix is singular
+    CoefficientsType max_eigen = 0;
+    int const n = moment.extent(0);
+    for (int i = 0; i < n; i++)
+      max_eigen = Kokkos::max(Kokkos::abs(svd_diag(i)), max_eigen);
+    CoefficientsType min_eigen = max_eigen;
+    for (int i = 0; i < n; i++)
+      min_eigen = Kokkos::min(Kokkos::abs(svd_diag(i)), min_eigen);
+    constexpr auto epsilon = Kokkos::Experimental::epsilon_v<CoefficientsType>;
+    auto const tolerance = 10000 * n * max_eigen * epsilon;
+    if (min_eigen < tolerance)
+    {
+      ::ArborX::Details::getMatrixFromSVD(moment, svd_diag, svd_unit);
+      // penalize higher-order polynomials
+      for (int i = dimension + 1; i < poly_size; i++)
+        moment(i, i) += tolerance;
+      ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
+    }
+
+    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag,
                                                        svd_unit);
-    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag, svd_unit);
-    // Now, the moment has [P^T.PHI.P]^-1
 
     // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI
     coefficientsComputation(phi, vandermonde, moment, coefficients);

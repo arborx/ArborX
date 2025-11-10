@@ -242,6 +242,19 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &A, Diagonal &D,
     }
 }
 
+template <typename Matrix, typename Diagonal, typename Unitary>
+KOKKOS_FUNCTION void getMatrixFromSVD(Matrix &A, Diagonal &D, Unitary &U)
+{
+  int const n = A.extent(0);
+  for (int i = 0; i < n; i++)
+    for (int j = 0; j < n; j++)
+    {
+      A(i, j) = 0;
+      for (int k = 0; k < n; k++)
+        A(i, j) += U(i, k) * D(k) * U(j, k);
+    }
+}
+
 } // namespace ArborX::Details
 
 #endif
