@@ -70,14 +70,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(union_find, DeviceType, ARBORX_DEVICE_TYPES)
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
 
-#ifdef KOKKOS_ENABLE_SERIAL
-  using UnionFind = ArborX::Details::UnionFind<
-      MemorySpace,
-      /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
-#else
-  using UnionFind = ArborX::Details::UnionFind<MemorySpace>;
-#endif
-
   ExecutionSpace space;
 
   constexpr int n = 5;
@@ -86,6 +78,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(union_find, DeviceType, ARBORX_DEVICE_TYPES)
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "Test::labels"),
       n);
   ArborX::Details::KokkosExt::iota(space, labels);
+
+  using Labels = decltype(labels);
+#ifdef KOKKOS_ENABLE_SERIAL
+  using UnionFind = ArborX::Details::UnionFind<
+      Labels,
+      /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
+#else
+  using UnionFind = ArborX::Details::UnionFind<Labels>;
+#endif
+
   UnionFind union_find(labels);
 
   ARBORX_TEST_UNION_FIND_REPRESENTATIVES(space, union_find,

@@ -44,7 +44,7 @@ void dendrogramUnionFindHost(Edges sorted_edges_host, Parents &parents_host)
                          "ArborX::Dendrogram::dendrogram_union_find::labels"),
       num_vertices);
   KokkosExt::iota(host_space, labels);
-  UnionFind<Kokkos::HostSpace, true> union_find(labels);
+  UnionFind<decltype(labels), true> union_find(labels);
 
   Kokkos::View<int *, Kokkos::HostSpace> set_edges_host(
       Kokkos::view_alloc(host_space, Kokkos::WithoutInitializing,
