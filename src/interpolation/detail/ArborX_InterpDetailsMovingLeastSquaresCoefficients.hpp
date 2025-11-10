@@ -115,8 +115,9 @@ public:
 
     // We need the inverse of P^T.PHI.P, and because it is symmetric, we can use
     // the symmetric SVD algorithm to get it.
-    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag,
+    ::ArborX::Details::symmetricSVDKernel(moment, svd_diag,
                                                        svd_unit);
+    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag, svd_unit);
     // Now, the moment has [P^T.PHI.P]^-1
 
     // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI

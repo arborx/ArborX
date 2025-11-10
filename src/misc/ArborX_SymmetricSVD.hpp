@@ -215,8 +215,6 @@ template <typename Matrix, typename Diagonal, typename Unitary>
 KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &A, Diagonal &D,
                                                      Unitary &U)
 {
-  symmetricSVDKernel(A, D, U);
-
   int const n = A.extent(0);
 
   using Value = typename Matrix::non_const_value_type;
