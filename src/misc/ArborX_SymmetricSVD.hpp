@@ -48,6 +48,24 @@ KOKKOS_INLINE_FUNCTION void ensureIsSquareSymmetricMatrix(Matrix const &A)
   KOKKOS_ASSERT(is_symmetric());
 }
 
+template <typename Matrix, typename Diagonal, typename Unitary>
+KOKKOS_FUNCTION void symmetricMatrixFromSVD(Diagonal const &D, Unitary const &U,
+                                            Matrix &A)
+{
+  using Value = typename Matrix::non_const_value_type;
+  int const n = A.extent(0);
+  for (int i = 0; i < n; i++)
+    for (int j = i; j < n; j++)
+    {
+      Value tmp = 0;
+      for (int k = 0; k < n; k++)
+        tmp += U(i, k) * D(k) * U(j, k);
+      A(i, j) = tmp;
+      if (i != j)
+        A(j, i) = tmp;
+    }
+}
+
 // Gets the argmax from the upper triangle part of a matrix
 template <typename Matrix>
 KOKKOS_FUNCTION auto argmaxUpperTriangle(Matrix const &A)
@@ -233,27 +251,7 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &A, Diagonal &D,
     D(i) = (Kokkos::abs(D(i)) <= tolerance) ? 0 : 1 / D(i);
 
   // Then we fill out 'A' as the pseudo inverse
-  for (int i = 0; i < n; i++)
-    for (int j = 0; j < n; j++)
-    {
-      A(i, j) = 0;
-      for (int k = 0; k < n; k++)
-        A(i, j) += U(i, k) * D(k) * U(j, k);
-    }
-}
-
-template <typename Matrix, typename Diagonal, typename Unitary>
-KOKKOS_FUNCTION void symmetricMatrixFromSVD(Diagonal const &D, Unitary const &U,
-                                            Matrix &A)
-{
-  int const n = A.extent(0);
-  for (int i = 0; i < n; i++)
-    for (int j = 0; j < n; j++)
-    {
-      A(i, j) = 0;
-      for (int k = 0; k < n; k++)
-        A(i, j) += U(i, k) * D(k) * U(j, k);
-    }
+  symmetricMatrixFromSVD(D, U, A);
 }
 
 } // namespace ArborX::Details
