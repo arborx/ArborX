@@ -243,7 +243,8 @@ KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &A, Diagonal &D,
 }
 
 template <typename Matrix, typename Diagonal, typename Unitary>
-KOKKOS_FUNCTION void getMatrixFromSVD(Matrix &A, Diagonal &D, Unitary &U)
+KOKKOS_FUNCTION void symmetricMatrixFromSVD(Diagonal const &D, Unitary const &U,
+                                            Matrix &A)
 {
   int const n = A.extent(0);
   for (int i = 0; i < n; i++)

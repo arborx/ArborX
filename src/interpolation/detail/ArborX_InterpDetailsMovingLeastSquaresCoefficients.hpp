@@ -129,7 +129,7 @@ public:
     auto const tolerance = 10000 * n * max_eigen * epsilon;
     if (min_eigen < tolerance)
     {
-      ::ArborX::Details::getMatrixFromSVD(moment, svd_diag, svd_unit);
+      ::ArborX::Details::symmetricMatrixFromSVD(svd_diag, svd_unit, moment);
       // penalize higher-order polynomials
       for (int i = dimension + 1; i < poly_size; i++)
         moment(i, i) += tolerance;
