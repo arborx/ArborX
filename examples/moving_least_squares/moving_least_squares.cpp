@@ -20,7 +20,8 @@ using Point = ArborX::Point<2, double>;
 
 KOKKOS_FUNCTION double functionToApproximate(Point const &p)
 {
-  return Kokkos::cos(p[0] + p[1] / 4);
+  (void)p;
+  return 10; // Kokkos::cos(p[0] + p[1] / 4);
 }
 
 int main(int argc, char *argv[])
@@ -59,12 +60,12 @@ int main(int argc, char *argv[])
         src_points(0) = {0., 0.};
         src_points(1) = {1., 0.};
         src_points(2) = {2., 0.};
-        src_points(3) = {0., 1.};
-        src_points(4) = {1., 1.};
-        src_points(5) = {2., 1.};
-        src_points(6) = {0., 2.};
-        src_points(7) = {1., 2.};
-        src_points(8) = {2., 2.};
+        src_points(3) = {0., 0.};
+        src_points(4) = {1., 0.};
+        src_points(5) = {2., 0.};
+        src_points(6) = {0., 0.};
+        src_points(7) = {1., 0.};
+        src_points(8) = {2., 0.};
         tgt_points(0) = {4. / 6., 4. / 3.};
         tgt_points(1) = {9. / 6., 3. / 3.};
         tgt_points(2) = {2. / 6., 1. / 3.};
@@ -86,8 +87,15 @@ int main(int argc, char *argv[])
       });
 
   // Build the moving least squares coefficients
-  ArborX::Interpolation::MovingLeastSquares<MemorySpace> mls(space, src_points,
-                                                             tgt_points);
+#if 1
+  ArborX::Interpolation::MovingLeastSquares<MemorySpace> mls(
+      space, src_points, tgt_points, ArborX::Interpolation::CRBF::Wendland<0>{},
+      ArborX::Interpolation::PolynomialDegree<2>{});
+#else
+  ArborX::Interpolation::MovingLeastSquares<MemorySpace> mls(
+      space, src_points, tgt_points, ArborX::Interpolation::CRBF::Wendland<0>{},
+      ArborX::Interpolation::PolynomialDegree<1>{}, 6);
+#endif
 
   // Interpolate
   mls.interpolate(space, src_values, app_values);

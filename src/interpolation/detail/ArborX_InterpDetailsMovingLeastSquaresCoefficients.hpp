@@ -126,14 +126,41 @@ public:
     for (int i = 0; i < n; i++)
       min_eigen = Kokkos::min(Kokkos::abs(svd_diag(i)), min_eigen);
     constexpr auto epsilon = Kokkos::Experimental::epsilon_v<CoefficientsType>;
-    auto const tolerance = 10000 * n * max_eigen * epsilon;
-    if (min_eigen < tolerance)
+    auto tolerance = n * max_eigen * epsilon;
+    while (min_eigen < tolerance)
     {
       ::ArborX::Details::symmetricMatrixFromSVD(svd_diag, svd_unit, moment);
-      // penalize higher-order polynomials as diagonal matrix H
-      for (int i = dimension + 1; i < poly_size; i++)
-        moment(i, i) += tolerance;
+      // Find maximum index belonging to a zero eigenvalue
+      int max_index = 0;
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_diag(i)) < tolerance)
+          for (int j = n - 1; j >= 0; --j)
+            if (Kokkos::abs(svd_unit(i, j)) > tolerance)
+            {
+              max_index = Kokkos::max(j, max_index);
+              break;
+            }
+      // Eliminate corresponding column from Vandermonde matrix and eliminate
+      // row and column from moment matrix storing 1 one the diagonal
+      for (int j = 0; j < n; ++j)
+        moment(max_index, j) = moment(j, max_index) = 0.;
+      for (int j = 0; j < vandermonde.extent_int(0); ++j)
+        vandermonde(j, max_index) = 0;
+      moment(max_index, max_index) = 1.;
+      // Compute a SVD for the new matrix and prepare for next round if still
+      // singular
       ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
+      max_eigen = 0;
+      for (int i = 0; i < n; i++)
+        max_eigen = Kokkos::max(Kokkos::abs(svd_diag(i)), max_eigen);
+      min_eigen = max_eigen;
+      for (int i = 0; i < n; i++)
+      {
+        min_eigen = Kokkos::min(Kokkos::abs(svd_diag(i)), min_eigen);
+      }
+      constexpr auto epsilon =
+          Kokkos::Experimental::epsilon_v<CoefficientsType>;
+      tolerance = n * max_eigen * epsilon;
     }
 
     // Store [P^T.PHI.P + H]^-1 in moment
