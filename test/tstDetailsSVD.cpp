@@ -62,7 +62,7 @@ void makeCase(ExecutionSpace const &exec, Value const (&src_arr)[M][N][N],
         "Testing::run_inverse", Kokkos::RangePolicy(exec, 0, 1),
         KOKKOS_LAMBDA(int) {
           ArborX::Details::symmetricSVDKernel(inv, diag, unit);
-          ArborX::Details::symmetricPseudoInverseSVDKernel(inv, diag, unit);
+          ArborX::Details::symmetricPseudoInverseSVDKernel(diag, unit, inv);
         });
     ARBORX_MDVIEW_TEST_TOL(ref, inv, Kokkos::Experimental::epsilon_v<float>);
   }

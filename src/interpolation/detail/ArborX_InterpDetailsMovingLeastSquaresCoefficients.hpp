@@ -136,8 +136,8 @@ public:
       ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
     }
 
-    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag,
-                                                       svd_unit);
+    ::ArborX::Details::symmetricPseudoInverseSVDKernel(svd_diag, svd_unit,
+                                                       moment);
 
     // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI
     coefficientsComputation(phi, vandermonde, moment, coefficients);

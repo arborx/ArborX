@@ -230,8 +230,8 @@ KOKKOS_FUNCTION void symmetricSVDKernel(Matrix &A, Diagonal &D, Unitary &U)
 // D <=> final ES
 // U <=> U
 template <typename Matrix, typename Diagonal, typename Unitary>
-KOKKOS_FUNCTION void symmetricPseudoInverseSVDKernel(Matrix &A, Diagonal &D,
-                                                     Unitary &U)
+KOKKOS_FUNCTION void
+symmetricPseudoInverseSVDKernel(Diagonal const &D, Unitary const &U, Matrix &A)
 {
   int const n = A.extent(0);
 
