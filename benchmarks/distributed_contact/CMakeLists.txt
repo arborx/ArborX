@@ -5,5 +5,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${mesh_file} ${CMAKE_CURRENT_BINARY_D
 
 add_executable(ArborX_Benchmark_DistributedContact.exe distributed_contact.cpp)
 target_link_libraries(ArborX_Benchmark_DistributedContact.exe ArborX::ArborX)
+if(ARBORX_ENABLE_CALIPER)
+  target_link_libraries(ArborX_Benchmark_DistributedContact.exe caliper)
+endif()
 target_include_directories(ArborX_Benchmark_DistributedContact.exe PRIVATE ${ARBORX_BENCHMARK_UTILS_INCLUDE_DIR})
 add_test(NAME ArborX_Benchmark_DistributedContact COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:ArborX_Benchmark_DistributedContact.exe> ${MPIEXEC_POSTFLAGS})
