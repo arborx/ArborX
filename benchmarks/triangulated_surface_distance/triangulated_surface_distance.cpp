@@ -15,12 +15,15 @@
 #include <ArborX_Version.hpp>
 
 #include <Kokkos_Profiling_ScopedRegion.hpp>
+#include <Kokkos_Timer.hpp>
 
 #include <boost/program_options.hpp>
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "generator.hpp"
 
@@ -107,6 +110,18 @@ void writeVtk(std::string const &filename, Points const &vertices,
   }
 }
 
+template <typename T>
+std::string vec2string(std::vector<T> const &s, std::string const &delim = ", ")
+{
+  assert(s.size() > 1);
+
+  std::ostringstream ss;
+  std::copy(s.begin(), s.end(),
+            std::ostream_iterator<std::string>{ss, delim.c_str()});
+  auto delimited_items = ss.str().erase(ss.str().length() - delim.size());
+  return "(" + delimited_items + ")";
+}
+
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -121,17 +136,21 @@ int main(int argc, char *argv[])
 
   namespace bpo = boost::program_options;
 
+  std::vector<std::string> allowed_geometries = {"ball", "plane"};
+
   bpo::options_description desc("Allowed options");
   int n;
-  int num_refinements;
-  float radius;
   std::string vtk_filename;
+  GeometryParams params;
+  float angle;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
-      ( "n", bpo::value<int>(&n)->default_value(1000), "number of points" )
-      ( "radius", bpo::value<float>(&radius)->default_value(1.f), "sphere radius" )
-      ( "refinements", bpo::value<int>(&num_refinements)->default_value(5), "number of icosahedron refinements" )
+      ( "angle", bpo::value<float>(&angle)->default_value(0), "Angle (degrees)" )
+      ( "geometry", bpo::value<std::string>(&params.type)->default_value("ball"), ("geometry " + vec2string(allowed_geometries, " | ")).c_str() )
+      ( "n", bpo::value<int>(&n)->default_value(-1), "number of query points" )
+      ( "radius", bpo::value<float>(&params.radius)->default_value(1.f), "sphere radius" )
+      ( "refinements", bpo::value<int>(&params.num_refinements)->default_value(5), "number of icosahedron refinements" )
       ( "vtk-filename", bpo::value<std::string>(&vtk_filename), "filename to dump mesh to in VTK format" )
       ;
   // clang-format on
@@ -145,13 +164,24 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  auto found = [](auto const &v, auto x) {
+    return std::find(v.begin(), v.end(), x) != v.end();
+  };
+  if (!found(allowed_geometries, params.type))
+  {
+    std::cerr << "Geometry must be one of " << vec2string(allowed_geometries)
+              << "\n";
+    return 2;
+  }
+
   ExecutionSpace space;
 
-  auto [vertices, triangles] =
-      buildTriangles<MemorySpace>(space, radius, num_refinements);
+  Kokkos::Profiling::pushRegion("Benchmark::build_points");
+  auto [vertices, triangles] = buildTriangles<MemorySpace>(space, params);
+  Kokkos::Profiling::popRegion();
 
-  if (!vtk_filename.empty())
-    writeVtk(vtk_filename, vertices, triangles);
+  if (n == -1)
+    n = vertices.size();
 
   Kokkos::Profiling::pushRegion("Benchmark::build_points");
   Kokkos::View<Point *, MemorySpace> random_points(
@@ -163,16 +193,40 @@ int main(int argc, char *argv[])
       random_points);
   Kokkos::Profiling::popRegion();
 
+  std::cout << "geometry          : " << params.type << '\n';
+  std::cout << "angle             : " << angle << '\n';
   std::cout << "#triangles        : " << triangles.size() << '\n';
   std::cout << "#queries          : " << random_points.size() << '\n';
 
+  if (angle != 0)
+  {
+    rotateVertices(space, vertices, angle);
+    rotateVertices(space, random_points, angle);
+  }
+
+  if (!vtk_filename.empty())
+    writeVtk(vtk_filename, vertices, triangles);
+
+  Kokkos::Timer timer;
+
+  Kokkos::fence();
   ArborX::BoundingVolumeHierarchy index(
       space, Triangles<MemorySpace>{vertices, triangles});
+  Kokkos::fence();
+  auto construction_time = timer.seconds();
 
+  Kokkos::fence();
+  timer.reset();
   Kokkos::View<int *, MemorySpace> offset("Benchmark::offsets", 0);
   Kokkos::View<float *, MemorySpace> distances("Benchmark::distances", 0);
   index.query(space, ArborX::Experimental::make_nearest(random_points, 1),
               DistanceCallback{}, distances, offset);
+  Kokkos::fence();
+  auto query_time = timer.seconds();
+
+  printf("-- construction   : %5.3f\n", construction_time);
+  printf("-- query          : %5.3f\n", query_time);
+  printf("-- rate           : %5.3f\n", n / (1'000'000 * query_time));
 
   return 0;
 }
