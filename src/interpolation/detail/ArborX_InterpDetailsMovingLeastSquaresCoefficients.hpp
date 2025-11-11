@@ -130,12 +130,13 @@ public:
     if (min_eigen < tolerance)
     {
       ::ArborX::Details::symmetricMatrixFromSVD(svd_diag, svd_unit, moment);
-      // penalize higher-order polynomials
+      // penalize higher-order polynomials as diagonal matrix H
       for (int i = dimension + 1; i < poly_size; i++)
         moment(i, i) += tolerance;
       ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
     }
 
+    // Store [P^T.PHI.P + H]^-1 in moment
     ::ArborX::Details::symmetricPseudoInverseSVDKernel(svd_diag, svd_unit,
                                                        moment);
 
