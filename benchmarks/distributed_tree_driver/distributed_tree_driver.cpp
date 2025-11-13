@@ -313,7 +313,8 @@ int main(int argc, char *argv[])
       --argc;
     }
   }
-  Kokkos::initialize(argc, argv);
+
+  Kokkos::ScopeGuard guard(argc, argv);
 
   bool success = true;
 
@@ -419,8 +420,6 @@ int main(int argc, char *argv[])
               << " caught some kind of exception\n";
     success = false;
   }
-
-  Kokkos::finalize();
 
   MPI_Finalize();
 
