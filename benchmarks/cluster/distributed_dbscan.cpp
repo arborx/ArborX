@@ -127,10 +127,7 @@ int main(int argc, char *argv[])
     --argc;
   }
 
-  Kokkos::initialize(argc, argv);
-
-  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
-  using MemorySpace = ExecutionSpace::memory_space;
+  Kokkos::ScopeGuard guard(argc, argv);
 
   namespace bpo = boost::program_options;
   using namespace ArborXBenchmark;
@@ -165,8 +162,6 @@ int main(int argc, char *argv[])
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
 
-  ExecutionSpace exec_space;
-
   if (is_help_present)
   {
     if (comm_rank == 0)
@@ -178,7 +173,6 @@ int main(int argc, char *argv[])
                    "all the clusters will be merged together.\n"
                 << std::endl;
     }
-    Kokkos::finalize();
     MPI_Finalize();
     return 0;
   }
@@ -192,7 +186,6 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
       std::cerr << "Implementation must be one of " << vec2string(allowed_impls)
                 << "\n";
-    Kokkos::finalize();
     MPI_Finalize();
     return 2;
   }
@@ -201,7 +194,6 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
       std::cerr << "Precision must be one of " << vec2string(allowed_precisions)
                 << "\n";
-    Kokkos::finalize();
     MPI_Finalize();
     return 2;
   }
@@ -209,7 +201,6 @@ int main(int argc, char *argv[])
   {
     if (comm_rank == 0)
       std::cerr << "Data loading only supports \"float\"\n";
-    Kokkos::finalize();
     MPI_Finalize();
     return 3;
   }
@@ -221,7 +212,6 @@ int main(int argc, char *argv[])
   {
     if (comm_rank == 0)
       std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
-    Kokkos::finalize();
     MPI_Finalize();
     return 4;
   }
@@ -245,9 +235,14 @@ int main(int argc, char *argv[])
     printf("verbose           : %s\n", (params.verbose ? "true" : "false"));
   }
 
+  bool success = true;
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = ExecutionSpace::memory_space;
+
   MPI_Barrier(comm);
 
-  bool success = true;
+  ExecutionSpace exec_space;
+
   if (!params.filename.empty())
   {
 #define SWITCH_DIM(DIM)                                                        \
@@ -293,7 +288,6 @@ int main(int argc, char *argv[])
 #undef SWITCH_DIM
   }
 
-  Kokkos::finalize();
   MPI_Finalize();
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;
