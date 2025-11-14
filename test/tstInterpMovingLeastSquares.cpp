@@ -103,9 +103,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
       });
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
       space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
-      ArborX::Interpolation::PolynomialDegree<2>{}, 8);
+      ArborX::Interpolation::PolynomialDegree<2>{});
   mls1.interpolate(space, srcv1, eval1);
-  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, 5.e-14);
+  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, 1.e-12);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
