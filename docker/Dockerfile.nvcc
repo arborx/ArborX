@@ -26,7 +26,7 @@ RUN KEYDUMP_URL=https://cloud1.cees.ornl.gov/download && \
     gpg --verify ${KEYDUMP_FILE}.sig ${KEYDUMP_FILE} && \
     rm ${KEYDUMP_FILE}*
 
-# Remove empty /usr/lib/x86_64-linux-gnu/libcuda.so being as it causes problems
+# Remove empty /usr/lib/x86_64-linux-gnu/libcuda.so as it causes problems
 RUN rm -f /usr/lib/x86_64-linux-gnu/libcuda.so
 
 # Install OpenMPI
