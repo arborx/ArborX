@@ -22,11 +22,6 @@
 #include <iostream>
 
 #include "benchmark_registration.hpp"
-
-#ifdef ARBORX_PERFORMANCE_TESTING
-#include <mpi.h>
-#endif
-
 #include <benchmark/benchmark.h>
 
 template <typename ExecutionSpace, typename TreeType>
@@ -174,9 +169,6 @@ public:
 
 int main(int argc, char *argv[])
 {
-#ifdef ARBORX_PERFORMANCE_TESTING
-  MPI_Init(&argc, &argv);
-#endif
   Kokkos::ScopeGuard guard(argc, argv);
 
   namespace bpo = boost::program_options;
@@ -270,10 +262,6 @@ int main(int argc, char *argv[])
   }
 
   benchmark::RunSpecifiedBenchmarks();
-
-#ifdef ARBORX_PERFORMANCE_TESTING
-  MPI_Finalize();
-#endif
 
   return EXIT_SUCCESS;
 }
