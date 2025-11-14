@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
       space, srcp0, tgtp0, ArborX::Interpolation::CRBF::Wendland<0>{},
       ArborX::Interpolation::PolynomialDegree<1>{}, 2);
   mls0.interpolate(space, srcv0, eval0);
-  ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
+  ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<double>);
 
   // Case 2: f(x, y) = xy + 4x, 8 neighbors, quad
   //        ^
@@ -103,9 +103,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
       });
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
       space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
-      ArborX::Interpolation::PolynomialDegree<2>{}, 8);
+      ArborX::Interpolation::PolynomialDegree<2>{});
   mls1.interpolate(space, srcv1, eval1);
-  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
+  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, 1.e-12);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
       space, srcp0, tgtp0, ArborX::Interpolation::CRBF::Wendland<0>{},
       ArborX::Interpolation::PolynomialDegree<1>{}, 2);
   mls0.interpolate(space, srcv0, eval0);
-  ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
+  ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<double>);
 
   // Case 2: Same but corner source points are also targets
   using Point1 = ArborX::Point<2, double>;
@@ -182,7 +182,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
       space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
       ArborX::Interpolation::PolynomialDegree<2>{}, 8);
   mls1.interpolate(space, srcv1, eval1);
-  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
+  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1,
+                         10. * Kokkos::Experimental::epsilon_v<double>);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,

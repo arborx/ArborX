@@ -115,9 +115,57 @@ public:
 
     // We need the inverse of P^T.PHI.P, and because it is symmetric, we can use
     // the symmetric SVD algorithm to get it.
-    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag,
-                                                       svd_unit);
-    // Now, the moment has [P^T.PHI.P]^-1
+    ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
+
+    // Check if matrix is singular
+    CoefficientsType max_eigen = 0;
+    int const n = moment.extent(0);
+    for (int i = 0; i < n; i++)
+      max_eigen = Kokkos::max(Kokkos::abs(svd_diag(i)), max_eigen);
+    CoefficientsType min_eigen = max_eigen;
+    for (int i = 0; i < n; i++)
+      min_eigen = Kokkos::min(Kokkos::abs(svd_diag(i)), min_eigen);
+    constexpr auto epsilon = Kokkos::Experimental::epsilon_v<CoefficientsType>;
+    auto tolerance = n * max_eigen * epsilon;
+    while (min_eigen < tolerance)
+    {
+      ::ArborX::Details::symmetricMatrixFromSVD(svd_diag, svd_unit, moment);
+      // Find maximum index belonging to a zero eigenvalue
+      int max_index = 0;
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_diag(i)) < tolerance)
+          for (int j = n - 1; j >= 0; --j)
+            if (Kokkos::abs(svd_unit(i, j)) > tolerance)
+            {
+              max_index = Kokkos::max(j, max_index);
+              break;
+            }
+      // Eliminate corresponding column from Vandermonde matrix and eliminate
+      // row and column from moment matrix storing 1 one the diagonal
+      for (int j = 0; j < n; ++j)
+        moment(max_index, j) = moment(j, max_index) = 0.;
+      for (int j = 0; j < vandermonde.extent_int(0); ++j)
+        vandermonde(j, max_index) = 0;
+      moment(max_index, max_index) = 1.;
+      // Compute a SVD for the new matrix and prepare for next round if still
+      // singular
+      ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
+      max_eigen = 0;
+      for (int i = 0; i < n; i++)
+        max_eigen = Kokkos::max(Kokkos::abs(svd_diag(i)), max_eigen);
+      min_eigen = max_eigen;
+      for (int i = 0; i < n; i++)
+      {
+        min_eigen = Kokkos::min(Kokkos::abs(svd_diag(i)), min_eigen);
+      }
+      constexpr auto epsilon =
+          Kokkos::Experimental::epsilon_v<CoefficientsType>;
+      tolerance = n * max_eigen * epsilon;
+    }
+
+    // Store [P^T.PHI.P + H]^-1 in moment
+    ::ArborX::Details::symmetricPseudoInverseSVDKernel(svd_diag, svd_unit,
+                                                       moment);
 
     // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI
     coefficientsComputation(phi, vandermonde, moment, coefficients);
