@@ -178,11 +178,13 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
   ArborX::DBSCAN::Parameters params;
   params.setImplementation(impl);
 
-  Kokkos::View<int *, MemorySpace> labels("Testing::labels", 0);
-
 #define VERIFY_DBSCAN(data, eps, minpts)                                       \
-  dbscan(space, (data), (eps), (minpts), labels, params);                      \
-  BOOST_TEST(verifyDBSCAN(space, (data), (eps), (minpts), labels));
+  do                                                                           \
+  {                                                                            \
+    Kokkos::View<int *, MemorySpace> labels("Testing::labels", 0);             \
+    dbscan(space, (data), (eps), (minpts), labels, params);                    \
+    BOOST_TEST(verifyDBSCAN(space, (data), (eps), (minpts), labels));          \
+  } while (false)
 
   {
     auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
