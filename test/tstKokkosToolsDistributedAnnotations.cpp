@@ -48,6 +48,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         BOOST_TEST(std::regex_match(label, re),
                    "\"" << label << "\" does not match the regular expression");
       });
+  Kokkos::Tools::Experimental::set_deallocate_data_callback(nullptr);
 
   { // one leaf per process
     auto tree = makeDistributedTree<DeviceType, ArborX::Box<3>>(
@@ -93,6 +94,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         BOOST_TEST(std::regex_match(label, re),
                    "\"" << label << "\" does not match the regular expression");
       });
+  Kokkos::Tools::Experimental::set_deallocate_data_callback(nullptr);
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
@@ -125,6 +127,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(callback);
   Kokkos::Tools::Experimental::set_begin_parallel_reduce_callback(callback);
+  Kokkos::Tools::Experimental::set_end_parallel_for_callback(nullptr);
+  Kokkos::Tools::Experimental::set_end_parallel_scan_callback(nullptr);
+  Kokkos::Tools::Experimental::set_end_parallel_reduce_callback(nullptr);
 
   // DistributedTree::query
 
@@ -165,6 +170,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
     BOOST_TEST(std::regex_match(label, re),
                "\"" << label << "\" does not match the regular expression");
   });
+  Kokkos::Tools::Experimental::set_pop_region_callback(nullptr);
 
   // DistributedTree::DistriibutedSearchTree
 

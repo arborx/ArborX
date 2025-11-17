@@ -61,6 +61,9 @@ void arborx_test_set_tools_callbacks(ExecutionSpace exec)
       arborx_test_parallel_x_callback);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(
       arborx_test_parallel_x_callback);
+  Kokkos::Tools::Experimental::set_end_parallel_for_callback(nullptr);
+  Kokkos::Tools::Experimental::set_end_parallel_reduce_callback(nullptr);
+  Kokkos::Tools::Experimental::set_end_parallel_scan_callback(nullptr);
 }
 
 void arborx_test_unset_tools_callbacks()
