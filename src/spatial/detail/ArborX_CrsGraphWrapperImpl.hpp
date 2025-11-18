@@ -22,6 +22,8 @@
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
 
+#include <Kokkos_Profiling_ScopedRegion.hpp>
+
 #include <string>
 
 namespace ArborX
@@ -154,7 +156,7 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
 
   auto const n_queries = predicates.size();
 
-  Kokkos::Profiling::pushRegion("ArborX::CrsGraphWrapper::two_pass");
+  Kokkos::Profiling::ScopedRegion guard("ArborX::CrsGraphWrapper::two_pass");
 
   using CountView = OffsetView;
   CountView counts(Kokkos::view_alloc(space, "ArborX::CrsGraphWrapper::counts"),
@@ -254,7 +256,6 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
     Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), out,
                    0);
     // FIXME: do we need to reset offset if it was preallocated here?
-    Kokkos::Profiling::popRegion();
     return;
   }
 
@@ -318,7 +319,6 @@ void queryImpl(ExecutionSpace const &space, Tree const &tree,
   {
     // The allocated storage was exactly enough for results, do nothing
   }
-  Kokkos::Profiling::popRegion();
 }
 
 struct Iota
