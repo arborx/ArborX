@@ -119,7 +119,7 @@ public:
 
     // Check if matrix is singular
     CoefficientsType max_eigen = 0;
-    int const n = moment.extent(0);
+    constexpr int n = moment.static_extent(0);
     for (int i = 0; i < n; i++)
       max_eigen = Kokkos::max(Kokkos::abs(svd_diag(i)), max_eigen);
     CoefficientsType min_eigen = max_eigen;
@@ -127,47 +127,86 @@ public:
       min_eigen = Kokkos::min(Kokkos::abs(svd_diag(i)), min_eigen);
     constexpr auto epsilon = Kokkos::Experimental::epsilon_v<CoefficientsType>;
     auto tolerance = n * max_eigen * epsilon;
-    while (min_eigen < tolerance)
+    if (min_eigen < tolerance)
     {
       ::ArborX::Details::symmetricMatrixFromSVD(svd_diag, svd_unit, moment);
-      // Find maximum index belonging to a zero eigenvalue
-      int max_index = 0;
+
       for (int i = 0; i < n; ++i)
-        if (Kokkos::abs(svd_diag(i)) < tolerance)
-          for (int j = n - 1; j >= 0; --j)
-            if (Kokkos::abs(svd_unit(i, j)) > tolerance)
-            {
-              max_index = Kokkos::max(j, max_index);
-              break;
-            }
-      // Eliminate corresponding column from Vandermonde matrix and eliminate
-      // row and column from moment matrix storing 1 one the diagonal
-      for (int j = 0; j < n; ++j)
-        moment(max_index, j) = moment(j, max_index) = 0.;
-      for (int j = 0; j < vandermonde.extent_int(0); ++j)
-        vandermonde(j, max_index) = 0;
-      moment(max_index, max_index) = 1.;
-      // Compute a SVD for the new matrix and prepare for next round if still
-      // singular
-      ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
-      max_eigen = 0;
-      for (int i = 0; i < n; i++)
-        max_eigen = Kokkos::max(Kokkos::abs(svd_diag(i)), max_eigen);
-      min_eigen = max_eigen;
-      for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; ++j)
+          svd_unit(i, j) = moment(i, j);
+      // Use Gaussian Elimination to find rows that form a full rank matrix
+      int pivot_row = 0;
+      int pivot_column = 0;
+
+      Kokkos::Array<int, n> permutation;
+      for (int i = 0; i < n; ++i)
+        permutation[i] = i;
+
+      while (pivot_row < n && pivot_column < n)
       {
-        min_eigen = Kokkos::min(Kokkos::abs(svd_diag(i)), min_eigen);
+        /* Find the k-th pivot: */
+        int i_max = 0;
+        CoefficientsType max_entry = 0.;
+        for (int i = pivot_row; i < n; ++i)
+          if (Kokkos::abs(svd_unit(i, pivot_column)) > max_entry)
+          {
+            max_entry = Kokkos::abs(svd_unit(i, pivot_column));
+            i_max = i;
+          }
+
+        if (svd_unit(i_max, pivot_column) == 0)
+        {
+          /* No pivot in this column, pass to next column */
+          ++pivot_column;
+        }
+        else
+        {
+          // swap rows(pivot_row, i_max)
+          for (int i = 0; i < n; ++i)
+            Kokkos::kokkos_swap(svd_unit(pivot_row, i), svd_unit(i_max, i));
+          Kokkos::kokkos_swap(permutation[i_max], permutation[pivot_row]);
+          /* Do for all rows below pivot: */
+          for (int i = pivot_row + 1; i < n; ++i)
+          {
+            CoefficientsType f =
+                svd_unit(i, pivot_column) / svd_unit(pivot_row, pivot_column);
+            /* Fill with zeros the lower part of pivot column: */
+            svd_unit(i, pivot_column) = 0.;
+            /* Do for all remaining elements in current row: */
+            for (int j = pivot_column + 1; j < n; ++j)
+              svd_unit(i, j) -= svd_unit(pivot_row, j) * f;
+          }
+          /* Increase pivot row and column */
+          ++pivot_row;
+          ++pivot_column;
+        }
       }
-      constexpr auto epsilon =
-          Kokkos::Experimental::epsilon_v<CoefficientsType>;
-      tolerance = n * max_eigen * epsilon;
+
+      for (int i = 0; i < n; ++i)
+      {
+        if (Kokkos::abs(svd_unit(i, i) < tolerance))
+        {
+          int row_index = permutation[i];
+          // Eliminate corresponding column from Vandermonde matrix and
+          // eliminate row and column from moment matrix storing 1 one the
+          // diagonal
+          for (int j = 0; j < n; ++j)
+            moment(row_index, j) = moment(j, row_index) = 0.;
+          for (unsigned int j = 0; j < vandermonde.static_extent(0); ++j)
+            vandermonde(j, row_index) = 0;
+          moment(row_index, row_index) = 1.;
+        }
+      }
+      // Compute a SVD for the new matrix
+      ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
     }
 
-    // Store [P^T.PHI.P + H]^-1 in moment
+    // Store [P^T.PHI.P]^-1 in moment
     ::ArborX::Details::symmetricPseudoInverseSVDKernel(svd_diag, svd_unit,
                                                        moment);
 
-    // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI
+    // Finally, the result is produced by computing
+    // p(0).[P^T.PHI.P]^-1.P^T.PHI
     coefficientsComputation(phi, vandermonde, moment, coefficients);
   }
 
