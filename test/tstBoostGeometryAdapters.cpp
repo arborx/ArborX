@@ -33,6 +33,8 @@ namespace Details
 {
 using Box = ArborX::Box<3>;
 using Point = ArborX::Point<3>;
+using ArborX::distance;
+using ArborX::intersects;
 } // namespace Details
 } // namespace ArborX
 namespace boost

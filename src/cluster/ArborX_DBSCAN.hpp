@@ -64,7 +64,6 @@ struct WithinRadiusGetter
     static_assert(GeometryTraits::is_point_v<Point>);
 
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
-    using ArborX::intersects;
     return intersects(
         Sphere{convert<::ArborX::Point<DIM, Coordinate>>(pair.value), _r});
   }

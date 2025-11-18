@@ -168,10 +168,9 @@ struct FindComponentNearestNeighbors
   {
     constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
 
-    auto const distance = [bounding_volume_i =
-                               HappyTreeFriends::getIndexable(_bvh, i),
-                           &bvh = _bvh](int j) {
-      using Details::distance;
+    auto const distance2node = [bounding_volume_i =
+                                    HappyTreeFriends::getIndexable(_bvh, i),
+                                &bvh = _bvh](int j) {
       return HappyTreeFriends::isLeaf(bvh, j)
                  ? distance(bounding_volume_i,
                             HappyTreeFriends::getIndexable(bvh, j))
@@ -231,8 +230,8 @@ struct FindComponentNearestNeighbors
         // ends on top.
         left_child = HappyTreeFriends::getLeftChild(_bvh, node);
         right_child = HappyTreeFriends::getRightChild(_bvh, node);
-        distance_left = distance(left_child);
-        distance_right = distance(right_child);
+        distance_left = distance2node(left_child);
+        distance_right = distance2node(right_child);
 
         if (predicate(left_child) && distance_left <= radius)
         {
@@ -293,7 +292,7 @@ struct FindComponentNearestNeighbors
           // This is a theoretically unnecessary duplication of distance
           // calculation for stack nodes. However, for Cuda it's better than
           // putting the distances in stack.
-          distance_node = distance(node);
+          distance_node = distance2node(node);
         }
 #else
         distance_node = *--stack_distance_ptr;
