@@ -322,9 +322,8 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
             Details::FDBSCANCallback<UnionFind, CorePoints, /* DBSCAN* */ true>{
                 labels, CorePoints{num_neigh, core_min_size}},
             Details::WithinRadiusGetter<Coordinate>{eps});
+      Kokkos::Profiling::popRegion();
     }
-
-    Kokkos::Profiling::popRegion();
   }
   else if (parameters._implementation ==
            DBSCAN::Implementation::FDBSCAN_DenseBox)

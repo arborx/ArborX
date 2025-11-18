@@ -162,8 +162,15 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   if (params.implementation == "fdbscan-densebox")
     implementation = Implementation::FDBSCAN_DenseBox;
 
+  using ArborX::DBSCAN::Algorithm;
+  Algorithm algorithm = Algorithm::DBSCAN;
+  if (params.algorithm == "dbscan*")
+    algorithm = Algorithm::DBSCAN_STAR;
+
   ArborX::DBSCAN::Parameters dbscan_params;
-  dbscan_params.setVerbosity(params.verbose).setImplementation(implementation);
+  dbscan_params.setVerbosity(params.verbose)
+      .setImplementation(implementation)
+      .setAlgorithm(algorithm);
 
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::total");
 
@@ -219,7 +226,8 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   if (params.verify)
   {
     success = ArborX::Details::verifyDBSCAN(exec_space, primitives, params.eps,
-                                            params.core_min_size, labels);
+                                            params.core_min_size, labels,
+                                            params.algorithm);
     printf("Verification %s\n", (success ? "passed" : "failed"));
   }
 
@@ -259,12 +267,14 @@ int main(int argc, char *argv[])
   Parameters params;
 
   std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
+  std::vector<std::string> allowed_algorithms = {"dbscan", "dbscan*"};
 
   bpo::options_description desc("Allowed options");
   bool ascii;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
+      ( "algorithm", bpo::value<std::string>(&params.algorithm)->default_value("dbscan"), ("DBSCAN algorithm " + vec2string(allowed_algorithms, " | ")).c_str() )
       ( "ascii", bpo::bool_switch(&ascii), "ascii file indicator")
       ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
@@ -309,16 +319,21 @@ int main(int argc, char *argv[])
               << "\n";
     return 2;
   }
+  if (!found(allowed_algorithms, params.algorithm))
+  {
+    std::cerr << "Algorithm must be one of " << vec2string(allowed_algorithms)
+              << "\n";
+    return 3;
+  }
 
   // Print out the runtime parameters
-  std::stringstream ss;
-  ss << params.implementation;
   printf("eps               : %f\n", params.eps);
   printf("minpts            : %d\n", params.core_min_size);
   printf("cluster min size  : %d\n", params.cluster_min_size);
   if (!params.filename_labels.empty())
     printf("filename [labels] : %s [binary]\n", params.filename_labels.c_str());
-  printf("implementation    : %s\n", ss.str().c_str());
+  printf("algorithm         : %s\n", params.algorithm.c_str());
+  printf("implementation    : %s\n", params.implementation.c_str());
   printf("verify            : %s\n", (params.verify ? "true" : "false"));
   printf("verbose           : %s\n", (params.verbose ? "true" : "false"));
 
