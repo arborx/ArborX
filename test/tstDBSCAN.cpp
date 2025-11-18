@@ -50,25 +50,32 @@ void dbscan_verifier_f()
 
   ExecutionSpace space;
 
+  auto const dbscan_verifier_result =
+      [&space](auto const &points, Coordinate eps, int minpts,
+               std::vector<int> const &result, std::string const &algorithm) {
+        return verifyDBSCAN(space, points, eps, minpts,
+                            toView<DeviceType, int>(result), algorithm);
+      };
+
   {
     auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
     Coordinate r = std::sqrt(3);
 
-    BOOST_TEST(verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
-                            toView<DeviceType, int>({-1, -1})));
-    BOOST_TEST(!verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
-                             toView<DeviceType, int>({1, 2})));
-    BOOST_TEST(!verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
-                             toView<DeviceType, int>({1, 1})));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, r, 2, toView<DeviceType, int>({1, 1})));
-    BOOST_TEST(
-        !verifyDBSCAN(space, points, r, 2, toView<DeviceType, int>({1, 2})));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, r, 3, toView<DeviceType, int>({-1, -1})));
-    BOOST_TEST(
-        !verifyDBSCAN(space, points, r, 3, toView<DeviceType, int>({1, 1})));
+    // clang-format off
+    BOOST_TEST(dbscan_verifier_result(points, r - (Coordinate)0.1, 2, {-1, -1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r - (Coordinate)0.1, 2, {-1, -1}, "dbscan*"));
+    BOOST_TEST(!dbscan_verifier_result(points, r - (Coordinate)0.1, 2, {1, 2}, "dbscan"));
+    BOOST_TEST(!dbscan_verifier_result(points, r - (Coordinate)0.1, 2, {1, 1}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r, 2, {1, 1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r, 2, {1, 1}, "dbscan*"));
+    BOOST_TEST(!dbscan_verifier_result(points, r, 2, {1, 2}, "dbscan"));
+    BOOST_TEST(!dbscan_verifier_result(points, r, 2, {1, 2}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r, 3, {-1, -1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r, 3, {-1, -1}, "dbscan*"));
+    BOOST_TEST(!dbscan_verifier_result(points, r, 3, {1, 1}, "dbscan"));
+    BOOST_TEST(!dbscan_verifier_result(points, r, 3, {1, 1}, "dbscan*"));
+    // clang-format off
   }
 
   {
@@ -79,26 +86,24 @@ void dbscan_verifier_f()
     Coordinate r2 = std::sqrt(12);
     Coordinate r3 = std::sqrt(48);
 
-    BOOST_TEST(verifyDBSCAN(space, points, r, 2,
-                            toView<DeviceType, int>({1, 1, -1, -1})));
-    BOOST_TEST(verifyDBSCAN(space, points, r, 3,
-                            toView<DeviceType, int>({-1, -1, -1, -1})));
-
-    BOOST_TEST(verifyDBSCAN(space, points, r2, 2,
-                            toView<DeviceType, int>({3, 3, 3, -1})));
-    BOOST_TEST(verifyDBSCAN(space, points, r2, 3,
-                            toView<DeviceType, int>({3, 3, 3, -1})));
-    BOOST_TEST(verifyDBSCAN(space, points, r2, 4,
-                            toView<DeviceType, int>({-1, -1, -1, -1})));
-
-    BOOST_TEST(verifyDBSCAN(space, points, r3, 2,
-                            toView<DeviceType, int>({5, 5, 5, 5})));
-    BOOST_TEST(verifyDBSCAN(space, points, r3, 3,
-                            toView<DeviceType, int>({5, 5, 5, 5})));
-    BOOST_TEST(verifyDBSCAN(space, points, r3, 4,
-                            toView<DeviceType, int>({7, 7, 7, 7})));
-    BOOST_TEST(verifyDBSCAN(space, points, r3, 5,
-                            toView<DeviceType, int>({-1, -1, -1, -1})));
+    BOOST_TEST(dbscan_verifier_result(points, r, 2, {1, 1, -1, -1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r, 2, {1, 1, -1, -1}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r, 3, {-1, -1, -1, -1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r, 3, {-1, -1, -1, -1}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r2, 2, {3, 3, 3, -1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r2, 2, {3, 3, 3, -1}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r2, 3, {3, 3, 3, -1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r2, 3, {-1, 3, -1, -1}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r2, 4, {-1, -1, -1, -1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r2, 4, {-1, -1, -1, -1}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r3, 2, {5, 5, 5, 5}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r3, 2, {5, 5, 5, 5}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r3, 3, {5, 5, 5, 5}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r3, 3, {5, 5, 5, -1}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r3, 4, {7, 7, 7, 7}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r3, 4, {-1, -1, 7, -1}, "dbscan*"));
+    BOOST_TEST(dbscan_verifier_result(points, r3, 5, {-1, -1, -1, -1}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, r3, 5, {-1, -1, -1, -1}, "dbscan*"));
   }
 
   {
@@ -111,18 +116,15 @@ void dbscan_verifier_f()
                                              {{1, 0.5, 0}},
                                              {{1, -0.5, 0}}});
 
-    BOOST_TEST(verifyDBSCAN(space, points, 1, 3,
-                            toView<DeviceType, int>({5, 5, 5, 5, 5, 5, 5})));
-    BOOST_TEST((verifyDBSCAN(space, points, 1, 4,
-                             toView<DeviceType, int>({5, 5, 5, 5, 6, 6, 6})) ||
-                verifyDBSCAN(space, points, 1, 4,
-                             toView<DeviceType, int>({5, 5, 5, 6, 6, 6, 6}))));
-    BOOST_TEST(!verifyDBSCAN(space, points, 1, 4,
-                             toView<DeviceType, int>({5, 5, 5, 5, 5, 5, 5})));
+    BOOST_TEST(dbscan_verifier_result(points, 1, 3, {5, 5, 5, 5, 5, 5, 5}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(points, 1, 3, {5, 5, 5, 5, 5, 5, 5}, "dbscan*"));
+    BOOST_TEST((dbscan_verifier_result(points, 1, 4, {5, 5, 5, 5, 6, 6, 6}, "dbscan") ||
+               dbscan_verifier_result(points, 1, 4, {5, 5, 5, 6, 6, 6, 6}, "dbscan")));
+    BOOST_TEST(dbscan_verifier_result(points, 1, 4, {-1, -1, 5, -1, 6, -1, -1}, "dbscan*"));
   }
 
   {
-    // check where a core point is connected to only boundary points, but which
+    // check where a core point is connected to only border points, but which
     // are stripped by a second core point
 
     // o - core, x - border
@@ -142,14 +144,20 @@ void dbscan_verifier_f()
     });
     // clang-format on
 
-    BOOST_TEST(verifyDBSCAN(
-        space, points, 1, 4,
-        toView<DeviceType, int>({0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 5})));
+    BOOST_TEST(dbscan_verifier_result(
+        points, 1, 4, {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 5}, "dbscan"));
+    BOOST_TEST(dbscan_verifier_result(
+        points, 1, 4, {0, -1, -1, -1, 1, -1, -1, -1, 2, -1, -1, -1, 5},
+        "dbscan*"));
     // make sure the stripped core is not marked as noise
-    BOOST_TEST(!verifyDBSCAN(
-        space, points, 1, 4,
-        toView<DeviceType, int>({0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, -1})));
+    BOOST_TEST(!dbscan_verifier_result(
+        points, 1, 4, {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, -1}, "dbscan"));
+    BOOST_TEST(!dbscan_verifier_result(
+        points, 1, 4, {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, -1}, "dbscan*"));
   }
+#undef DBSCAN_VERIFIER_PASS
+#undef DBSCAN_VERIFIER_PASS2
+#undef DBSCAN_VERIFIER_FAIL
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier_float, DeviceType,
@@ -165,7 +173,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier_double, DeviceType,
 }
 
 template <typename DeviceType, typename Coordinate>
-void dbscan_f(ArborX::DBSCAN::Implementation impl)
+void dbscan_f(ArborX::DBSCAN::Implementation impl, std::string const &algorithm)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
@@ -176,24 +184,25 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
   ExecutionSpace space;
 
   ArborX::DBSCAN::Parameters params;
-  params.setImplementation(impl);
+  params.setImplementation(impl).setAlgorithm(
+      algorithm == "dbscan" ? ArborX::DBSCAN::Algorithm::DBSCAN
+                            : ArborX::DBSCAN::Algorithm::DBSCAN_STAR);
 
-#define VERIFY_DBSCAN(data, eps, minpts)                                       \
-  do                                                                           \
-  {                                                                            \
-    Kokkos::View<int *, MemorySpace> labels("Testing::labels", 0);             \
-    dbscan(space, (data), (eps), (minpts), labels, params);                    \
-    BOOST_TEST(verifyDBSCAN(space, (data), (eps), (minpts), labels));          \
-  } while (false)
+  auto verify_dbscan = [&space, &params, &algorithm](
+                           auto const &points, Coordinate eps, int minpts) {
+    Kokkos::View<int *, MemorySpace> labels("Testing::labels", 0);
+    dbscan(space, points, eps, minpts, labels, params);
+    return verifyDBSCAN(space, points, eps, minpts, labels, algorithm);
+  };
 
   {
     auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
     Coordinate r = std::sqrt(3.1);
 
-    VERIFY_DBSCAN(points, r - (Coordinate)0.1, 2);
-    VERIFY_DBSCAN(points, r, 2);
-    VERIFY_DBSCAN(points, r, 3);
+    BOOST_TEST(verify_dbscan(points, r - (Coordinate)0.1, 2));
+    BOOST_TEST(verify_dbscan(points, r, 2));
+    BOOST_TEST(verify_dbscan(points, r, 3));
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
@@ -213,9 +222,9 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
 
     // Test non-View primitives
     HiddenView<decltype(points)> hidden_points{points};
-    VERIFY_DBSCAN(hidden_points, r - (Coordinate)0.1, 2);
-    VERIFY_DBSCAN(hidden_points, r, 2);
-    VERIFY_DBSCAN(hidden_points, r, 3);
+    BOOST_TEST(verify_dbscan(hidden_points, r - (Coordinate)0.1, 2));
+    BOOST_TEST(verify_dbscan(hidden_points, r, 2));
+    BOOST_TEST(verify_dbscan(hidden_points, r, 3));
   }
 
   {
@@ -224,17 +233,17 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
 
     Coordinate r = std::sqrt(3.1);
 
-    VERIFY_DBSCAN(points, r, 2);
-    VERIFY_DBSCAN(points, r, 3);
+    BOOST_TEST(verify_dbscan(points, r, 2));
+    BOOST_TEST(verify_dbscan(points, r, 3));
 
-    VERIFY_DBSCAN(points, 2 * r, 2);
-    VERIFY_DBSCAN(points, 2 * r, 3);
-    VERIFY_DBSCAN(points, 2 * r, 4);
+    BOOST_TEST(verify_dbscan(points, 2 * r, 2));
+    BOOST_TEST(verify_dbscan(points, 2 * r, 3));
+    BOOST_TEST(verify_dbscan(points, 2 * r, 4));
 
-    VERIFY_DBSCAN(points, 3 * r, 2);
-    VERIFY_DBSCAN(points, 3 * r, 3);
-    VERIFY_DBSCAN(points, 3 * r, 4);
-    VERIFY_DBSCAN(points, 3 * r, 5);
+    BOOST_TEST(verify_dbscan(points, 3 * r, 2));
+    BOOST_TEST(verify_dbscan(points, 3 * r, 3));
+    BOOST_TEST(verify_dbscan(points, 3 * r, 4));
+    BOOST_TEST(verify_dbscan(points, 3 * r, 5));
   }
 
   {
@@ -247,12 +256,12 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
                                              {{1, 0.5, 0}},
                                              {{1, -0.5, 0}}});
 
-    VERIFY_DBSCAN(points, (Coordinate)1, 3);
-    VERIFY_DBSCAN(points, (Coordinate)1, 4);
+    BOOST_TEST(verify_dbscan(points, (Coordinate)1, 3));
+    BOOST_TEST(verify_dbscan(points, (Coordinate)1, 4));
   }
 
   {
-    // check where a core point is connected to only boundary points, but which
+    // check where a core point is connected to only border points, but which
     // are stripped by a second core point
 
     // o - core, x - border
@@ -274,30 +283,60 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
 
     // This does *not* guarantee to trigger the issue, as it depends on the
     // specific implementation and runtime. But it may.
-    VERIFY_DBSCAN(points, (Coordinate)1, 4);
+    BOOST_TEST(verify_dbscan(points, (Coordinate)1, 4));
   }
+
+#undef VERIFY_DBSCAN
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_fdbscan_float, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN);
+  dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN,
+                              "dbscan");
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_fdbscan_double, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN);
+  dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN,
+                               "dbscan");
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_fdbscan_densebox_float, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox);
+  dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox,
+                              "dbscan");
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_fdbscan_densebox_double, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
-  dbscan_f<DeviceType, double>(
-      ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox);
+  dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox,
+                               "dbscan");
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_star_fdbscan_float, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN,
+                              "dbscan*");
+}
+BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_star_fdbscan_double, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN,
+                               "dbscan*");
+}
+BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_star_fdbscan_densebox_float, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox,
+                              "dbscan*");
+}
+BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_star_fdbscan_densebox_double, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox,
+                               "dbscan*");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
