@@ -44,6 +44,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                       "|ArborX::BVH::"
                       "|ArborX::SpaceFillingCurve::"
                       "|ArborX::Sorting::"
+                      "|Kokkos::sort_by_key"
                       ").*");
         BOOST_TEST(std::regex_match(label, re),
                    "\"" << label << "\" does not match the regular expression");
