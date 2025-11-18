@@ -42,7 +42,7 @@ struct CountUpToN
   }
 };
 
-template <typename UnionFind, typename CorePointsType>
+template <typename UnionFind, typename CorePointsType, bool DbscanStar = false>
 struct FDBSCANCallback
 {
   UnionFind _union_find;
@@ -58,6 +58,14 @@ struct FDBSCANCallback
 
     bool const is_border_point = !_is_core_point(i);
     bool const neighbor_is_core_point = _is_core_point(j);
+
+    if constexpr (DbscanStar == true)
+    {
+      // Border points do not participate in merging in DBSCAN*
+      if (is_border_point || !neighbor_is_core_point)
+        return ArborX::CallbackTreeTraversalControl::early_exit;
+    }
+
     if (is_border_point)
     {
       if (neighbor_is_core_point)
@@ -67,9 +75,9 @@ struct FDBSCANCallback
         // multiple core points, it will be assigned to the cluster that the
         // first found core point neighbor was in.
         //
-        // NOTE: DO NOT USE merge(i, j) here. This may set this border point as
-        // a representative for the whole cluster potentially forming a bridge
-        // with a different cluster.
+        // NOTE: DO NOT USE merge(i, j) here. This may set this border point
+        // as a representative for the whole cluster potentially forming a
+        // bridge with a different cluster.
         _union_find.merge_into(i, j);
 
         // Once a border point is assigned to a cluster, can terminate the

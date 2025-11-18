@@ -184,12 +184,20 @@ enum class Implementation
   FDBSCAN_DenseBox
 };
 
+enum class Algorithm
+{
+  DBSCAN,
+  DBSCAN_STAR
+};
+
 struct Parameters
 {
   // Print timers to standard output
   bool _verbose = false;
   // Algorithm implementation (FDBSCAN or FDBSCAN-DenseBox)
   Implementation _implementation = Implementation::FDBSCAN_DenseBox;
+  // DBSCAN algorithm (DBSCAN/DBSCAN*)
+  Algorithm _algorithm = Algorithm::DBSCAN;
 
   Parameters &setVerbosity(bool verbose)
   {
@@ -199,6 +207,11 @@ struct Parameters
   Parameters &setImplementation(Implementation impl)
   {
     _implementation = impl;
+    return *this;
+  }
+  Parameters &setAlgorithm(Algorithm algorithm)
+  {
+    _algorithm = algorithm;
     return *this;
   }
 };
@@ -274,6 +287,7 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       using CorePoints = Details::CCSCorePoints;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
+      // For the special case, there's no difference between DBSCAN and DBSCAN*
       Details::HalfTraversal(
           exec_space, bvh,
           Details::FDBSCANCallback<UnionFind, CorePoints>{labels, CorePoints{}},
@@ -296,12 +310,21 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
       // Perform the queries and build clusters through callback
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      Details::HalfTraversal(exec_space, bvh,
-                             Details::FDBSCANCallback<UnionFind, CorePoints>{
-                                 labels, CorePoints{num_neigh, core_min_size}},
-                             Details::WithinRadiusGetter<Coordinate>{eps});
-      Kokkos::Profiling::popRegion();
+      if (parameters._algorithm == DBSCAN::Algorithm::DBSCAN)
+        Details::HalfTraversal(
+            exec_space, bvh,
+            Details::FDBSCANCallback<UnionFind, CorePoints>{
+                labels, CorePoints{num_neigh, core_min_size}},
+            Details::WithinRadiusGetter<Coordinate>{eps});
+      else
+        Details::HalfTraversal(
+            exec_space, bvh,
+            Details::FDBSCANCallback<UnionFind, CorePoints, /* DBSCAN* */ true>{
+                labels, CorePoints{num_neigh, core_min_size}},
+            Details::WithinRadiusGetter<Coordinate>{eps});
     }
+
+    Kokkos::Profiling::popRegion();
   }
   else if (parameters._implementation ==
            DBSCAN::Implementation::FDBSCAN_DenseBox)
@@ -397,6 +420,7 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
       auto const predicates = Experimental::attach_indices(
           Experimental::make_intersects(points, eps));
+      // For the special case, there's no difference between DBSCAN and DBSCAN*
       bvh.query(exec_space, predicates,
                 Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
                                                  decltype(dense_cell_offsets),
@@ -437,12 +461,22 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
       auto const predicates = Experimental::attach_indices(
           Experimental::make_intersects(points, eps));
-      bvh.query(exec_space, predicates,
-                Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
-                                                 decltype(dense_cell_offsets),
-                                                 decltype(permute)>{
-                    labels, CorePoints{num_neigh, core_min_size}, points,
-                    dense_cell_offsets, exec_space, permute, eps});
+      if (parameters._algorithm == DBSCAN::Algorithm::DBSCAN)
+        bvh.query(
+            exec_space, predicates,
+            Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
+                                             decltype(dense_cell_offsets),
+                                             decltype(permute)>{
+                labels, CorePoints{num_neigh, core_min_size}, points,
+                dense_cell_offsets, exec_space, permute, eps});
+      else
+        bvh.query(
+            exec_space, predicates,
+            Details::FDBSCANDenseBoxCallback<
+                UnionFind, CorePoints, Points, decltype(dense_cell_offsets),
+                decltype(permute), /* DBSCAN* */ true>{
+                labels, CorePoints{num_neigh, core_min_size}, points,
+                dense_cell_offsets, exec_space, permute, eps});
       Kokkos::Profiling::popRegion();
     }
   }

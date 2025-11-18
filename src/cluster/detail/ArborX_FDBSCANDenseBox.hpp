@@ -93,7 +93,8 @@ struct CountUpToN_DenseBox
 };
 
 template <typename UnionFind, typename CorePointsType, typename Primitives,
-          typename DenseCellOffsets, typename Permutation>
+          typename DenseCellOffsets, typename Permutation,
+          bool DbscanStar = false>
 struct FDBSCANDenseBoxCallback
 {
   using Coordinate =
@@ -179,8 +180,14 @@ struct FDBSCANDenseBoxCallback
       bool const is_neighbor_core_point = _is_core_point(j);
       if (is_neighbor_core_point && i > j)
         _union_find.merge(i, j);
-      else if (!is_neighbor_core_point)
-        _union_find.merge_into(j, i);
+      else
+      {
+        if constexpr (DbscanStar == false)
+        {
+          if (!is_neighbor_core_point)
+            _union_find.merge_into(j, i);
+        }
+      }
     }
 
     return CallbackTreeTraversalControl::normal_continuation;
