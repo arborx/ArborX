@@ -75,9 +75,9 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
   int const n_ghost = ghost_points.size();
 
   // Step 2: do local DBSCAN
-  auto local_labels =
-      dbscan(space, Details::UnifiedPoints{points, ghost_points}, eps,
-             core_min_size, params);
+  Kokkos::View<int *, MemorySpace> local_labels(prefix + "local_labels", 0);
+  dbscan(space, Details::UnifiedPoints{points, ghost_points}, eps,
+         core_min_size, local_labels, params);
 
   // Step 3: convert local labels to global
   Kokkos::View<long long *, MemorySpace> rank_offsets(prefix + "rank_offsets",

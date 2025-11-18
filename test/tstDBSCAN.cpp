@@ -168,6 +168,7 @@ template <typename DeviceType, typename Coordinate>
 void dbscan_f(ArborX::DBSCAN::Implementation impl)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
   using ArborX::dbscan;
   using ArborX::Details::verifyDBSCAN;
   using Point = ArborX::Point<3, Coordinate>;
@@ -177,11 +178,28 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
   ArborX::DBSCAN::Parameters params;
   params.setImplementation(impl);
 
+#define VERIFY_DBSCAN(data, eps, minpts)                                       \
+  do                                                                           \
+  {                                                                            \
+    Kokkos::View<int *, MemorySpace> labels("Testing::labels", 0);             \
+    dbscan(space, (data), (eps), (minpts), labels, params);                    \
+    BOOST_TEST(verifyDBSCAN(space, (data), (eps), (minpts), labels));          \
+  } while (false)
+
   {
     auto points = toView<DeviceType, Point>({{{0, 0, 0}}, {{1, 1, 1}}});
 
     Coordinate r = std::sqrt(3.1);
 
+    VERIFY_DBSCAN(points, r - (Coordinate)0.1, 2);
+    VERIFY_DBSCAN(points, r, 2);
+    VERIFY_DBSCAN(points, r, 3);
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+    // Test deprecated DBSCAN interface
     BOOST_TEST(
         verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
                      dbscan(space, points, r - (Coordinate)0.1, 2, params)));
@@ -189,16 +207,15 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
         verifyDBSCAN(space, points, r, 2, dbscan(space, points, r, 2, params)));
     BOOST_TEST(
         verifyDBSCAN(space, points, r, 3, dbscan(space, points, r, 3, params)));
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
     // Test non-View primitives
     HiddenView<decltype(points)> hidden_points{points};
-    BOOST_TEST(verifyDBSCAN(
-        space, hidden_points, r - (Coordinate)0.1, 2,
-        dbscan(space, hidden_points, r - (Coordinate)0.1, 2, params)));
-    BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 2,
-                            dbscan(space, hidden_points, r, 2, params)));
-    BOOST_TEST(verifyDBSCAN(space, hidden_points, r, 3,
-                            dbscan(space, hidden_points, r, 3, params)));
+    VERIFY_DBSCAN(hidden_points, r - (Coordinate)0.1, 2);
+    VERIFY_DBSCAN(hidden_points, r, 2);
+    VERIFY_DBSCAN(hidden_points, r, 3);
   }
 
   {
@@ -207,26 +224,17 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
 
     Coordinate r = std::sqrt(3.1);
 
-    BOOST_TEST(
-        verifyDBSCAN(space, points, r, 2, dbscan(space, points, r, 2, params)));
-    BOOST_TEST(
-        verifyDBSCAN(space, points, r, 3, dbscan(space, points, r, 3, params)));
+    VERIFY_DBSCAN(points, r, 2);
+    VERIFY_DBSCAN(points, r, 3);
 
-    BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 2,
-                            dbscan(space, points, 2 * r, 2, params)));
-    BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 3,
-                            dbscan(space, points, 2 * r, 3, params)));
-    BOOST_TEST(verifyDBSCAN(space, points, 2 * r, 4,
-                            dbscan(space, points, 2 * r, 4, params)));
+    VERIFY_DBSCAN(points, 2 * r, 2);
+    VERIFY_DBSCAN(points, 2 * r, 3);
+    VERIFY_DBSCAN(points, 2 * r, 4);
 
-    BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 2,
-                            dbscan(space, points, 3 * r, 2, params)));
-    BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 3,
-                            dbscan(space, points, 3 * r, 3, params)));
-    BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 4,
-                            dbscan(space, points, 3 * r, 4, params)));
-    BOOST_TEST(verifyDBSCAN(space, points, 3 * r, 5,
-                            dbscan(space, points, 3 * r, 5, params)));
+    VERIFY_DBSCAN(points, 3 * r, 2);
+    VERIFY_DBSCAN(points, 3 * r, 3);
+    VERIFY_DBSCAN(points, 3 * r, 4);
+    VERIFY_DBSCAN(points, 3 * r, 5);
   }
 
   {
@@ -239,10 +247,8 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
                                              {{1, 0.5, 0}},
                                              {{1, -0.5, 0}}});
 
-    BOOST_TEST(verifyDBSCAN(space, points, 1.0, 3,
-                            dbscan(space, points, (Coordinate)1, 3, params)));
-    BOOST_TEST(verifyDBSCAN(space, points, 1.0, 4,
-                            dbscan(space, points, (Coordinate)1, 4, params)));
+    VERIFY_DBSCAN(points, (Coordinate)1, 3);
+    VERIFY_DBSCAN(points, (Coordinate)1, 4);
   }
 
   {
@@ -268,8 +274,7 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl)
 
     // This does *not* guarantee to trigger the issue, as it depends on the
     // specific implementation and runtime. But it may.
-    BOOST_TEST(verifyDBSCAN(space, points, (Coordinate)1, 4,
-                            dbscan(space, points, (Coordinate)1, 4)));
+    VERIFY_DBSCAN(points, (Coordinate)1, 4);
   }
 }
 
