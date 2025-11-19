@@ -14,6 +14,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <ArborX_DBSCAN.hpp>
 #include <ArborX_LinearBVH.hpp>
 #ifdef ARBORX_ENABLE_MPI
 #include <ArborX_DistributedTree.hpp>
@@ -361,7 +362,8 @@ template <typename ExecutionSpace, typename Primitives, typename Labels,
           typename Coordinate>
 bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
                   Coordinate eps, int core_min_size, Labels const &labels,
-                  std::string const &algorithm = "dbscan", bool verbose = false)
+                  DBSCAN::Algorithm algorithm = DBSCAN::Algorithm::DBSCAN,
+                  bool verbose = false)
 {
   Kokkos::Profiling::ScopedRegion guard("ArborX::DBSCAN::verify");
 
@@ -375,7 +377,6 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
-  ARBORX_ASSERT(algorithm == "dbscan" || algorithm == "dbscan*");
 
   Points points{primitives}; // NOLINT
   auto const n = points.size();
@@ -414,19 +415,14 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   using Verify = bool (*)(ExecutionSpace const &, decltype(offset),
                           decltype(neighbors), bool);
 
-  std::vector<Verify> verify;
-  if (algorithm == "dbscan")
-    verify = {static_cast<Verify>(verifyCorePointsNonnegativeIndex),
-              static_cast<Verify>(verifyConnectedCorePointsShareIndex),
-              static_cast<Verify>(verifyNoisePoints),
-              static_cast<Verify>(verifyConnectedBorderPoints),
-              static_cast<Verify>(verifyClustersAreUnique)};
-  else
-    verify = {static_cast<Verify>(verifyCorePointsNonnegativeIndex),
-              static_cast<Verify>(verifyConnectedCorePointsShareIndex),
-              static_cast<Verify>(verifyNoisePoints),
-              static_cast<Verify>(verifyIgnoredBorderPoints),
-              static_cast<Verify>(verifyClustersAreUnique)};
+  std::vector<Verify> verify{
+      static_cast<Verify>(verifyCorePointsNonnegativeIndex),
+      static_cast<Verify>(verifyConnectedCorePointsShareIndex),
+      static_cast<Verify>(verifyNoisePoints),
+      (algorithm == DBSCAN::Algorithm::DBSCAN
+           ? static_cast<Verify>(verifyConnectedBorderPoints)
+           : static_cast<Verify>(verifyIgnoredBorderPoints)),
+      static_cast<Verify>(verifyClustersAreUnique)};
   return std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
     return verify(exec_space, offset, neighbors, verbose);
   });

@@ -53,8 +53,10 @@ void dbscan_verifier_f()
   auto const dbscan_verifier_result =
       [&space](auto const &points, Coordinate eps, int minpts,
                std::vector<int> const &result, std::string const &algorithm) {
-        return verifyDBSCAN(space, points, eps, minpts,
-                            toView<DeviceType, int>(result), algorithm);
+        return verifyDBSCAN(
+            space, points, eps, minpts, toView<DeviceType, int>(result),
+            (algorithm == "dbscan" ? ArborX::DBSCAN::Algorithm::DBSCAN
+                                   : ArborX::DBSCAN::Algorithm::DBSCAN_STAR));
       };
 
   {
@@ -173,7 +175,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_verifier_double, DeviceType,
 }
 
 template <typename DeviceType, typename Coordinate>
-void dbscan_f(ArborX::DBSCAN::Implementation impl, std::string const &algorithm)
+void dbscan_f(ArborX::DBSCAN::Implementation impl,
+              ArborX::DBSCAN::Algorithm algorithm)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
@@ -184,9 +187,7 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl, std::string const &algorithm)
   ExecutionSpace space;
 
   ArborX::DBSCAN::Parameters params;
-  params.setImplementation(impl).setAlgorithm(
-      algorithm == "dbscan" ? ArborX::DBSCAN::Algorithm::DBSCAN
-                            : ArborX::DBSCAN::Algorithm::DBSCAN_STAR);
+  params.setImplementation(impl).setAlgorithm(algorithm);
 
   auto verify_dbscan = [&space, &params, &algorithm](
                            auto const &points, Coordinate eps, int minpts) {
@@ -293,50 +294,50 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_fdbscan_float, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN,
-                              "dbscan");
+                              ArborX::DBSCAN::Algorithm::DBSCAN);
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_fdbscan_double, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN,
-                               "dbscan");
+                               ArborX::DBSCAN::Algorithm::DBSCAN);
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_fdbscan_densebox_float, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox,
-                              "dbscan");
+                              ArborX::DBSCAN::Algorithm::DBSCAN);
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_fdbscan_densebox_double, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox,
-                               "dbscan");
+                               ArborX::DBSCAN::Algorithm::DBSCAN);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_star_fdbscan_float, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN,
-                              "dbscan*");
+                              ArborX::DBSCAN::Algorithm::DBSCAN_STAR);
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_star_fdbscan_double, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN,
-                               "dbscan*");
+                               ArborX::DBSCAN::Algorithm::DBSCAN_STAR);
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_star_fdbscan_densebox_float, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   dbscan_f<DeviceType, float>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox,
-                              "dbscan*");
+                              ArborX::DBSCAN::Algorithm::DBSCAN_STAR);
 }
 BOOST_AUTO_TEST_CASE_TEMPLATE(dbscan_star_fdbscan_densebox_double, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
   dbscan_f<DeviceType, double>(ArborX::DBSCAN::Implementation::FDBSCAN_DenseBox,
-                               "dbscan*");
+                               ArborX::DBSCAN::Algorithm::DBSCAN_STAR);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

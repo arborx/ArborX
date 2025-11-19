@@ -225,9 +225,9 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   bool success = true;
   if (params.verify)
   {
-    success = ArborX::Details::verifyDBSCAN(exec_space, primitives, params.eps,
-                                            params.core_min_size, labels,
-                                            params.algorithm);
+    success =
+        ArborX::Details::verifyDBSCAN(exec_space, primitives, params.eps,
+                                      params.core_min_size, labels, algorithm);
     printf("Verification %s\n", (success ? "passed" : "failed"));
   }
 
