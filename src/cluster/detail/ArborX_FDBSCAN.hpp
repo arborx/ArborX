@@ -19,10 +19,13 @@
 
 #include <Kokkos_Core.hpp>
 
-namespace ArborX
+namespace ArborX::Details
 {
-namespace Details
-{
+
+struct DBSCANTag
+{};
+struct DBSCANStarTag
+{};
 
 template <typename MemorySpace>
 struct CountUpToN
@@ -42,9 +45,11 @@ struct CountUpToN
   }
 };
 
-template <typename UnionFind, typename CorePointsType, bool DbscanStar = false>
+template <typename UnionFind, typename CorePointsType, typename Tag = DBSCANTag>
 struct FDBSCANCallback
 {
+  static_assert(std::is_same_v<Tag, DBSCANTag> ||
+                std::is_same_v<Tag, DBSCANStarTag>);
   UnionFind _union_find;
   CorePointsType _is_core_point;
 
@@ -59,7 +64,7 @@ struct FDBSCANCallback
     bool const is_border_point = !_is_core_point(i);
     bool const neighbor_is_core_point = _is_core_point(j);
 
-    if constexpr (DbscanStar == true)
+    if constexpr (std::is_same_v<Tag, DBSCANStarTag>)
     {
       // Border points do not participate in merging in DBSCAN*
       if (is_border_point || !neighbor_is_core_point)
@@ -104,7 +109,6 @@ struct FDBSCANCallback
   }
 };
 
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif

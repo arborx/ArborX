@@ -319,7 +319,8 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       else
         Details::HalfTraversal(
             exec_space, bvh,
-            Details::FDBSCANCallback<UnionFind, CorePoints, /* DBSCAN* */ true>{
+            Details::FDBSCANCallback<UnionFind, CorePoints,
+                                     Details::DBSCANStarTag>{
                 labels, CorePoints{num_neigh, core_min_size}},
             Details::WithinRadiusGetter<Coordinate>{eps});
       Kokkos::Profiling::popRegion();
@@ -473,7 +474,7 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
             exec_space, predicates,
             Details::FDBSCANDenseBoxCallback<
                 UnionFind, CorePoints, Points, decltype(dense_cell_offsets),
-                decltype(permute), /* DBSCAN* */ true>{
+                decltype(permute), Details::DBSCANStarTag>{
                 labels, CorePoints{num_neigh, core_min_size}, points,
                 dense_cell_offsets, exec_space, permute, eps});
       Kokkos::Profiling::popRegion();
