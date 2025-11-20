@@ -131,9 +131,9 @@ public:
     {
 #ifndef NDEBUG
       int n_zero_values = 0;
-      for (int i=0; i<n; ++i)
-        if(Kokkos::abs(svd_diag(i)) < tolerance)
-          ++n_zero_values;        
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_diag(i)) < tolerance)
+          ++n_zero_values;
 #endif
       ::ArborX::Details::symmetricMatrixFromSVD(svd_diag, svd_unit, moment);
 
@@ -188,11 +188,12 @@ public:
 
 #ifndef NDEBUG
       int n_zero_values_in_elimination = 0;
-      for (int i=0; i<n; ++i)
-        if(Kokkos::abs(svd_unit(i, i)) < tolerance)
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_unit(i, i)) < tolerance)
           ++n_zero_values_in_elimination;
       if (n_zero_values_in_elimination != n_zero_values)
-        Kokkos::abort("Detected different number of zero eigenvalues in SVD and Gaussian Elimination!");
+        Kokkos::abort("Detected different number of zero eigenvalues in SVD "
+                      "and Gaussian Elimination!");
 #endif
       for (int i = 0; i < n; ++i)
       {
@@ -212,9 +213,10 @@ public:
       // Compute a SVD for the new matrix
       ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
 #ifndef NDEBUG
-      for (int i=0; i<n; ++i)
-        if(Kokkos::abs(svd_unit(i, i)) < tolerance)
-          Kokkos::abort("Gaussian Elimination didn't eliminate all zero eigenvalues!");
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_unit(i, i)) < tolerance)
+          Kokkos::abort(
+              "Gaussian Elimination didn't eliminate all zero eigenvalues!");
 #endif
     }
 

@@ -21,7 +21,7 @@ using Point = ArborX::Point<2, double>;
 KOKKOS_FUNCTION double functionToApproximate(Point const &p)
 {
   (void)p;
-  return 10 * p[0] * p[0]; // Kokkos::cos(p[0] + p[1] / 4);
+  return 10 * p[1]; // Kokkos::cos(p[0] + p[1] / 4);
 }
 
 int main(int argc, char *argv[])
@@ -58,14 +58,14 @@ int main(int argc, char *argv[])
       "Example::make_points", Kokkos::RangePolicy(space, 0, 1),
       KOKKOS_LAMBDA(int const) {
         src_points(0) = {0., 0.};
-        src_points(1) = {1., 0.};
-        src_points(2) = {2., 0.};
+        src_points(1) = {0., 0.};
+        src_points(2) = {0., 0.};
         src_points(3) = {0., 1.};
-        src_points(4) = {1., 1.};
-        src_points(5) = {2., 1.};
+        src_points(4) = {0., 1.};
+        src_points(5) = {0., 1.};
         src_points(6) = {0., 2.};
-        src_points(7) = {1., 2.};
-        src_points(8) = {2., 2.};
+        src_points(7) = {0., 2.};
+        src_points(8) = {0., 2.};
         tgt_points(0) = {4. / 6., 4. / 3.};
         tgt_points(1) = {9. / 6., 3. / 3.};
         tgt_points(2) = {2. / 6., 1. / 3.};
