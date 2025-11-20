@@ -115,11 +115,117 @@ public:
 
     // We need the inverse of P^T.PHI.P, and because it is symmetric, we can use
     // the symmetric SVD algorithm to get it.
-    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag,
-                                                       svd_unit);
-    // Now, the moment has [P^T.PHI.P]^-1
+    ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
 
-    // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI
+    // Check if matrix is singular
+    CoefficientsType max_eigen = 0;
+    constexpr int n = moment.static_extent(0);
+    for (int i = 0; i < n; i++)
+      max_eigen = Kokkos::max(Kokkos::abs(svd_diag(i)), max_eigen);
+    CoefficientsType min_eigen = max_eigen;
+    for (int i = 0; i < n; i++)
+      min_eigen = Kokkos::min(Kokkos::abs(svd_diag(i)), min_eigen);
+    constexpr auto epsilon = Kokkos::Experimental::epsilon_v<CoefficientsType>;
+    auto tolerance = n * max_eigen * epsilon;
+    if (min_eigen < tolerance)
+    {
+#ifndef NDEBUG
+      int n_zero_values = 0;
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_diag(i)) < tolerance)
+          ++n_zero_values;
+#endif
+      ::ArborX::Details::symmetricMatrixFromSVD(svd_diag, svd_unit, moment);
+
+      for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j)
+          svd_unit(i, j) = moment(i, j);
+      // Use Gaussian Elimination to find rows that form a full rank matrix
+      int pivot_row = 0;
+      int pivot_column = 0;
+
+      Kokkos::Array<int, n> permutation;
+      for (int i = 0; i < n; ++i)
+        permutation[i] = i;
+
+      while (pivot_row < n && pivot_column < n)
+      {
+        // Find the k-th pivot:
+        int i_max = 0;
+        CoefficientsType max_entry = 0.;
+        for (int i = pivot_row; i < n; ++i)
+          if (Kokkos::abs(svd_unit(i, pivot_column)) > max_entry)
+          {
+            max_entry = Kokkos::abs(svd_unit(i, pivot_column));
+            i_max = i;
+          }
+
+        // No pivot in this column, pass to next column
+        if (svd_unit(i_max, pivot_column) == 0)
+          ++pivot_column;
+        else
+        {
+          // swap rows(pivot_row, i_max)
+          for (int i = 0; i < n; ++i)
+            Kokkos::kokkos_swap(svd_unit(pivot_row, i), svd_unit(i_max, i));
+          Kokkos::kokkos_swap(permutation[i_max], permutation[pivot_row]);
+          // Do for all rows below pivot:
+          for (int i = pivot_row + 1; i < n; ++i)
+          {
+            CoefficientsType f =
+                svd_unit(i, pivot_column) / svd_unit(pivot_row, pivot_column);
+            // Fill with zeros the lower part of pivot column:
+            svd_unit(i, pivot_column) = 0.;
+            // Do for all remaining elements in current row:
+            for (int j = pivot_column + 1; j < n; ++j)
+              svd_unit(i, j) -= svd_unit(pivot_row, j) * f;
+          }
+          // Increase pivot row and column
+          ++pivot_row;
+          ++pivot_column;
+        }
+      }
+
+#ifndef NDEBUG
+      int n_zero_values_in_elimination = 0;
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_unit(i, i)) < tolerance)
+          ++n_zero_values_in_elimination;
+      if (n_zero_values_in_elimination != n_zero_values)
+        Kokkos::abort("Detected different number of zero eigenvalues in SVD "
+                      "and Gaussian Elimination!");
+#endif
+      for (int i = 0; i < n; ++i)
+      {
+        if (Kokkos::abs(svd_unit(i, i) < tolerance))
+        {
+          int row_index = permutation[i];
+          // Eliminate corresponding column from Vandermonde matrix and
+          // eliminate row and column from moment matrix storing 1 one the
+          // diagonal
+          for (int j = 0; j < n; ++j)
+            moment(row_index, j) = moment(j, row_index) = 0.;
+          for (unsigned int j = 0; j < vandermonde.static_extent(0); ++j)
+            vandermonde(j, row_index) = 0;
+          moment(row_index, row_index) = 1.;
+        }
+      }
+      // Compute a SVD for the new matrix
+      ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
+#ifndef NDEBUG
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_unit(i, i)) < tolerance)
+          Kokkos::abort(
+              "Gaussian Elimination didn't eliminate all zero eigenvalues!");
+#endif
+    }
+
+    // Store [P^T.PHI.P]^-1 in moment
+    ::ArborX::Details::symmetricPseudoInverseSVDKernel(svd_diag, svd_unit,
+                                                       moment);
+
+    // Finally, the result is produced by computing
+    // p(0).[P^T.PHI.P]^-1.P^T.PHI
     coefficientsComputation(phi, vandermonde, moment, coefficients);
   }
 
