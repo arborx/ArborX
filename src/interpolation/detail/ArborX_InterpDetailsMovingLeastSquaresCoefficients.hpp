@@ -144,7 +144,7 @@ public:
 
       while (pivot_row < n && pivot_column < n)
       {
-        /* Find the k-th pivot: */
+        // Find the k-th pivot:
         int i_max = 0;
         CoefficientsType max_entry = 0.;
         for (int i = pivot_row; i < n; ++i)
@@ -154,29 +154,27 @@ public:
             i_max = i;
           }
 
+        // No pivot in this column, pass to next column
         if (svd_unit(i_max, pivot_column) == 0)
-        {
-          /* No pivot in this column, pass to next column */
           ++pivot_column;
-        }
         else
         {
           // swap rows(pivot_row, i_max)
           for (int i = 0; i < n; ++i)
             Kokkos::kokkos_swap(svd_unit(pivot_row, i), svd_unit(i_max, i));
           Kokkos::kokkos_swap(permutation[i_max], permutation[pivot_row]);
-          /* Do for all rows below pivot: */
+          // Do for all rows below pivot:
           for (int i = pivot_row + 1; i < n; ++i)
           {
             CoefficientsType f =
                 svd_unit(i, pivot_column) / svd_unit(pivot_row, pivot_column);
-            /* Fill with zeros the lower part of pivot column: */
+            // Fill with zeros the lower part of pivot column:
             svd_unit(i, pivot_column) = 0.;
-            /* Do for all remaining elements in current row: */
+            // Do for all remaining elements in current row:
             for (int j = pivot_column + 1; j < n; ++j)
               svd_unit(i, j) -= svd_unit(pivot_row, j) * f;
           }
-          /* Increase pivot row and column */
+          // Increase pivot row and column
           ++pivot_row;
           ++pivot_column;
         }
