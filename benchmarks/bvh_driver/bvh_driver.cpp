@@ -93,15 +93,6 @@ void register_bvh_benchmarks(Spec const &spec)
     throw std::runtime_error("HIP backend not available!");
 #endif
 
-#ifdef KOKKOS_ENABLE_OPENMPTARGET
-  if (spec.backends == "all" || spec.backends == "openmptarget")
-    BVHBenchmarkRegistration<Kokkos::Experimental::OpenMPTarget>(
-        spec, "ArborX::BVH<OpenMPTarget>");
-#else
-  if (spec.backends == "openmptarget")
-    throw std::runtime_error("OpenMPTarget backend not available!");
-#endif
-
 #ifdef KOKKOS_ENABLE_SYCL
   if (spec.backends == "all" || spec.backends == "sycl")
     BVHBenchmarkRegistration<Kokkos::Experimental::SYCL>(spec,
