@@ -19,10 +19,13 @@
 
 #include <Kokkos_Core.hpp>
 
-namespace ArborX
+namespace ArborX::Details
 {
-namespace Details
-{
+
+struct DBSCANTag
+{};
+struct DBSCANStarTag
+{};
 
 template <typename MemorySpace>
 struct CountUpToN
@@ -42,9 +45,11 @@ struct CountUpToN
   }
 };
 
-template <typename UnionFind, typename CorePointsType>
+template <typename UnionFind, typename CorePointsType, typename Tag = DBSCANTag>
 struct FDBSCANCallback
 {
+  static_assert(std::is_same_v<Tag, DBSCANTag> ||
+                std::is_same_v<Tag, DBSCANStarTag>);
   UnionFind _union_find;
   CorePointsType _is_core_point;
 
@@ -58,6 +63,14 @@ struct FDBSCANCallback
 
     bool const is_border_point = !_is_core_point(i);
     bool const neighbor_is_core_point = _is_core_point(j);
+
+    if constexpr (std::is_same_v<Tag, DBSCANStarTag>)
+    {
+      // Border points do not participate in merging in DBSCAN*
+      if (is_border_point || !neighbor_is_core_point)
+        return ArborX::CallbackTreeTraversalControl::early_exit;
+    }
+
     if (is_border_point)
     {
       if (neighbor_is_core_point)
@@ -67,9 +80,9 @@ struct FDBSCANCallback
         // multiple core points, it will be assigned to the cluster that the
         // first found core point neighbor was in.
         //
-        // NOTE: DO NOT USE merge(i, j) here. This may set this border point as
-        // a representative for the whole cluster potentially forming a bridge
-        // with a different cluster.
+        // NOTE: DO NOT USE merge(i, j) here. This may set this border point
+        // as a representative for the whole cluster potentially forming a
+        // bridge with a different cluster.
         _union_find.merge_into(i, j);
 
         // Once a border point is assigned to a cluster, can terminate the
@@ -96,7 +109,6 @@ struct FDBSCANCallback
   }
 };
 
-} // namespace Details
-} // namespace ArborX
+} // namespace ArborX::Details
 
 #endif

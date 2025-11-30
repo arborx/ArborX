@@ -14,6 +14,7 @@
 
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_CartesianGrid.hpp>
+#include <detail/ArborX_FDBSCAN.hpp> // DBSCANTag, DBSCANStarTag
 #include <detail/ArborX_Predicates.hpp>
 #include <detail/ArborX_UnionFind.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
@@ -93,9 +94,12 @@ struct CountUpToN_DenseBox
 };
 
 template <typename UnionFind, typename CorePointsType, typename Primitives,
-          typename DenseCellOffsets, typename Permutation>
+          typename DenseCellOffsets, typename Permutation,
+          typename Tag = DBSCANTag>
 struct FDBSCANDenseBoxCallback
 {
+  static_assert(std::is_same_v<Tag, DBSCANTag> ||
+                std::is_same_v<Tag, DBSCANStarTag>);
   using Coordinate =
       GeometryTraits::coordinate_type_t<typename Primitives::value_type>;
 
@@ -179,8 +183,14 @@ struct FDBSCANDenseBoxCallback
       bool const is_neighbor_core_point = _is_core_point(j);
       if (is_neighbor_core_point && i > j)
         _union_find.merge(i, j);
-      else if (!is_neighbor_core_point)
-        _union_find.merge_into(j, i);
+      else
+      {
+        if constexpr (std::is_same_v<Tag, DBSCANTag>)
+        {
+          if (!is_neighbor_core_point)
+            _union_find.merge_into(j, i);
+        }
+      }
     }
 
     return CallbackTreeTraversalControl::normal_continuation;
