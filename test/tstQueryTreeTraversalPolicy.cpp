@@ -95,17 +95,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
                         -max_results_per_query)));
   checkResultsAreFine();
 
-  // buffer size insufficient
-  BOOST_TEST(max_results_per_query > 1);
-  BOOST_CHECK_NO_THROW(
-      ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset,
-                    ArborX::Experimental::TraversalPolicy().setBufferSize(+1)));
-  checkResultsAreFine();
-  BOOST_CHECK_THROW(
-      ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset,
-                    ArborX::Experimental::TraversalPolicy().setBufferSize(-1)),
-      ArborX::SearchException);
-
   // adequate buffer size
   BOOST_TEST(max_results_per_query < 5);
   BOOST_CHECK_NO_THROW(
@@ -122,6 +111,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(buffer_optimization, DeviceType,
       ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset,
                     ArborX::Experimental::TraversalPolicy().setBufferSize(0)));
   checkResultsAreFine();
+
+  // buffer size insufficient
+  BOOST_TEST(max_results_per_query > 1);
+  BOOST_CHECK_NO_THROW(
+      ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset,
+                    ArborX::Experimental::TraversalPolicy().setBufferSize(+1)));
+  checkResultsAreFine();
+  // As we throw, some profiling tools may not account correctly for the
+  // regions. Let us ignore them, then.
+  Kokkos::Tools::Experimental::set_push_region_callback(nullptr);
+  Kokkos::Tools::Experimental::set_pop_region_callback(nullptr);
+  BOOST_CHECK_THROW(
+      ArborX::query(bvh, ExecutionSpace{}, queries, indices, offset,
+                    ArborX::Experimental::TraversalPolicy().setBufferSize(-1)),
+      ArborX::SearchException);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(unsorted_predicates, DeviceType,
