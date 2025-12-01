@@ -30,13 +30,12 @@ struct HelpPrinted
 
 namespace bpo = boost::program_options;
 
-template <class NO>
-int main_(std::vector<std::string> const &args, MPI_Comm const comm)
+int main_(int argc, char *argv[], MPI_Comm const comm)
 {
   ArborXBenchmark::TimeMonitor time_monitor;
 
-  using DeviceType = typename NO::device_type;
-  using ExecutionSpace = typename DeviceType::execution_space;
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = typename ExecutionSpace::memory_space;
 
   int n_values;
   int n_queries;
@@ -69,7 +68,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
         ;
   // clang-format on
   bpo::variables_map vm;
-  bpo::store(bpo::command_line_parser(args).options(desc).run(), vm);
+  bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
 
   int comm_rank;
@@ -107,10 +106,10 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 
   using Point = ArborX::Point<3>;
 
-  Kokkos::View<Point *, DeviceType> random_values(
+  Kokkos::View<Point *, MemorySpace> random_values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::values"),
       n_values);
-  Kokkos::View<Point *, DeviceType> random_queries(
+  Kokkos::View<Point *, MemorySpace> random_queries(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::queries"),
       n_queries);
   {
@@ -172,7 +171,7 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 
     // The boxes in which the points are placed have side length two, centered
     // around offset_[xyz] and scaled by a.
-    Kokkos::View<Point *, DeviceType> random_points(
+    Kokkos::View<Point *, MemorySpace> random_points(
         Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::points"),
         std::max(n_values, n_queries));
     auto random_points_host = Kokkos::create_mirror_view(random_points);
@@ -226,8 +225,8 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
 
   if (perform_knn_search)
   {
-    Kokkos::View<int *, DeviceType> offsets("Benchmark::offsets", 0);
-    Kokkos::View<Point *, DeviceType> values("Benchmark::values", 0);
+    Kokkos::View<int *, MemorySpace> offsets("Benchmark::offsets", 0);
+    Kokkos::View<Point *, MemorySpace> values("Benchmark::values", 0);
 
     auto knn = time_monitor.getNewTimer("knn");
     MPI_Barrier(comm);
@@ -264,8 +263,8 @@ int main_(std::vector<std::string> const &args, MPI_Comm const comm)
       break;
     }
 
-    Kokkos::View<int *, DeviceType> offsets("Testing::offsets", 0);
-    Kokkos::View<Point *, DeviceType> values("Testing::values", 0);
+    Kokkos::View<int *, MemorySpace> offsets("Testing::offsets", 0);
+    Kokkos::View<Point *, MemorySpace> values("Testing::values", 0);
 
     auto radius = time_monitor.getNewTimer("radius");
     MPI_Barrier(comm);
@@ -316,112 +315,9 @@ int main(int argc, char *argv[])
 
   Kokkos::ScopeGuard guard(argc, argv);
 
-  bool success = true;
-
-  try
-  {
-    std::string node;
-    // NOTE Lame trick to get a valid default value
-#if defined(KOKKOS_ENABLE_HIP)
-    node = "hip";
-#elif defined(KOKKOS_ENABLE_CUDA)
-    node = "cuda";
-#elif defined(KOKKOS_ENABLE_OPENMP)
-    node = "openmp";
-#elif defined(KOKKOS_ENABLE_THREADS)
-    node = "threads";
-#elif defined(KOKKOS_ENABLE_SERIAL)
-    node = "serial";
-#endif
-    bpo::options_description desc("Parallel setting:");
-    desc.add_options()("node", bpo::value<std::string>(&node),
-                       "node type (serial | openmp | threads | cuda)");
-    bpo::variables_map vm;
-    bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
-                                     .options(desc)
-                                     .allow_unregistered()
-                                     .run();
-    bpo::store(parsed, vm);
-    std::vector<std::string> pass_further =
-        bpo::collect_unrecognized(parsed.options, bpo::include_positional);
-    bpo::notify(vm);
-
-    if (comm_rank == 0 && std::find_if(pass_further.begin(), pass_further.end(),
-                                       [](std::string const &x) {
-                                         return x == "--help";
-                                       }) != pass_further.end())
-    {
-      std::cout << desc << '\n';
-    }
-
-    if (node != "serial" && node != "openmp" && node != "cuda" &&
-        node != "threads" && node != "hip")
-      throw std::runtime_error("Unrecognized node type: \"" + node + "\"");
-
-    if (node == "serial")
-    {
-#ifdef KOKKOS_ENABLE_SERIAL
-      using Node = Kokkos::Serial;
-      main_<Node>(pass_further, comm);
-#else
-      throw std::runtime_error("Serial node type is disabled");
-#endif
-    }
-    if (node == "openmp")
-    {
-#ifdef KOKKOS_ENABLE_OPENMP
-      using Node = Kokkos::OpenMP;
-      main_<Node>(pass_further, comm);
-#else
-      throw std::runtime_error("OpenMP node type is disabled");
-#endif
-    }
-    if (node == "threads")
-    {
-#ifdef KOKKOS_ENABLE_THREADS
-      using Node = Kokkos::Threads;
-      main_<Node>(pass_further, comm);
-#else
-      throw std::runtime_error("Threads node type is disabled");
-#endif
-    }
-    if (node == "cuda")
-    {
-#ifdef KOKKOS_ENABLE_CUDA
-      using Node = Kokkos::Device<Kokkos::Cuda, Kokkos::CudaSpace>;
-      main_<Node>(pass_further, comm);
-#else
-      throw std::runtime_error("CUDA node type is disabled");
-#endif
-    }
-    if (node == "hip")
-    {
-#ifdef KOKKOS_ENABLE_HIP
-      using Node = Kokkos::Device<Kokkos::HIP, Kokkos::HIPSpace>;
-      main_<Node>(pass_further, comm);
-#else
-      throw std::runtime_error("HIP node type is disabled");
-#endif
-    }
-  }
-  catch (HelpPrinted const &)
-  {
-    // Do nothing, it was a successful run. Just clean up things below.
-  }
-  catch (std::exception const &e)
-  {
-    std::cerr << "processor " << comm_rank
-              << " caught a std::exception: " << e.what() << '\n';
-    success = false;
-  }
-  catch (...)
-  {
-    std::cerr << "processor " << comm_rank
-              << " caught some kind of exception\n";
-    success = false;
-  }
+  main_(argc, argv, comm);
 
   MPI_Finalize();
 
-  return (success ? EXIT_SUCCESS : EXIT_FAILURE);
+  return EXIT_SUCCESS;
 }
