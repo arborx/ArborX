@@ -23,7 +23,6 @@ using CoordinatesList = std::tuple<float, double>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_point, Coordinate, CoordinatesList)
 {
-  using ArborX::Details::distance;
   using Point = ArborX::Point<3, Coordinate>;
 
   BOOST_TEST(distance(Point{1, 2, 3}, Point{1, 1, 1}) ==
@@ -32,7 +31,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_point, Coordinate, CoordinatesList)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_box, Coordinate, CoordinatesList)
 {
-  using ArborX::Details::distance;
   using Point = ArborX::Point<3, Coordinate>;
   using Box = ArborX::Box<3, Coordinate>;
 
@@ -55,7 +53,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_box, Coordinate, CoordinatesList)
 BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_sphere, Coordinate,
                               CoordinatesList)
 {
-  using ArborX::Details::distance;
   using Point = ArborX::Point<3, Coordinate>;
   using Sphere = ArborX::Sphere<3, Coordinate>;
 
@@ -72,8 +69,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_sphere, Coordinate,
 BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_segment, Coordinate,
                               CoordinatesList)
 {
-  using ArborX::Details::distance;
-
   using Point = ArborX::Point<2, Coordinate>;
   using Segment = ArborX::Experimental::Segment<2, Coordinate>;
 
@@ -94,8 +89,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_segment, Coordinate,
 BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_triangle, Coordinate,
                               CoordinatesList)
 {
-  using ArborX::Details::distance;
-
   /* Zones
          \ 2/
           \/
@@ -167,8 +160,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_triangle, Coordinate,
 BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_tetrahedron, Coordinate,
                               CoordinatesList)
 {
-  using ArborX::Details::distance;
-
   using Point = ArborX::Point<3, Coordinate>;
   using Tetrahedron =
       ArborX::ExperimentalHyperGeometry::Tetrahedron<Coordinate>;
@@ -214,7 +205,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_point_tetrahedron, Coordinate,
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(distance_box_box, Coordinate, CoordinatesList)
 {
-  using ArborX::Details::distance;
   namespace KokkosExt = ArborX::Details::KokkosExt;
   using Box = ArborX::Box<3, Coordinate>;
 
@@ -250,7 +240,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_box_box, Coordinate, CoordinatesList)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(distance_sphere_box, Coordinate, CoordinatesList)
 {
-  using ArborX::Details::distance;
   namespace KokkosExt = ArborX::Details::KokkosExt;
   using Box = ArborX::Box<3, Coordinate>;
   using Sphere = ArborX::Sphere<3, Coordinate>;

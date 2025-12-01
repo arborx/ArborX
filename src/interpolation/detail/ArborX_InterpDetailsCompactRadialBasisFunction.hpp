@@ -100,8 +100,7 @@ KOKKOS_INLINE_FUNCTION constexpr auto evaluate(Point const &point)
 {
   static_assert(GeometryTraits::is_point_v<Point>, "Point must be a point");
   constexpr std::size_t dim = GeometryTraits::dimension_v<Point>;
-  return CRBFunc::template evaluate<dim>(
-      ArborX::Details::distance(point, Point{}));
+  return CRBFunc::template evaluate<dim>(distance(point, Point{}));
 }
 
 } // namespace CRBF

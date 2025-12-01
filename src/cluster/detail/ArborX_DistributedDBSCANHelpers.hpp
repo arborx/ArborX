@@ -14,6 +14,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_LinearBVH.hpp>
+#include <algorithms/ArborX_Distance.hpp>
 #include <detail/ArborX_Distributor.hpp>
 #include <detail/ArborX_Predicates.hpp>
 #include <detail/ArborX_TreeConstruction.hpp>
