@@ -312,9 +312,9 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  params.perform_knn_search = !vm.count("do-not-perform-knn-search");
-  params.perform_radius_search = !vm.count("do-not-perform-radius-search");
-  params.shift_queries = !vm.count("shift-queries");
+  params.perform_knn_search = (vm.count("do-not-perform-knn-search") > 0);
+  params.perform_radius_search = (vm.count("do-not-perform-radius-search") > 0);
+  params.shift_queries = (vm.count("shift-queries") > 0);
 
   if (comm_rank == 0)
   {
