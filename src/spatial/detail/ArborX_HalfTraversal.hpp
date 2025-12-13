@@ -17,6 +17,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <cstdlib>
+
 namespace ArborX::Details
 {
 
@@ -44,8 +46,18 @@ struct HalfTraversal
     }
     else
     {
-      Kokkos::parallel_for("ArborX::Experimental::HalfTraversal",
-                           Kokkos::RangePolicy(space, 0, _bvh.size()), *this);
+#if defined(KOKKOS_ENABLE_CUDA)
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Cuda>)
+        Kokkos::parallel_for(
+            "ArborX::Experimental::HalfTraversal",
+            Kokkos::Experimental::prefer(
+                Kokkos::RangePolicy(space, 0, _bvh.size()),
+                Kokkos::Experimental::DesiredOccupancy{Kokkos::AUTO}),
+            *this);
+      else
+#endif
+        Kokkos::parallel_for("ArborX::Experimental::HalfTraversal",
+                             Kokkos::RangePolicy(space, 0, _bvh.size()), *this);
     }
   }
 
