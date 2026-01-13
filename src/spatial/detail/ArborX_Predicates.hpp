@@ -79,7 +79,7 @@ struct Intersects
   template <typename OtherGeometry>
   KOKKOS_FUNCTION bool operator()(OtherGeometry const &other) const
   {
-    using Experimental::intersects;
+    using ::ArborX::intersects;
     return intersects(_geometry, other);
   }
 
