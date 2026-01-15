@@ -110,6 +110,21 @@ struct distance<SphereTag, PointTag, Sphere, Point>
   }
 };
 
+// distance sphere-sphere
+template <typename Sphere1, typename Sphere2>
+struct distance<SphereTag, SphereTag, Sphere1, Sphere2>
+{
+  KOKKOS_FUNCTION static auto apply(Sphere1 const &sphere1,
+                                    Sphere2 const &sphere2)
+  {
+    using Coordinate = coordinate_type_t<Sphere1>;
+    return Kokkos::max(
+        ::ArborX::distance(sphere1.centroid(), sphere2.centroid()) -
+            sphere1.radius() - sphere2.radius(),
+        (Coordinate)0);
+  }
+};
+
 // distance point-triangle
 template <typename Point, typename Triangle>
 struct distance<PointTag, TriangleTag, Point, Triangle>
