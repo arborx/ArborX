@@ -46,6 +46,5 @@ int main(int argc, char *argv[])
 #if !defined(__APPLE__) && !defined(_WIN32)
   feenableexcept(FE_INVALID);
 #endif
-  [[maybe_unused]] double bla = 0. / 0.;
   return boost::unit_test::unit_test_main(&init_function, argc, argv);
 }
