@@ -43,7 +43,8 @@ bool init_function() { return true; }
 int main(int argc, char *argv[])
 {
   ExecutionEnvironmentScopeGuard scope_guard(argc, argv);
-#if !defined(__APPLE__) && !defined(_WIN32)
+// FIX_SYCL
+#if !defined(__APPLE__) && !defined(_WIN32) && !defined(Kokkos_ENABLE_SYCL)
   feenableexcept(FE_INVALID);
 #endif
   return boost::unit_test::unit_test_main(&init_function, argc, argv);
