@@ -93,8 +93,10 @@ void test_access_traits_compile_only()
 
   Kokkos::View<Point *> p;
   Kokkos::View<float **> v;
+  std::vector<int> vec;
   check_valid_access_traits(p);
   check_valid_access_traits(v);
+  check_valid_access_traits(vec);
 
   auto p_with_indices = ArborX::Experimental::attach_indices(p);
   check_valid_access_traits(p_with_indices);
