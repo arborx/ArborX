@@ -98,6 +98,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_sphere_box, Coordinate,
   BOOST_TEST(!intersects(sphere, Box{{{1., 2., 3.}}, {{4., 5., 6.}}}));
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_sphere_sphere, Coordinate,
+                              CoordinatesList)
+{
+  using Sphere = ArborX::Sphere<2, Coordinate>;
+
+  BOOST_TEST(intersects(Sphere{{-1, -1}, 1}, Sphere{{1, -1}, 1}));
+  BOOST_TEST(intersects(Sphere{{0, 0}, 1}, Sphere{{2, 2}, 5}));
+  BOOST_TEST(!intersects(Sphere{{-1, -1}, 0.9}, Sphere{{1, -1}, 0.9}));
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_sphere_triangle, Coordinate,
                               CoordinatesList)
 {

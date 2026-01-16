@@ -264,3 +264,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_sphere_box, Coordinate, CoordinatesList)
   // distance to empty box
   BOOST_TEST(distance(sphere, Box{}) == infinity);
 }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(distance_sphere_sphere, Coordinate,
+                              CoordinatesList)
+{
+  using Sphere = ArborX::Sphere<2, Coordinate>;
+
+  BOOST_TEST(distance(Sphere{{-1, -1}, 1}, Sphere{{1, -1}, 1}) == 0);
+  BOOST_TEST(distance(Sphere{{0, 0}, 1}, Sphere{{2, 2}, 5}) == 0);
+  BOOST_TEST(distance(Sphere{{-1, -1}, 0.5}, Sphere{{1, -1}, 0.5}) == 1.0);
+  BOOST_TEST(distance(Sphere{{-1, 1}, 1}, Sphere{{2, -3}, 1}) == 3);
+}

@@ -98,6 +98,18 @@ struct intersects<SphereTag, BoxTag, Sphere, Box>
   }
 };
 
+// check if a sphere intersects with a sphere
+template <typename Sphere1, typename Sphere2>
+struct intersects<SphereTag, SphereTag, Sphere1, Sphere2>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Sphere1 const &sphere1,
+                                              Sphere2 const &sphere2)
+  {
+    return ::ArborX::distance(sphere1.centroid(), sphere2.centroid()) <=
+           sphere1.radius() + sphere2.radius();
+  }
+};
+
 // check if a sphere intersects with a point
 template <typename Sphere, typename Point>
 struct intersects<SphereTag, PointTag, Sphere, Point>
