@@ -20,6 +20,7 @@
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_CrsGraphWrapperImpl.hpp>
 #include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_Iota.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 #include <detail/ArborX_PredicateHelpers.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
@@ -49,8 +50,15 @@ public:
   BruteForce() = default;
 
   template <typename ExecutionSpace, typename Values>
+    requires(!std::integral<Values>)
   BruteForce(ExecutionSpace const &space, Values const &values,
              IndexableGetter const &indexable_getter = IndexableGetter());
+
+  template <typename ExecutionSpace>
+  BruteForce(ExecutionSpace const &space, int size,
+             IndexableGetter const &indexable_getter)
+      : BruteForce(space, Details::Iota<MemorySpace>(size), indexable_getter)
+  {}
 
   KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
@@ -104,15 +112,21 @@ KOKKOS_DEDUCTION_GUIDE BruteForce(ExecutionSpace, Values)
     -> BruteForce<typename Details::AccessValues<Values>::memory_space,
                   typename Details::AccessValues<Values>::value_type>;
 
-template <typename ExecutionSpace, typename Values, typename IndexableGetter>
+template <typename ExecutionSpace, typename Values, typename IndexableGetter,
+          std::enable_if_t<!std::is_integral_v<Values>> = true>
 KOKKOS_DEDUCTION_GUIDE BruteForce(ExecutionSpace, Values, IndexableGetter)
     -> BruteForce<typename Details::AccessValues<Values>::memory_space,
                   typename Details::AccessValues<Values>::value_type,
                   IndexableGetter>;
 
+template <typename ExecutionSpace, typename IndexableGetter>
+KOKKOS_DEDUCTION_GUIDE BruteForce(ExecutionSpace, int, IndexableGetter)
+    -> BruteForce<typename ExecutionSpace::memory_space, int, IndexableGetter>;
+
 template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
 template <typename ExecutionSpace, typename UserValues>
+  requires(!std::integral<UserValues>)
 BruteForce<MemorySpace, Value, IndexableGetter, BoundingVolume>::BruteForce(
     ExecutionSpace const &space, UserValues const &user_values,
     IndexableGetter const &indexable_getter)

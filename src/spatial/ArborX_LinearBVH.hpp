@@ -19,6 +19,7 @@
 #include <detail/ArborX_Callbacks.hpp>
 #include <detail/ArborX_CrsGraphWrapperImpl.hpp>
 #include <detail/ArborX_IndexableGetter.hpp>
+#include <detail/ArborX_Iota.hpp>
 #include <detail/ArborX_Node.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 #include <detail/ArborX_PermutedData.hpp>
@@ -67,10 +68,21 @@ public:
 
   template <typename ExecutionSpace, typename Values,
             typename SpaceFillingCurve = Experimental::Morton64>
+    requires(!std::integral<Values>)
   BoundingVolumeHierarchy(
       ExecutionSpace const &space, Values const &values,
       IndexableGetter const &indexable_getter = IndexableGetter(),
       SpaceFillingCurve const &curve = SpaceFillingCurve());
+
+  template <typename ExecutionSpace,
+            typename SpaceFillingCurve = Experimental::Morton64>
+  BoundingVolumeHierarchy(
+      ExecutionSpace const &space, int size,
+      IndexableGetter const &indexable_getter,
+      SpaceFillingCurve const &curve = Experimental::Morton64())
+      : BoundingVolumeHierarchy(space, Details::Iota<MemorySpace>(size),
+                                indexable_getter, curve)
+  {}
 
   KOKKOS_FUNCTION
   size_type size() const noexcept { return _size; }
@@ -146,12 +158,19 @@ KOKKOS_DEDUCTION_GUIDE BoundingVolumeHierarchy(ExecutionSpace, Values)
         typename Details::AccessValues<Values>::memory_space,
         typename Details::AccessValues<Values>::value_type>;
 
-template <typename ExecutionSpace, typename Values, typename IndexableGetter>
+template <typename ExecutionSpace, typename Values, typename IndexableGetter,
+          std::enable_if_t<!std::is_integral_v<Values>> = true>
 KOKKOS_DEDUCTION_GUIDE BoundingVolumeHierarchy(ExecutionSpace, Values,
                                                IndexableGetter)
     -> BoundingVolumeHierarchy<
         typename Details::AccessValues<Values>::memory_space,
         typename Details::AccessValues<Values>::value_type, IndexableGetter>;
+
+template <typename ExecutionSpace, typename IndexableGetter>
+KOKKOS_DEDUCTION_GUIDE BoundingVolumeHierarchy(ExecutionSpace, int,
+                                               IndexableGetter)
+    -> BoundingVolumeHierarchy<typename ExecutionSpace::memory_space, int,
+                               IndexableGetter>;
 
 template <typename MemorySpace, typename Value,
           typename IndexableGetter = Experimental::DefaultIndexableGetter,
@@ -167,6 +186,7 @@ template <typename MemorySpace, typename Value, typename IndexableGetter,
           typename BoundingVolume>
 template <typename ExecutionSpace, typename UserValues,
           typename SpaceFillingCurve>
+  requires(!std::integral<UserValues>)
 BoundingVolumeHierarchy<MemorySpace, Value, IndexableGetter, BoundingVolume>::
     BoundingVolumeHierarchy(ExecutionSpace const &space,
                             UserValues const &user_values,
