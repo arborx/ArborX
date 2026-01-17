@@ -16,22 +16,17 @@
 namespace ArborX::Details::Concepts
 {
 
-template <typename T>
-struct is_complete_helper
-{
-  template <typename U>
-  static auto test(U *) -> std::integral_constant<bool, sizeof(U) == sizeof(U)>;
-  static auto test(...) -> std::false_type;
-  using type = decltype(test((T *)0));
+// The following would be a nicer version not requiring lambdas:
+//   template <typename T, bool value = requires(T) { sizeof(T); }>
+//   constexpr bool is_complete_v = value;
+// However, it does not compile on Cuda: "mangling for "requires"
+// expressions is not yet implemented" (Cuda 12.9)
+
+template <class T, auto _x = [] {}>
+concept is_complete_v = requires {
+  sizeof(T);
+  _x;
 };
-
-template <typename T>
-struct is_complete : is_complete_helper<T>::type
-{};
-
-template <typename T>
-constexpr bool is_complete_v = is_complete<T>::value;
-
 } // namespace ArborX::Details::Concepts
 
 #endif
