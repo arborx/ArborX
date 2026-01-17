@@ -16,6 +16,7 @@
 #include <ArborX_Triangle.hpp>
 #include <algorithms/ArborX_ClosestPoint.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
+#include <misc/ArborX_Concepts.hpp>
 #include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
@@ -37,10 +38,23 @@ KOKKOS_INLINE_FUNCTION auto distance(Geometry1 const &geometry1,
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  return Details::Dispatch::distance<GeometryTraits::tag_t<Geometry1>,
-                                     GeometryTraits::tag_t<Geometry2>,
-                                     Geometry1, Geometry2>::apply(geometry1,
-                                                                  geometry2);
+  if constexpr (Details::Concepts::is_complete_v<Details::Dispatch::distance<
+                    GeometryTraits::tag_t<Geometry1>,
+                    GeometryTraits::tag_t<Geometry2>, Geometry1, Geometry2>>)
+    return Details::Dispatch::distance<GeometryTraits::tag_t<Geometry1>,
+                                       GeometryTraits::tag_t<Geometry2>,
+                                       Geometry1, Geometry2>::apply(geometry1,
+                                                                    geometry2);
+  else if constexpr (Details::Concepts::is_complete_v<
+                         Details::Dispatch::distance<
+                             GeometryTraits::tag_t<Geometry2>,
+                             GeometryTraits::tag_t<Geometry1>, Geometry2,
+                             Geometry1>>)
+    return Details::Dispatch::distance<GeometryTraits::tag_t<Geometry2>,
+                                       GeometryTraits::tag_t<Geometry1>,
+                                       Geometry2, Geometry1>::apply(geometry2,
+                                                                    geometry1);
+  Kokkos::abort("ArborX::distance: no implementation available");
 }
 
 namespace Details::Dispatch
@@ -78,15 +92,6 @@ struct distance<PointTag, BoxTag, Point, Box>
   }
 };
 
-template <typename Box, typename Point>
-struct distance<BoxTag, PointTag, Box, Point>
-{
-  KOKKOS_FUNCTION static auto apply(Box const &box, Point const &point)
-  {
-    return ::ArborX::distance(point, box);
-  }
-};
-
 // distance point-sphere
 template <typename Point, typename Sphere>
 struct distance<PointTag, SphereTag, Point, Sphere>
@@ -97,16 +102,6 @@ struct distance<PointTag, SphereTag, Point, Sphere>
     using Coordinate = GeometryTraits::coordinate_type_t<Sphere>;
     return max(::ArborX::distance(point, sphere.centroid()) - sphere.radius(),
                (Coordinate)0);
-  }
-};
-
-// distance sphere-point
-template <typename Sphere, typename Point>
-struct distance<SphereTag, PointTag, Sphere, Point>
-{
-  KOKKOS_FUNCTION static auto apply(Sphere const &sphere, Point const &point)
-  {
-    return ::ArborX::distance(point, sphere);
   }
 };
 
@@ -176,19 +171,6 @@ struct distance<PointTag, TetrahedronTag, Point, Tetrahedron>
   }
 };
 
-// distance tetrahedron-point
-template <typename Tetrahedron, typename Point>
-struct distance<TetrahedronTag, PointTag, Tetrahedron, Point>
-{
-  static constexpr int DIM = dimension_v<Point>;
-  using Coordinate = coordinate_type_t<Tetrahedron>;
-
-  KOKKOS_FUNCTION static auto apply(Tetrahedron const &tet, Point const &p)
-  {
-    return ::ArborX::distance(p, tet);
-  }
-};
-
 // distance box-box
 template <typename Box1, typename Box2>
 struct distance<BoxTag, BoxTag, Box1, Box2>
@@ -236,16 +218,6 @@ struct distance<SphereTag, BoxTag, Sphere, Box>
 
     auto distance_center_box = ::ArborX::distance(sphere.centroid(), box);
     return max(distance_center_box - sphere.radius(), (Coordinate)0);
-  }
-};
-
-// distance sphere-box
-template <typename Box, typename Sphere>
-struct distance<BoxTag, SphereTag, Box, Sphere>
-{
-  KOKKOS_FUNCTION static auto apply(Box const &box, Sphere const &sphere)
-  {
-    return ::ArborX::distance(sphere, box);
   }
 };
 
