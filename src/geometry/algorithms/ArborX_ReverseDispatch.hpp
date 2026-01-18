@@ -20,11 +20,12 @@ namespace ArborX::Details::Dispatch
 {
 
 template <typename Algorithm, typename Geometry1, typename Geometry2>
-concept CanApply = requires(Geometry1 const &geometry1,
-                            Geometry2 const &geometry2)
-{
-  {Algorithm::apply(geometry1, geometry2)};
-};
+concept CanApply =
+    requires(Geometry1 const &geometry1, Geometry2 const &geometry2) {
+      {
+        Algorithm::apply(geometry1, geometry2)
+      };
+    };
 
 template <template <typename, typename, typename, typename> typename Algorithm,
           typename Tag1, typename Tag2, typename Geometry1, typename Geometry2>
