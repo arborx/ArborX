@@ -26,6 +26,7 @@ KOKKOS_INLINE_FUNCTION constexpr bool sym_intersects(Geometry1 const &geometry1,
                                                      Geometry2 const &geometry2)
 {
   if (ArborX::intersects(geometry1, geometry2) !=
+      // NOLINTNEXTLINE(readability-suspicious-call-argument)
       ArborX::intersects(geometry2, geometry1))
     return false;
 

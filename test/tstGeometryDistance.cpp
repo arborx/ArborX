@@ -26,6 +26,7 @@ KOKKOS_INLINE_FUNCTION constexpr auto sym_distance(Geometry1 const &geometry1,
                                                    Geometry2 const &geometry2)
 {
   if (ArborX::distance(geometry1, geometry2) !=
+      // NOLINTNEXTLINE(readability-suspicious-call-argument)
       ArborX::distance(geometry2, geometry1))
   {
     using Coordinate = decltype(ArborX::distance(geometry1, geometry2));
