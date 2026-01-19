@@ -16,7 +16,7 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Ray.hpp>
 #include <ArborX_Segment.hpp>
-#include <misc/ArborX_Concepts.hpp>
+#include <algorithms/ArborX_ReverseDispatch.hpp>
 #include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
@@ -37,21 +37,10 @@ KOKKOS_INLINE_FUNCTION constexpr bool intersects(Geometry1 const &geometry1,
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  if constexpr (Details::Concepts::is_complete_v<Details::Dispatch::intersects<
-                    GeometryTraits::tag_t<Geometry1>,
-                    GeometryTraits::tag_t<Geometry2>, Geometry1, Geometry2>>)
-    return Details::Dispatch::intersects<
-        GeometryTraits::tag_t<Geometry1>, GeometryTraits::tag_t<Geometry2>,
-        Geometry1, Geometry2>::apply(geometry1, geometry2);
-  else if constexpr (Details::Concepts::is_complete_v<
-                         Details::Dispatch::intersects<
-                             GeometryTraits::tag_t<Geometry2>,
-                             GeometryTraits::tag_t<Geometry1>, Geometry2,
-                             Geometry1>>)
-    return Details::Dispatch::intersects<
-        GeometryTraits::tag_t<Geometry2>, GeometryTraits::tag_t<Geometry1>,
-        Geometry2, Geometry1>::apply(geometry2, geometry1);
-  Kokkos::abort("ArborX::intersects: no implementation available");
+  return Details::Dispatch::DoApply<
+      Details::Dispatch::intersects, GeometryTraits::tag_t<Geometry1>,
+      GeometryTraits::tag_t<Geometry2>, Geometry1, Geometry2>::apply(geometry1,
+                                                                     geometry2);
 }
 
 namespace Details::Dispatch

@@ -15,8 +15,8 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Triangle.hpp>
 #include <algorithms/ArborX_ClosestPoint.hpp>
+#include <algorithms/ArborX_ReverseDispatch.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
-#include <misc/ArborX_Concepts.hpp>
 #include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
@@ -38,23 +38,10 @@ KOKKOS_INLINE_FUNCTION auto distance(Geometry1 const &geometry1,
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  if constexpr (Details::Concepts::is_complete_v<Details::Dispatch::distance<
-                    GeometryTraits::tag_t<Geometry1>,
-                    GeometryTraits::tag_t<Geometry2>, Geometry1, Geometry2>>)
-    return Details::Dispatch::distance<GeometryTraits::tag_t<Geometry1>,
-                                       GeometryTraits::tag_t<Geometry2>,
-                                       Geometry1, Geometry2>::apply(geometry1,
-                                                                    geometry2);
-  else if constexpr (Details::Concepts::is_complete_v<
-                         Details::Dispatch::distance<
-                             GeometryTraits::tag_t<Geometry2>,
-                             GeometryTraits::tag_t<Geometry1>, Geometry2,
-                             Geometry1>>)
-    return Details::Dispatch::distance<GeometryTraits::tag_t<Geometry2>,
-                                       GeometryTraits::tag_t<Geometry1>,
-                                       Geometry2, Geometry1>::apply(geometry2,
-                                                                    geometry1);
-  Kokkos::abort("ArborX::distance: no implementation available");
+  return Details::Dispatch::DoApply<
+      Details::Dispatch::distance, GeometryTraits::tag_t<Geometry1>,
+      GeometryTraits::tag_t<Geometry2>, Geometry1, Geometry2>::apply(geometry1,
+                                                                     geometry2);
 }
 
 namespace Details::Dispatch
