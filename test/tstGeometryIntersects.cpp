@@ -25,6 +25,13 @@ template <typename Geometry1, typename Geometry2>
 KOKKOS_INLINE_FUNCTION constexpr bool sym_intersects(Geometry1 const &geometry1,
                                                      Geometry2 const &geometry2)
 {
+  // NOTE: returning false here is not ideal, as it doesn't serve as proper
+  // error channel. For example, !sym_intersects(geometry1, geometry2) would
+  // pass even if `intersects(geometry, geometry2)` is true but
+  // `intersects(geometry2, geometry1)` is false. However, the assumption is
+  // that one of the tests will fail regardless. The alternatives, like
+  // throwing an exception, aborting, or using macros, all have significant
+  // downsides.
   if (ArborX::intersects(geometry1, geometry2) !=
       // NOLINTNEXTLINE(readability-suspicious-call-argument)
       ArborX::intersects(geometry2, geometry1))
