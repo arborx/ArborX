@@ -150,8 +150,7 @@ void sortByKey(
 
 #if defined(KOKKOS_ENABLE_SYCL) && defined(ARBORX_ENABLE_ONEDPL)
 template <typename Keys, typename Values>
-void sortByKey(Kokkos::Experimental::SYCL const &space, Keys &keys,
-               Values &values)
+void sortByKey(Kokkos::SYCL const &space, Keys &keys, Values &values)
 {
   Kokkos::Profiling::ScopedRegion guard("ArborX::KokkosExt::sortByKey::OneDPL");
 
