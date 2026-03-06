@@ -15,7 +15,7 @@ if(Kokkos_ENABLE_HIP)
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::HIPSpace::device_type)
 endif()
 if(Kokkos_ENABLE_SYCL)
-  list(APPEND ARBORX_DEVICE_TYPES Kokkos::Experimental::SYCL::device_type)
+  list(APPEND ARBORX_DEVICE_TYPES Kokkos::SYCL::device_type)
 endif()
 
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
