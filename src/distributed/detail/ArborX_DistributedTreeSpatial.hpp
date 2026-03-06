@@ -24,8 +24,9 @@
 namespace ArborX::Details
 {
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Values, typename Offset, typename Callback>
+template <typename Tree, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename Values,
+          typename Offset, typename Callback>
 std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                                    ExecutionSpace const &space,
@@ -58,8 +59,8 @@ DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
       intersected_ranks, offset, values);
 }
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Callback>
+template <typename Tree, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename Callback>
 void DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                                         ExecutionSpace const &space,
                                         Predicates const &predicates,
@@ -94,8 +95,9 @@ void DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
   bottom_tree.query(space, fwd_predicates, callback);
 }
 
-template <typename Tree, typename ExecutionSpace, typename Predicates,
-          typename Values, typename Offset>
+template <typename Tree, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename Values,
+          typename Offset>
 std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
 DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
                                    ExecutionSpace const &space,

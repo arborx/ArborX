@@ -38,7 +38,7 @@ struct Triangles
 };
 
 template <typename MemorySpace>
-class ArborX::AccessTraits<Triangles<MemorySpace>>
+struct ArborX::AccessTraits<Triangles<MemorySpace>>
 {
   using Self = Triangles<MemorySpace>;
 
