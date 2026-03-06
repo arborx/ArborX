@@ -54,11 +54,6 @@ public:
       expand(bounding_volume, Access::get(_primitives, i));
       return value_type{bounding_volume, (index_type)i};
     }
-#if defined(KOKKOS_COMPILER_INTEL) && (KOKKOS_COMPILER_INTEL <= 2021)
-    // FIXME_INTEL: workaround for spurious "missing return
-    // statement at end of non-void function" warning
-    return value_type{};
-#endif
   }
 
   KOKKOS_FUNCTION

@@ -95,8 +95,7 @@ void register_bvh_benchmarks(Spec const &spec)
 
 #ifdef KOKKOS_ENABLE_SYCL
   if (spec.backends == "all" || spec.backends == "sycl")
-    BVHBenchmarkRegistration<Kokkos::Experimental::SYCL>(spec,
-                                                         "ArborX::BVH<SYCL>");
+    BVHBenchmarkRegistration<Kokkos::SYCL>(spec, "ArborX::BVH<SYCL>");
 #else
   if (spec.backends == "sycl")
     throw std::runtime_error("SYCL backend not available!");

@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(minimum_spanning_tree_golden_test, DeviceType,
   double tol = 1.e-8;
 // FIXME_SYCL
 #ifdef KOKKOS_ENABLE_SYCL
-  if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Experimental::SYCL>)
+  if constexpr (std::is_same_v<ExecutionSpace, Kokkos::SYCL>)
     tol = 1.e-7;
 #endif
   BOOST_TEST(total_weight[5] == ref_total_weight[5], tt::tolerance(tol));
