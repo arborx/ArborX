@@ -328,11 +328,13 @@ struct Iota
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView>
-std::enable_if_t<std::is_same_v<Tag, SpatialPredicateTag> ||
-                 std::is_same_v<Tag, OrderedSpatialPredicateTag>>
-allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
-                             Predicates const &predicates, OffsetView &offset,
-                             OutView &out, int buffer_size)
+  requires(std::is_same_v<Tag, SpatialPredicateTag> ||
+           std::is_same_v<Tag, OrderedSpatialPredicateTag>)
+void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
+                                  Predicates const &predicates,
+                                  OffsetView &offset, OutView &out,
+                                  int buffer_size)
+
 {
   auto const n_queries = predicates.size();
   KokkosExt::reallocWithoutInitializing(space, offset, n_queries + 1);
@@ -353,10 +355,11 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 
 template <typename Tag, typename ExecutionSpace, typename Predicates,
           typename OffsetView, typename OutView>
-std::enable_if_t<std::is_same_v<Tag, NearestPredicateTag>>
-allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
-                             Predicates const &predicates, OffsetView &offset,
-                             OutView &out, int /*buffer_size*/)
+  requires(std::is_same_v<Tag, NearestPredicateTag>)
+void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
+                                  Predicates const &predicates,
+                                  OffsetView &offset, OutView &out,
+                                  int /*buffer_size*/)
 {
   auto const n_queries = predicates.size();
   KokkosExt::reallocWithoutInitializing(space, offset, n_queries + 1);
@@ -377,13 +380,13 @@ allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 template <typename Tag, typename Tree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
           typename Callback>
-std::enable_if_t<!is_tagged_post_callback<Callback>::value &&
-                 Kokkos::is_view_v<OutputView> && Kokkos::is_view_v<OffsetView>>
-queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
-              Predicates const &predicates, Callback const &callback,
-              OutputView &out, OffsetView &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+  requires(!is_tagged_post_callback<Callback>::value &&
+           Kokkos::is_view_v<OutputView> && Kokkos::is_view_v<OffsetView>)
+void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
+                   Predicates const &predicates, Callback const &callback,
+                   OutputView &out, OffsetView &offset,
+                   Experimental::TraversalPolicy const &policy =
+                       Experimental::TraversalPolicy())
 {
   check_valid_callback<typename Tree::value_type>(callback, predicates, out);
 
@@ -447,11 +450,12 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 
 template <typename Tag, typename Tree, typename ExecutionSpace,
           typename Predicates, typename Indices, typename Offset>
-inline std::enable_if_t<Kokkos::is_view_v<Indices> && Kokkos::is_view_v<Offset>>
-queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
-              Predicates const &predicates, Indices &indices, Offset &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+  requires(Kokkos::is_view_v<Indices> && Kokkos::is_view_v<Offset>)
+inline void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
+                          Predicates const &predicates, Indices &indices,
+                          Offset &offset,
+                          Experimental::TraversalPolicy const &policy =
+                              Experimental::TraversalPolicy())
 {
   queryDispatch(Tag{}, tree, space, predicates, DefaultCallback{}, indices,
                 offset, policy);
@@ -460,12 +464,13 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 template <typename Tag, typename Tree, typename ExecutionSpace,
           typename Predicates, typename OutputView, typename OffsetView,
           typename Callback>
-inline std::enable_if_t<is_tagged_post_callback<Callback>::value>
-queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
-              Predicates const &predicates, Callback const &callback,
-              OutputView &out, OffsetView &offset,
-              Experimental::TraversalPolicy const &policy =
-                  Experimental::TraversalPolicy())
+  requires(is_tagged_post_callback<Callback>::value)
+inline void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
+                          Predicates const &predicates,
+                          Callback const &callback, OutputView &out,
+                          OffsetView &offset,
+                          Experimental::TraversalPolicy const &policy =
+                              Experimental::TraversalPolicy())
 {
   using MemorySpace = typename Tree::memory_space;
 
@@ -478,9 +483,9 @@ queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 
 template <typename Value, typename Callback, typename Predicates,
           typename OutputView>
-std::enable_if_t<!Kokkos::is_view_v<Callback> &&
-                 !is_tagged_post_callback<Callback>::value>
-check_valid_callback_if_first_argument_is_not_a_view(
+  requires(!Kokkos::is_view_v<Callback> &&
+           !is_tagged_post_callback<Callback>::value)
+void check_valid_callback_if_first_argument_is_not_a_view(
     Callback const &callback, Predicates const &predicates,
     OutputView const &out)
 {
@@ -489,21 +494,21 @@ check_valid_callback_if_first_argument_is_not_a_view(
 
 template <typename Value, typename Callback, typename Predicates,
           typename OutputView>
-std::enable_if_t<!Kokkos::is_view_v<Callback> &&
-                 is_tagged_post_callback<Callback>::value>
-check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
-                                                     Predicates const &,
-                                                     OutputView const &)
+  requires(!Kokkos::is_view_v<Callback> &&
+           is_tagged_post_callback<Callback>::value)
+void check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
+                                                          Predicates const &,
+                                                          OutputView const &)
 {
   // TODO
 }
 
 template <typename Value, typename View, typename Predicates,
           typename OutputView>
-std::enable_if_t<Kokkos::is_view_v<View>>
-check_valid_callback_if_first_argument_is_not_a_view(View const &,
-                                                     Predicates const &,
-                                                     OutputView const &)
+  requires(Kokkos::is_view_v<View>)
+void check_valid_callback_if_first_argument_is_not_a_view(View const &,
+                                                          Predicates const &,
+                                                          OutputView const &)
 {
   // do nothing
 }

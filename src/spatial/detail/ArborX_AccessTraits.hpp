@@ -32,8 +32,8 @@ using AccessTraitsNotSpecializedArchetypeAlias =
     typename Traits::not_specialized;
 
 template <typename View>
-struct AccessTraits<
-    View, std::enable_if_t<Kokkos::is_view<View>{} && View::rank() == 1>>
+  requires(Kokkos::is_view_v<View> && View::rank() == 1)
+struct AccessTraits<View>
 {
   // Returns a const reference
   KOKKOS_FUNCTION static typename View::const_value_type &get(View const &v,
@@ -49,8 +49,8 @@ struct AccessTraits<
 };
 
 template <typename View>
-struct AccessTraits<
-    View, std::enable_if_t<Kokkos::is_view<View>{} && View::rank() == 2>>
+  requires(Kokkos::is_view_v<View> && View::rank() == 2)
+struct AccessTraits<View>
 {
   template <std::size_t... Is>
   KOKKOS_FUNCTION static auto getPoint(std::index_sequence<Is...>,

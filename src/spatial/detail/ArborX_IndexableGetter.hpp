@@ -33,9 +33,8 @@ struct DefaultIndexableGetter
     return geometry;
   }
 
-  template <typename Geometry,
-            typename Enable = std::enable_if_t<
-                !Details::is_pair_value_index_v<std::decay_t<Geometry>>>>
+  template <typename Geometry>
+    requires(!Details::is_pair_value_index_v<std::decay_t<Geometry>>)
   KOKKOS_FUNCTION auto operator()(Geometry &&geometry) const
   {
     return geometry;
