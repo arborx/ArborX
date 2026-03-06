@@ -69,17 +69,6 @@ KOKKOS_FUNCTION auto distance(CustomPoint const &point,
   return distance(point, projected_point);
 }
 
-// Callback to store the result indices
-struct ExtractIndex
-{
-  template <typename Query, typename Value, typename Output>
-  KOKKOS_FUNCTION void operator()(Query const &, Value const &value,
-                                  Output const &out) const
-  {
-    out(value.index);
-  }
-};
-
 int main(int argc, char *argv[])
 {
   Kokkos::ScopeGuard guard(argc, argv);
@@ -116,7 +105,7 @@ int main(int argc, char *argv[])
   Kokkos::View<int *, MemorySpace> offsets("Example::offsets", 0);
   Kokkos::View<int *, MemorySpace> indices("Example::indices", 0);
   bvh.query(space, ArborX::Experimental::make_nearest(query_points, 2),
-            ExtractIndex{}, indices, offsets);
+            ArborX::Experimental::ExtractIndex{}, indices, offsets);
 
   auto offsets_host =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, offsets);
