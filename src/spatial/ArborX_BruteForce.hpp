@@ -68,9 +68,10 @@ public:
 
   template <typename ExecutionSpace, typename UserPredicates,
             typename CallbackOrView, typename View, typename... Args>
-  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
-  query(ExecutionSpace const &space, UserPredicates const &user_predicates,
-        CallbackOrView &&callback_or_view, View &&view, Args &&...args) const
+    requires(Kokkos::is_view_v<std::decay_t<View>>)
+  void query(ExecutionSpace const &space, UserPredicates const &user_predicates,
+             CallbackOrView &&callback_or_view, View &&view,
+             Args &&...args) const
   {
     Kokkos::Profiling::ScopedRegion guard("ArborX::BruteForce::query_crs");
 

@@ -125,9 +125,9 @@ public:
 
   template <typename ExecutionSpace, typename Predicates, typename View,
             typename... Args>
-  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
-  query(ExecutionSpace const &space, Predicates const &predicates, View &&view,
-        Args &&...args) const
+    requires(Kokkos::is_view_v<std::decay_t<View>>)
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             View &&view, Args &&...args) const
   {
     Tree::query(space, predicates,
                 LegacyCallbackWrapper<ArborX::Details::DefaultCallback>{
@@ -137,10 +137,10 @@ public:
 
   template <typename ExecutionSpace, typename Predicates, typename Callback,
             typename OutputView, typename OffsetView, typename... Args>
-  std::enable_if_t<!Kokkos::is_view_v<std::decay_t<Callback>>>
-  query(ExecutionSpace const &space, Predicates const &predicates,
-        Callback &&callback, OutputView &&out, OffsetView &&offset,
-        Args &&...args) const
+    requires(!Kokkos::is_view_v<std::decay_t<Callback>>)
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             Callback &&callback, OutputView &&out, OffsetView &&offset,
+             Args &&...args) const
   {
     if constexpr (!ArborX::Details::is_tagged_post_callback<
                       std::decay_t<Callback>>::value)

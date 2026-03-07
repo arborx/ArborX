@@ -26,12 +26,12 @@ namespace ArborX::Details
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Values, typename Offset, typename Callback>
-std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
-DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
-                                   ExecutionSpace const &space,
-                                   Predicates const &predicates,
-                                   Callback const &callback, Values &values,
-                                   Offset &offset)
+  requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
+void DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
+                                        ExecutionSpace const &space,
+                                        Predicates const &predicates,
+                                        Callback const &callback,
+                                        Values &values, Offset &offset)
 {
   Kokkos::Profiling::ScopedRegion guard(
       "ArborX::DistributedTree::query::spatial");
@@ -96,11 +96,11 @@ void DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Values, typename Offset>
-std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
-DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
-                                   ExecutionSpace const &space,
-                                   Predicates const &predicates, Values &values,
-                                   Offset &offset)
+  requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
+void DistributedTreeImpl::queryDispatch(SpatialPredicateTag, Tree const &tree,
+                                        ExecutionSpace const &space,
+                                        Predicates const &predicates,
+                                        Values &values, Offset &offset)
 {
   queryDispatch(SpatialPredicateTag{}, tree, space, predicates,
                 DefaultCallback{}, values, offset);

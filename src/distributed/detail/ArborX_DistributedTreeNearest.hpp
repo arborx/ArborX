@@ -217,11 +217,12 @@ void DistributedTreeImpl::queryDispatch2RoundImpl(
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Values, typename Offset>
-std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
-DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
-                                   ExecutionSpace const &space,
-                                   Predicates const &predicates, Values &values,
-                                   Offset &offset)
+  requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
+void DistributedTreeImpl::queryDispatch(NearestPredicateTag tag,
+                                        Tree const &tree,
+                                        ExecutionSpace const &space,
+                                        Predicates const &predicates,
+                                        Values &values, Offset &offset)
 {
   queryDispatch2RoundImpl(tag, tree, space, predicates, DefaultCallback{},
                           values, offset);
@@ -229,12 +230,12 @@ DistributedTreeImpl::queryDispatch(NearestPredicateTag tag, Tree const &tree,
 
 template <typename Tree, typename ExecutionSpace, typename Predicates,
           typename Callback, typename Values, typename Offset>
-std::enable_if_t<Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>>
-DistributedTreeImpl::queryDispatch(NearestPredicateTag, Tree const &tree,
-                                   ExecutionSpace const &space,
-                                   Predicates const &predicates,
-                                   Callback const &callback, Values &values,
-                                   Offset &offset)
+  requires(Kokkos::is_view_v<Values> && Kokkos::is_view_v<Offset>)
+void DistributedTreeImpl::queryDispatch(NearestPredicateTag, Tree const &tree,
+                                        ExecutionSpace const &space,
+                                        Predicates const &predicates,
+                                        Callback const &callback,
+                                        Values &values, Offset &offset)
 {
   if (tree.empty())
   {

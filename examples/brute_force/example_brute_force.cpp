@@ -67,8 +67,8 @@ struct ArborX::AccessTraits<Dummy>
   }
 };
 
-template <typename View,
-          typename Enable = std::enable_if_t<Kokkos::is_view_v<View>>>
+template <typename View>
+  requires(Kokkos::is_view_v<View>)
 std::ostream &operator<<(std::ostream &os, View const &view)
 {
   auto view_host =
