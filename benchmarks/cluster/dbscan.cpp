@@ -149,12 +149,13 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 {
   using MemorySpace = typename Primitives::memory_space;
 
+  bool timer_hooks_set_up = false;
   if (params.verbose)
   {
-    Kokkos::Profiling::Experimental::set_push_region_callback(
-        ArborXBenchmark::push_region);
-    Kokkos::Profiling::Experimental::set_pop_region_callback(
-        ArborXBenchmark::pop_region);
+    timer_hooks_set_up = ArborXBenchmark::try_set_timer_hooks();
+    if (!timer_hooks_set_up)
+      std::cerr << "\n\n\t*** Warning: Kokkos profiling tools are already "
+                   "active, ignoring the the --verbose argument. ***\n\n";
   }
 
   using ArborX::DBSCAN::Implementation;
@@ -188,7 +189,7 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   Kokkos::Profiling::popRegion();
 
-  if (params.verbose)
+  if (timer_hooks_set_up)
   {
     bool const is_special_case = (params.core_min_size == 2);
 

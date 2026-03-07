@@ -27,12 +27,13 @@ template <typename ExecutionSpace, typename Primitives>
 void run_hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
                  ArborXBenchmark::Parameters const &params)
 {
+  bool timer_hooks_set_up = false;
   if (params.verbose)
   {
-    Kokkos::Profiling::Experimental::set_push_region_callback(
-        ArborXBenchmark::push_region);
-    Kokkos::Profiling::Experimental::set_pop_region_callback(
-        ArborXBenchmark::pop_region);
+    timer_hooks_set_up = ArborXBenchmark::try_set_timer_hooks();
+    if (!timer_hooks_set_up)
+      std::cerr << "\n\n\t*** Warning: Kokkos profiling tools are already "
+                   "active, ignoring the the --verbose argument. ***\n\n";
   }
 
   using ArborX::Experimental::DendrogramImplementation;
@@ -53,7 +54,7 @@ void run_hdbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       exec_space, primitives, params.core_min_size, dendrogram_impl);
   Kokkos::Profiling::popRegion();
 
-  if (!params.verbose)
+  if (!timer_hooks_set_up)
     return;
 
   if (params.dendrogram == "boruvka")

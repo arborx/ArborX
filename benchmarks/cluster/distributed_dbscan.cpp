@@ -39,12 +39,13 @@ bool run_dist_dbscan(MPI_Comm comm, ExecutionSpace const &exec_space,
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
 
+  bool timer_hooks_set_up = false;
   if (params.verbose)
   {
-    Kokkos::Profiling::Experimental::set_push_region_callback(
-        ArborXBenchmark::push_region);
-    Kokkos::Profiling::Experimental::set_pop_region_callback(
-        ArborXBenchmark::pop_region);
+    timer_hooks_set_up = ArborXBenchmark::try_set_timer_hooks();
+    if (!timer_hooks_set_up && comm_rank == 0)
+      std::cerr << "\n\n\t*** Warning: Kokkos profiling tools are already "
+                   "active, ignoring the the --verbose argument. ***\n\n";
   }
 
   using ArborX::DBSCAN::Implementation;
@@ -65,7 +66,7 @@ bool run_dist_dbscan(MPI_Comm comm, ExecutionSpace const &exec_space,
                                labels, dbscan_params);
   Kokkos::Profiling::popRegion();
 
-  if (params.verbose && comm_rank == 0)
+  if (timer_hooks_set_up && comm_rank == 0)
   {
     printf("total time          : %10.3f\n",
            ArborXBenchmark::get_time("ArborX::DistributedDBSCAN::total"));
