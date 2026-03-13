@@ -14,7 +14,6 @@
 #include <algorithm> // std::sort, std::reverse
 #include <array>
 #include <cassert>
-#include <ranges>
 #include <vector>
 
 namespace ArborX::Details
@@ -29,15 +28,15 @@ std::array<int, DIM> closestFactors(int const n)
   assert(n > 0);
 
   std::array<int, DIM> result;
+  result.fill(1);
   if constexpr (DIM == 1)
   {
     result[0] = n;
     return result;
   }
 
-  std::vector<int> factors;
-
   // Find all prime factors in increasing order
+  std::vector<int> factors;
   unsigned i = 2;
   auto nn = n;
   while (nn > 1)
@@ -51,23 +50,18 @@ std::array<int, DIM> closestFactors(int const n)
     factors.push_back(i);
     nn /= i;
   }
+  std::reverse(factors.begin(), factors.end());
 
-  while (factors.size() > DIM)
+  // Approach from https://stackoverflow.com/a/5903453
+  // Loop over factors in decreasing order, multiply them
+  // by the currently smallest.
+  for (auto &f : factors)
   {
-    // Combine two smallest factors
-    factors[1] *= factors[0];
-    factors.erase(factors.begin());
-
-    // Re-sort the list
-    std::sort(factors.begin(), factors.end());
+    result[0] *= f;
+    std::sort(result.begin(), result.end());
   }
-  int num_factors = factors.size();
-  assert(num_factors <= DIM);
 
-  result.fill(1); // for missing factors
-  for (int d = 0; d < num_factors; ++d)
-    result[d] = factors[num_factors - 1 - d];
-
+  std::reverse(result.begin(), result.end());
   return result;
 }
 
