@@ -15,9 +15,6 @@
 
 #include <Kokkos_Core.hpp>
 
-using ArborX::Details::check_valid_access_traits;
-using ArborX::Details::CheckReturnTypeTag;
-
 // NOTE Let's not bother with __host__ __device__ annotations here
 
 struct NoAccessTraitsSpecialization
@@ -83,6 +80,30 @@ struct ArborX::AccessTraits<GetMemberFunctionVoid, Tag>
   static void get(GetMemberFunctionVoid, int) {}
 };
 
+struct MissingPredicateTag
+{};
+template <typename Tag>
+struct ArborX::AccessTraits<MissingPredicateTag, Tag>
+{
+  using memory_space = Kokkos::HostSpace;
+  static int size(MissingPredicateTag) { return 255; }
+  static auto get(MissingPredicateTag, int) { return 0; }
+};
+
+struct InvalidPredicateTag
+{};
+struct CustomTag
+{
+  using Tag = int;
+};
+template <typename Tag>
+struct ArborX::AccessTraits<InvalidPredicateTag, Tag>
+{
+  using memory_space = Kokkos::HostSpace;
+  static int size(InvalidPredicateTag) { return 255; }
+  static auto get(InvalidPredicateTag, int) { return CustomTag{}; }
+};
+
 template <class V>
 using deduce_type_t =
     decltype(ArborX::AccessTraits<V>::get(std::declval<V>(), 0));
@@ -91,13 +112,14 @@ void test_access_traits_compile_only()
 {
   using Point = ArborX::Point<3>;
 
-  Kokkos::View<Point *> p;
-  Kokkos::View<float **> v;
-  check_valid_access_traits(p);
-  check_valid_access_traits(v);
+  static_assert(ArborX::Details::Concepts::AccessTraits<Kokkos::View<Point *>>);
+  static_assert(
+      ArborX::Details::Concepts::AccessTraits<Kokkos::View<float **>>);
 
+  Kokkos::View<Point *> p;
   auto p_with_indices = ArborX::Experimental::attach_indices(p);
-  check_valid_access_traits(p_with_indices);
+  static_assert(
+      ArborX::Details::Concepts::AccessTraits<decltype(p_with_indices)>);
   static_assert(std::is_same_v<deduce_type_t<decltype(p_with_indices)>,
                                ArborX::PairValueIndex<Point, unsigned>>);
 
@@ -107,11 +129,12 @@ void test_access_traits_compile_only()
 
   using NearestPredicate = decltype(ArborX::nearest(Point{}));
   Kokkos::View<NearestPredicate *> q;
-  check_valid_access_traits(q, CheckReturnTypeTag{});
+  static_assert(ArborX::Details::Concepts::Predicates<decltype(q)>);
 
   auto q_with_indices = ArborX::Experimental::attach_indices<long>(q);
-  check_valid_access_traits(q_with_indices, CheckReturnTypeTag{});
-  using predicate = deduce_type_t<decltype(q_with_indices)>;
+  using PredicatesWithIndices = decltype(q_with_indices);
+  static_assert(ArborX::Details::Concepts::Predicates<PredicatesWithIndices>);
+  using predicate = deduce_type_t<PredicatesWithIndices>;
   static_assert(
       std::is_same_v<
           std::decay_t<decltype(ArborX::getData(std::declval<predicate>()))>,
@@ -126,29 +149,30 @@ void test_access_traits_compile_only()
   };
   auto q_with_custom_indices =
       ArborX::Experimental::attach_indices<CustomIndex>(q);
-  check_valid_access_traits(q_with_custom_indices, CheckReturnTypeTag{});
-  using predicate_custom = deduce_type_t<decltype(q_with_custom_indices)>;
+  using PredicatesWithCustomIndices = decltype(q_with_custom_indices);
+  static_assert(
+      ArborX::Details::Concepts::Predicates<PredicatesWithCustomIndices>);
+  using predicate_custom = deduce_type_t<PredicatesWithCustomIndices>;
   static_assert(std::is_same_v<std::decay_t<decltype(ArborX::getData(
                                    std::declval<predicate_custom>()))>,
                                CustomIndex>);
 
-  // Uncomment to see error messages
-
-  // check_valid_access_traits(NoAccessTraitsSpecialization{});
-
-  // check_valid_access_traits(EmptySpecialization{});
-
-  // check_valid_access_traits(InvalidMemorySpace{});
-
-  // check_valid_access_traits(MissingSizeMemberFunction{});
-
-  // check_valid_access_traits(SizeMemberFunctionNotStatic{});
-
-  // check_valid_access_traits(MissingGetMemberFunction{});
-
-  // check_valid_access_traits(GetMemberFunctionNotStatic{});
-
-  // check_valid_access_traits(GetMemberFunctionVoid{});
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<NoAccessTraitsSpecialization>);
+  static_assert(!ArborX::Details::Concepts::AccessTraits<EmptySpecialization>);
+  static_assert(!ArborX::Details::Concepts::AccessTraits<InvalidMemorySpace>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<MissingSizeMemberFunction>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<SizeMemberFunctionNotStatic>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<MissingGetMemberFunction>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<GetMemberFunctionNotStatic>);
+  static_assert(
+      !ArborX::Details::Concepts::AccessTraits<GetMemberFunctionVoid>);
+  static_assert(!ArborX::Details::Concepts::Predicates<MissingPredicateTag>);
+  static_assert(!ArborX::Details::Concepts::Predicates<InvalidPredicateTag>);
 }
 
 void test_deduce_point_type_from_view()

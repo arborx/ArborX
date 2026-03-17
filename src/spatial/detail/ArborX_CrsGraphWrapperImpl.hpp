@@ -141,9 +141,9 @@ public:
 };
 #endif
 
-template <typename ExecutionSpace, typename Tree, typename Predicates,
-          typename Callback, typename OutputView, typename OffsetView,
-          typename PermuteType>
+template <typename ExecutionSpace, typename Tree,
+          Details::Concepts::Predicates Predicates, typename Callback,
+          typename OutputView, typename OffsetView, typename PermuteType>
 void queryImpl(ExecutionSpace const &space, Tree const &tree,
                Predicates const &predicates, Callback const &callback,
                OutputView &out, OffsetView &offset, PermuteType permute,
@@ -326,8 +326,9 @@ struct Iota
   KOKKOS_FUNCTION unsigned int operator()(int const i) const { return i; }
 };
 
-template <typename Tag, typename ExecutionSpace, typename Predicates,
-          typename OffsetView, typename OutView>
+template <typename Tag, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename OffsetView,
+          typename OutView>
   requires(std::is_same_v<Tag, SpatialPredicateTag> ||
            std::is_same_v<Tag, OrderedSpatialPredicateTag>)
 void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
@@ -353,8 +354,9 @@ void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
   }
 }
 
-template <typename Tag, typename ExecutionSpace, typename Predicates,
-          typename OffsetView, typename OutView>
+template <typename Tag, typename ExecutionSpace,
+          Details::Concepts::Predicates Predicates, typename OffsetView,
+          typename OutView>
   requires(std::is_same_v<Tag, NearestPredicateTag>)
 void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
                                   Predicates const &predicates,
@@ -378,8 +380,8 @@ void allocateAndInitializeStorage(Tag, ExecutionSpace const &space,
 // Views are passed by reference here because internally Kokkos::realloc()
 // is called.
 template <typename Tag, typename Tree, typename ExecutionSpace,
-          typename Predicates, typename OutputView, typename OffsetView,
-          typename Callback>
+          Details::Concepts::Predicates Predicates, typename OutputView,
+          typename OffsetView, typename Callback>
   requires(!is_tagged_post_callback<Callback>::value &&
            Kokkos::is_view_v<OutputView> && Kokkos::is_view_v<OffsetView>)
 void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
@@ -449,7 +451,8 @@ void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 }
 
 template <typename Tag, typename Tree, typename ExecutionSpace,
-          typename Predicates, typename Indices, typename Offset>
+          Details::Concepts::Predicates Predicates, typename Indices,
+          typename Offset>
   requires(Kokkos::is_view_v<Indices> && Kokkos::is_view_v<Offset>)
 inline void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
                           Predicates const &predicates, Indices &indices,
@@ -462,8 +465,8 @@ inline void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 }
 
 template <typename Tag, typename Tree, typename ExecutionSpace,
-          typename Predicates, typename OutputView, typename OffsetView,
-          typename Callback>
+          Details::Concepts::Predicates Predicates, typename OutputView,
+          typename OffsetView, typename Callback>
   requires(is_tagged_post_callback<Callback>::value)
 inline void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
                           Predicates const &predicates,
@@ -481,8 +484,8 @@ inline void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
   callback(predicates, offset, indices, out);
 }
 
-template <typename Value, typename Callback, typename Predicates,
-          typename OutputView>
+template <typename Value, typename Callback,
+          Details::Concepts::Predicates Predicates, typename OutputView>
   requires(!Kokkos::is_view_v<Callback> &&
            !is_tagged_post_callback<Callback>::value)
 void check_valid_callback_if_first_argument_is_not_a_view(
@@ -492,8 +495,8 @@ void check_valid_callback_if_first_argument_is_not_a_view(
   check_valid_callback<Value>(callback, predicates, out);
 }
 
-template <typename Value, typename Callback, typename Predicates,
-          typename OutputView>
+template <typename Value, typename Callback,
+          Details::Concepts::Predicates Predicates, typename OutputView>
   requires(!Kokkos::is_view_v<Callback> &&
            is_tagged_post_callback<Callback>::value)
 void check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
@@ -503,8 +506,8 @@ void check_valid_callback_if_first_argument_is_not_a_view(Callback const &,
   // TODO
 }
 
-template <typename Value, typename View, typename Predicates,
-          typename OutputView>
+template <typename Value, typename View,
+          Details::Concepts::Predicates Predicates, typename OutputView>
   requires(Kokkos::is_view_v<View>)
 void check_valid_callback_if_first_argument_is_not_a_view(View const &,
                                                           Predicates const &,
