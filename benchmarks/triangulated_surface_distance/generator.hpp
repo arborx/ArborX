@@ -9,20 +9,27 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborX_Point.hpp>
 #include <ArborX_Triangle.hpp>
 
 #include <Kokkos_Array.hpp>
 #include <Kokkos_MathematicalConstants.hpp>
+
+using Point = ArborX::Point<3>;
+
+struct GeometryParams
+{
+  std::string type;
+  float radius;
+  int num_refinements;
+};
 
 auto icosahedron()
 {
   auto a = Kokkos::numbers::phi_v<float>;
   auto b = 1.f;
 
-  using Point = ArborX::Point<3>;
-
   std::vector<Point> vertices;
-
   vertices.push_back(Point{0, b, -a});
   vertices.push_back(Point{b, a, 0});
   vertices.push_back(Point{-b, a, 0});
@@ -37,7 +44,6 @@ auto icosahedron()
   vertices.push_back(Point{-b, -a, 0});
 
   std::vector<Kokkos::Array<int, 3>> triangles;
-
   triangles.push_back({2, 1, 0});
   triangles.push_back({1, 2, 3});
   triangles.push_back({5, 4, 3});
@@ -58,6 +64,49 @@ auto icosahedron()
   triangles.push_back({7, 10, 6});
   triangles.push_back({5, 11, 4});
   triangles.push_back({10, 8, 4});
+
+  return std::make_tuple(vertices, triangles);
+}
+
+auto plane()
+{
+  std::vector<Point> vertices;
+  vertices.push_back(Point{0, 0, 0});
+  vertices.push_back(Point{1, 0, 0});
+  vertices.push_back(Point{2, 0, 0});
+  vertices.push_back(Point{3, 0, 0});
+  vertices.push_back(Point{0, 1, 0});
+  vertices.push_back(Point{1, 1, 0});
+  vertices.push_back(Point{2, 1, 0});
+  vertices.push_back(Point{3, 1, 0});
+  vertices.push_back(Point{0, 2, 0});
+  vertices.push_back(Point{1, 2, 0});
+  vertices.push_back(Point{2, 2, 0});
+  vertices.push_back(Point{3, 2, 0});
+  vertices.push_back(Point{0, 3, 0});
+  vertices.push_back(Point{1, 3, 0});
+  vertices.push_back(Point{2, 3, 0});
+  vertices.push_back(Point{3, 3, 0});
+
+  std::vector<Kokkos::Array<int, 3>> triangles;
+  triangles.push_back({0, 1, 4});
+  triangles.push_back({1, 5, 4});
+  triangles.push_back({1, 2, 5});
+  triangles.push_back({2, 6, 5});
+  triangles.push_back({2, 3, 6});
+  triangles.push_back({3, 7, 6});
+  triangles.push_back({4, 5, 8});
+  triangles.push_back({5, 9, 8});
+  triangles.push_back({5, 6, 9});
+  triangles.push_back({6, 10, 9});
+  triangles.push_back({6, 7, 10});
+  triangles.push_back({7, 11, 10});
+  triangles.push_back({8, 9, 12});
+  triangles.push_back({9, 13, 12});
+  triangles.push_back({9, 10, 13});
+  triangles.push_back({10, 14, 13});
+  triangles.push_back({10, 11, 14});
+  triangles.push_back({11, 15, 14});
 
   return std::make_tuple(vertices, triangles);
 }
@@ -123,12 +172,10 @@ void convertTriangles2VertexForm(
 */
 template <typename ExecutionSpace, typename MemorySpace>
 void subdivide(ExecutionSpace const &space,
-               Kokkos::View<ArborX::Point<3> *, MemorySpace> &vertices,
+               Kokkos::View<Point *, MemorySpace> &vertices,
                Kokkos::View<Kokkos::Array<int, 2> *, MemorySpace> &edges,
                Kokkos::View<Kokkos::Array<int, 3> *, MemorySpace> &triangles)
 {
-  using Point = ArborX::Point<3>;
-
   int const num_vertices = vertices.size();
   int const num_edges = edges.size();
   int const num_triangles = triangles.size();
@@ -200,10 +247,36 @@ void projectVerticesToSphere(
       "Benchmark::project_to_surface",
       Kokkos::RangePolicy(space, 0, points.size()), KOKKOS_LAMBDA(int i) {
         auto &v = points(i);
-        auto norm = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        auto norm = Kokkos::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
         v[0] *= radius / norm;
         v[1] *= radius / norm;
         v[2] *= radius / norm;
+      });
+}
+
+template <typename ExecutionSpace, typename MemorySpace>
+void rotateVertices(ExecutionSpace const &space,
+                    Kokkos::View<Point *, MemorySpace> &points, float angle)
+{
+  // Rotate points around (1, -1, 0) axis given angle (in degrees)
+  using Vector = ArborX::Details::Vector<3>;
+
+  Point o{0, 0, 0};
+  Vector k{1 / std::sqrt(2.f), -1 / std::sqrt(2.f), 0}; // normalized axis
+  auto cos = Kokkos::cos(Kokkos::numbers::pi_v<float> / 180 * angle);
+  auto sin = Kokkos::sin(Kokkos::numbers::pi_v<float> / 180 * angle);
+  Kokkos::parallel_for(
+      "Benchmark::project_to_surface",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, points.size()),
+      KOKKOS_LAMBDA(int i) {
+        auto &p = points(i);
+        Vector v = p - o;
+        auto kxv = k.cross(v);
+        auto kv = k.dot(v);
+
+        // Rodrigues rotation formula
+        for (int d = 0; d < 3; ++d)
+          p[d] = v[d] * cos + kxv[d] * sin + k[d] * kv * (1 - cos);
       });
 }
 
@@ -219,12 +292,12 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
 }
 
 template <typename MemorySpace, typename ExecutionSpace>
-auto buildTriangles(ExecutionSpace const &space, float radius,
-                    int num_refinements)
+auto buildTriangles(ExecutionSpace const &space, GeometryParams const &params)
 {
   Kokkos::Profiling::ScopedRegion guard("Benchmark::build_triangles");
 
-  auto [vertices_v, triangles_v] = icosahedron();
+  auto [vertices_v, triangles_v] =
+      (params.type == "ball" ? icosahedron() : plane());
 
   // Convert to edge form
   std::vector<Kokkos::Array<int, 2>> edges_v;
@@ -234,10 +307,11 @@ auto buildTriangles(ExecutionSpace const &space, float radius,
   auto edges = vec2view<MemorySpace>(edges_v);
   auto triangles = vec2view<MemorySpace>(triangles_v);
 
-  for (int i = 1; i <= num_refinements; ++i)
+  for (int i = 1; i <= params.num_refinements; ++i)
     subdivide(space, vertices, edges, triangles);
 
-  projectVerticesToSphere(space, vertices, radius);
+  if (params.type == "ball")
+    projectVerticesToSphere(space, vertices, params.radius);
 
   convertTriangles2VertexForm(space, edges, triangles);
 

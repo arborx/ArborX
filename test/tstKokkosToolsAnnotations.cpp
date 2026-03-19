@@ -54,6 +54,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_bvh_allocations_prefixed, DeviceType,
         BOOST_TEST(std::regex_match(label, re),
                    "\"" << label << "\" does not match the regular expression");
       });
+  Kokkos::Tools::Experimental::set_deallocate_data_callback(nullptr);
 
   { // default constructed
     Tree tree;
@@ -113,6 +114,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bvh_query_allocations_prefixed, DeviceType,
         BOOST_TEST(std::regex_match(label, re),
                    "\"" << label << "\" does not match the regular expression");
       });
+  Kokkos::Tools::Experimental::set_deallocate_data_callback(nullptr);
 
   // spatial predicates
   query(ExecutionSpace{}, tree,
@@ -149,6 +151,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(kernels_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
   Kokkos::Tools::Experimental::set_begin_parallel_for_callback(callback);
   Kokkos::Tools::Experimental::set_begin_parallel_scan_callback(callback);
   Kokkos::Tools::Experimental::set_begin_parallel_reduce_callback(callback);
+  Kokkos::Tools::Experimental::set_end_parallel_for_callback(nullptr);
+  Kokkos::Tools::Experimental::set_end_parallel_scan_callback(nullptr);
+  Kokkos::Tools::Experimental::set_end_parallel_reduce_callback(nullptr);
 
   // BVH::BVH
 
@@ -216,6 +221,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(regions_prefixed, DeviceType, ARBORX_DEVICE_TYPES)
     BOOST_TEST(std::regex_match(label, re),
                "\"" << label << "\" does not match the regular expression");
   });
+  Kokkos::Tools::Experimental::set_pop_region_callback(nullptr);
 
   // BVH::BVH
 

@@ -1,4 +1,3 @@
-
 set(ARBORX_DEVICE_TYPES)
 if(Kokkos_ENABLE_SERIAL)
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::Serial::device_type)
@@ -15,11 +14,8 @@ endif()
 if(Kokkos_ENABLE_HIP)
   list(APPEND ARBORX_DEVICE_TYPES Kokkos::HIPSpace::device_type)
 endif()
-if(Kokkos_ENABLE_OPENMPTARGET)
-  list(APPEND ARBORX_DEVICE_TYPES Kokkos::Experimental::OpenMPTarget::device_type)
-endif()
 if(Kokkos_ENABLE_SYCL)
-  list(APPEND ARBORX_DEVICE_TYPES Kokkos::Experimental::SYCL::device_type)
+  list(APPEND ARBORX_DEVICE_TYPES Kokkos::SYCL::device_type)
 endif()
 
 string(REPLACE ";" "," ARBORX_DEVICE_TYPES "${ARBORX_DEVICE_TYPES}")
@@ -73,6 +69,7 @@ add_test(NAME ArborX_Test_KokkosExt COMMAND ArborX_Test_KokkosExt.exe)
 add_executable(ArborX_Test_Geometry.exe
   tstGeometryBarycentricCoordinates.cpp
   tstGeometryCentroid.cpp
+  tstGeometryClosestPoint.cpp
   tstGeometryDistance.cpp
   tstGeometryExpand.cpp
   tstGeometryIntersects.cpp
@@ -254,7 +251,7 @@ if(ARBORX_ENABLE_MPI)
   target_include_directories(ArborX_Test_DistributedTree.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   add_test(NAME ArborX_Test_DistributedTree COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:ArborX_Test_DistributedTree.exe> ${MPIEXEC_POSTFLAGS})
 
-  add_executable(ArborX_Test_DetailsDistributedTreeImpl.exe tstDetailsDistributedTreeImpl.cpp tstDetailsDistributor.cpp utf_main.cpp)
+  add_executable(ArborX_Test_DetailsDistributedTreeImpl.exe tstDetailsDistributedTreeImpl.cpp tstDetailsDistributedUtils.cpp tstDetailsDistributor.cpp utf_main.cpp)
   target_link_libraries(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ArborX Boost::unit_test_framework Boost::dynamic_linking)
   target_compile_definitions(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ARBORX_MPI_UNIT_TEST)
   target_include_directories(ArborX_Test_DetailsDistributedTreeImpl.exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

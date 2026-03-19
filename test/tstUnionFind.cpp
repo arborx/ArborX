@@ -65,49 +65,63 @@ void merge(ExecutionSpace const &space, UnionFind &union_find, int i, int j)
   BOOST_TEST(build_representatives(space, union_find) == ref,                  \
              boost::test_tools::per_element());
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(union_find, DeviceType, ARBORX_DEVICE_TYPES)
+template <typename DeviceType, typename IndexType>
+void union_find_f()
 {
   using ExecutionSpace = typename DeviceType::execution_space;
   using MemorySpace = typename DeviceType::memory_space;
-
-#ifdef KOKKOS_ENABLE_SERIAL
-  using UnionFind = ArborX::Details::UnionFind<
-      MemorySpace,
-      /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
-#else
-  using UnionFind = ArborX::Details::UnionFind<MemorySpace>;
-#endif
 
   ExecutionSpace space;
 
   constexpr int n = 5;
 
-  Kokkos::View<int *, MemorySpace> labels(
+  Kokkos::View<IndexType *, MemorySpace> labels(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, "Test::labels"),
       n);
   ArborX::Details::KokkosExt::iota(space, labels);
+
+  using Labels = decltype(labels);
+#ifdef KOKKOS_ENABLE_SERIAL
+  using UnionFind = ArborX::Details::UnionFind<
+      Labels,
+      /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
+#else
+  using UnionFind = ArborX::Details::UnionFind<Labels>;
+#endif
+
   UnionFind union_find(labels);
 
-  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(space, union_find,
-                                         (std::vector<int>{0, 1, 2, 3, 4}));
+  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(
+      space, union_find, (std::vector<IndexType>{0, 1, 2, 3, 4}));
 
   merge(space, union_find, 1, 1);
-  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(space, union_find,
-                                         (std::vector<int>{0, 1, 2, 3, 4}));
+  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(
+      space, union_find, (std::vector<IndexType>{0, 1, 2, 3, 4}));
 
   merge(space, union_find, 3, 0);
-  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(space, union_find,
-                                         (std::vector<int>{0, 1, 2, 0, 4}));
+  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(
+      space, union_find, (std::vector<IndexType>{0, 1, 2, 0, 4}));
 
   merge(space, union_find, 1, 2);
   merge(space, union_find, 4, 1);
   merge(space, union_find, 1, 1);
-  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(space, union_find,
-                                         (std::vector<int>{0, 1, 1, 0, 1}));
+  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(
+      space, union_find, (std::vector<IndexType>{0, 1, 1, 0, 1}));
 
   merge(space, union_find, 0, 1);
-  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(space, union_find,
-                                         (std::vector<int>{0, 0, 0, 0, 0}));
+  ARBORX_TEST_UNION_FIND_REPRESENTATIVES(
+      space, union_find, (std::vector<IndexType>{0, 0, 0, 0, 0}));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(union_find_int, DeviceType, ARBORX_DEVICE_TYPES)
+{
+  union_find_f<DeviceType, int>();
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(union_find_long_long, DeviceType,
+                              ARBORX_DEVICE_TYPES)
+{
+  union_find_f<DeviceType, long long>();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

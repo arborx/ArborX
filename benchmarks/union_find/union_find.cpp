@@ -106,12 +106,14 @@ auto buildUnionFind(ExecutionSpace const &exec_space, int n)
   Kokkos::View<int *, MemorySpace> labels(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Benchmark::labels"), n);
   ArborX::Details::KokkosExt::iota(exec_space, labels);
+
+  using Labels = decltype(labels);
 #ifdef KOKKOS_ENABLE_SERIAL
   if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Serial>)
-    return ArborX::Details::UnionFind<MemorySpace, /*DoSerial*/ true>(labels);
+    return ArborX::Details::UnionFind<Labels, /*DoSerial*/ true>(labels);
   else
 #endif
-    return ArborX::Details::UnionFind<MemorySpace, /*DoSerial*/ false>(labels);
+    return ArborX::Details::UnionFind<Labels, /*DoSerial*/ false>(labels);
 }
 
 template <typename Tag>

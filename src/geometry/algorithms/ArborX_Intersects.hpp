@@ -16,15 +16,16 @@
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_Ray.hpp>
 #include <ArborX_Segment.hpp>
+#include <algorithms/ArborX_ReverseDispatch.hpp>
 #include <misc/ArborX_Vector.hpp>
 
 #include <Kokkos_Array.hpp>
 #include <Kokkos_Clamp.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 
-namespace ArborX::Details
+namespace ArborX
 {
-namespace Dispatch
+namespace Details::Dispatch
 {
 template <typename Tag1, typename Tag2, typename Geometry1, typename Geometry2>
 struct intersects;
@@ -36,12 +37,13 @@ KOKKOS_INLINE_FUNCTION constexpr bool intersects(Geometry1 const &geometry1,
 {
   static_assert(GeometryTraits::dimension_v<Geometry1> ==
                 GeometryTraits::dimension_v<Geometry2>);
-  return Dispatch::intersects<GeometryTraits::tag_t<Geometry1>,
-                              GeometryTraits::tag_t<Geometry2>, Geometry1,
-                              Geometry2>::apply(geometry1, geometry2);
+  return Details::Dispatch::DoApply<
+      Details::Dispatch::intersects, GeometryTraits::tag_t<Geometry1>,
+      GeometryTraits::tag_t<Geometry2>, Geometry1, Geometry2>::apply(geometry1,
+                                                                     geometry2);
 }
 
-namespace Dispatch
+namespace Details::Dispatch
 {
 
 using namespace GeometryTraits;
@@ -76,15 +78,6 @@ struct intersects<PointTag, BoxTag, Point, Box>
     return true;
   }
 };
-template <typename Box, typename Point>
-struct intersects<BoxTag, PointTag, Box, Point>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Box const &box,
-                                              Point const &point)
-  {
-    return Details::intersects(point, box);
-  }
-};
 
 // check if a sphere intersects with an axis-aligned bounding box
 template <typename Sphere, typename Box>
@@ -93,7 +86,19 @@ struct intersects<SphereTag, BoxTag, Sphere, Box>
   KOKKOS_FUNCTION static constexpr bool apply(Sphere const &sphere,
                                               Box const &box)
   {
-    return Details::distance(sphere.centroid(), box) <= sphere.radius();
+    return ::ArborX::distance(sphere.centroid(), box) <= sphere.radius();
+  }
+};
+
+// check if a sphere intersects with a sphere
+template <typename Sphere1, typename Sphere2>
+struct intersects<SphereTag, SphereTag, Sphere1, Sphere2>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Sphere1 const &sphere1,
+                                              Sphere2 const &sphere2)
+  {
+    return ::ArborX::distance(sphere1.centroid(), sphere2.centroid()) <=
+           sphere1.radius() + sphere2.radius();
   }
 };
 
@@ -104,17 +109,7 @@ struct intersects<SphereTag, PointTag, Sphere, Point>
   KOKKOS_FUNCTION static constexpr bool apply(Sphere const &sphere,
                                               Point const &point)
   {
-    return Details::distance(sphere.centroid(), point) <= sphere.radius();
-  }
-};
-
-template <typename Point, typename Sphere>
-struct intersects<PointTag, SphereTag, Point, Sphere>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
-                                              Sphere const &sphere)
-  {
-    return Details::intersects(sphere, point);
+    return ::ArborX::distance(sphere.centroid(), point) <= sphere.radius();
   }
 };
 
@@ -125,17 +120,7 @@ struct intersects<SphereTag, TriangleTag, Sphere, Triangle>
   KOKKOS_FUNCTION static constexpr bool apply(Sphere const &sphere,
                                               Triangle const &triangle)
   {
-    return Details::distance(sphere.centroid(), triangle) <= sphere.radius();
-  }
-};
-
-template <typename Triangle, typename Sphere>
-struct intersects<TriangleTag, SphereTag, Triangle, Sphere>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Triangle const &triangle,
-                                              Sphere const &sphere)
-  {
-    return Details::intersects(sphere, triangle);
+    return ::ArborX::distance(sphere.centroid(), triangle) <= sphere.radius();
   }
 };
 
@@ -197,7 +182,7 @@ struct intersects<BoxTag, TriangleTag, Box, Triangle>
     // bounding boxes.
     Box bounding_box;
     Details::expand(bounding_box, triangle);
-    if (!Details::intersects(bounding_box, box))
+    if (!::ArborX::intersects(bounding_box, box))
       return false;
 
     // shift box and triangle so that the box's center is at the origin to
@@ -336,18 +321,10 @@ struct intersects<KDOPTag, BoxTag, KDOP, Box>
   {
     KDOP other{};
     Details::expand(other, box);
-    return Details::intersects(kdop, other);
+    return ::ArborX::intersects(kdop, other);
   }
 };
 
-template <typename Box, typename KDOP>
-struct intersects<BoxTag, KDOPTag, Box, KDOP>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Box const &box, KDOP const &kdop)
-  {
-    return Details::intersects(kdop, box);
-  }
-};
 template <typename Triangle, typename Box>
 struct intersects<TriangleTag, BoxTag, Triangle, Box>
 {
@@ -377,16 +354,6 @@ struct intersects<PointTag, KDOPTag, Point, KDOP>
         return false;
     }
     return true;
-  }
-};
-
-template <typename KDOP, typename Point>
-struct intersects<KDOPTag, PointTag, KDOP, Point>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(KDOP const &kdop,
-                                              Point const &point)
-  {
-    return Details::intersects(point, kdop);
   }
 };
 
@@ -509,8 +476,8 @@ struct intersects<SegmentTag, BoxTag, Segment, Box>
   {
     static_assert(GeometryTraits::dimension_v<Segment> == 2);
 
-    if (Details::intersects(segment.a, box) ||
-        Details::intersects(segment.b, box))
+    if (::ArborX::intersects(segment.a, box) ||
+        ::ArborX::intersects(segment.b, box))
       return true;
 
     using Point = std::decay_t<decltype(box.minCorner())>;
@@ -520,20 +487,10 @@ struct intersects<SegmentTag, BoxTag, Segment, Box>
     auto const top_left = Point{bottom_left[0], top_right[1]};
     auto const bottom_right = Point{top_right[0], bottom_left[1]};
 
-    return Details::intersects(segment, Segment{bottom_left, top_left}) ||
-           Details::intersects(segment, Segment{bottom_left, bottom_right}) ||
-           Details::intersects(segment, Segment{top_right, top_left}) ||
-           Details::intersects(segment, Segment{top_right, bottom_right});
-  }
-};
-
-template <typename Box, typename Segment>
-struct intersects<BoxTag, SegmentTag, Box, Segment>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Box const &box,
-                                              Segment const &segment)
-  {
-    return Details::intersects(segment, box);
+    return ::ArborX::intersects(segment, Segment{bottom_left, top_left}) ||
+           ::ArborX::intersects(segment, Segment{bottom_left, bottom_right}) ||
+           ::ArborX::intersects(segment, Segment{top_right, top_left}) ||
+           ::ArborX::intersects(segment, Segment{top_right, bottom_right});
   }
 };
 
@@ -554,17 +511,6 @@ struct intersects<SegmentTag, TriangleTag, Segment, Triangle>
     intersection(ray, triangle, tmin, tmax);
 
     return tmax >= 0 && tmax <= dir.norm();
-  }
-};
-
-template <typename Triangle, typename Segment>
-struct intersects<TriangleTag, SegmentTag, Triangle, Segment>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Triangle const &triangle,
-                                              Segment const &segment)
-
-  {
-    return Details::intersects(segment, triangle);
   }
 };
 
@@ -595,16 +541,6 @@ struct intersects<EllipsoidTag, PointTag, Ellipsoid, Point>
   }
 };
 
-template <typename Point, typename Ellipsoid>
-struct intersects<PointTag, EllipsoidTag, Point, Ellipsoid>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Point const &point,
-                                              Ellipsoid const &ellipsoid)
-  {
-    return Details::intersects(ellipsoid, point);
-  }
-};
-
 template <typename Ellipsoid, typename Segment>
 struct intersects<EllipsoidTag, SegmentTag, Ellipsoid, Segment>
 {
@@ -612,7 +548,7 @@ struct intersects<EllipsoidTag, SegmentTag, Ellipsoid, Segment>
                                               Segment const &segment)
   {
     if (Details::equals(segment.a, segment.b))
-      return Details::intersects(ellipsoid, segment.a);
+      return ::ArborX::intersects(ellipsoid, segment.a);
 
     // Preliminaries:
     // - parametric segment formula: a + t(b-a)
@@ -645,16 +581,6 @@ struct intersects<EllipsoidTag, SegmentTag, Ellipsoid, Segment>
   }
 };
 
-template <typename Segment, typename Ellipsoid>
-struct intersects<SegmentTag, EllipsoidTag, Segment, Ellipsoid>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Segment const &segment,
-                                              Ellipsoid const &ellipsoid)
-  {
-    return Details::intersects(ellipsoid, segment);
-  }
-};
-
 template <typename Ellipsoid, typename Box>
 struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
 {
@@ -668,11 +594,11 @@ struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
         Experimental::Segment<GeometryTraits::dimension_v<Point>, Coordinate>;
 
     if (Details::equals(a, b))
-      return Details::intersects(ellipsoid, Segment{a, c});
+      return ::ArborX::intersects(ellipsoid, Segment{a, c});
     if (Details::equals(a, c))
-      return Details::intersects(ellipsoid, Segment{a, b});
+      return ::ArborX::intersects(ellipsoid, Segment{a, b});
     if (Details::equals(b, c))
-      return Details::intersects(ellipsoid, Segment{b, a});
+      return ::ArborX::intersects(ellipsoid, Segment{b, a});
 
     auto const &rmt = ellipsoid.rmt();
 
@@ -718,10 +644,10 @@ struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
     if (is_sphere)
     {
       Coordinate const r = 1 / Kokkos::sqrt(rmt[0][0]);
-      return Details::intersects(Sphere{ellipsoid.centroid(), r}, box);
+      return ::ArborX::intersects(Sphere{ellipsoid.centroid(), r}, box);
     }
 
-    if (Details::intersects(ellipsoid.centroid(), box))
+    if (::ArborX::intersects(ellipsoid.centroid(), box))
       return true;
 
     auto minc = box.minCorner();
@@ -731,10 +657,10 @@ struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
       using Experimental::Segment;
       // clang-format off
       return
-        Details::intersects(ellipsoid, Segment{minc, {minc[0], maxc[1]}}) || // left
-        Details::intersects(ellipsoid, Segment{minc, {maxc[0], minc[1]}}) || // bottom
-        Details::intersects(ellipsoid, Segment{maxc, {minc[0], maxc[1]}}) || // top
-        Details::intersects(ellipsoid, Segment{maxc, {maxc[0], minc[1]}});   // right
+        ::ArborX::intersects(ellipsoid, Segment{minc, {minc[0], maxc[1]}}) || // left
+        ::ArborX::intersects(ellipsoid, Segment{minc, {maxc[0], minc[1]}}) || // bottom
+        ::ArborX::intersects(ellipsoid, Segment{maxc, {minc[0], maxc[1]}}) || // top
+        ::ArborX::intersects(ellipsoid, Segment{maxc, {maxc[0], minc[1]}});   // right
       // clang-format on
     }
     else
@@ -751,18 +677,8 @@ struct intersects<EllipsoidTag, BoxTag, Ellipsoid, Box>
   }
 };
 
-template <typename Box, typename Ellipsoid>
-struct intersects<BoxTag, EllipsoidTag, Box, Ellipsoid>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Box const &box,
-                                              Ellipsoid const &ellipsoid)
-  {
-    return Details::intersects(ellipsoid, box);
-  }
-};
+} // namespace Details::Dispatch
 
-} // namespace Dispatch
-
-} // namespace ArborX::Details
+} // namespace ArborX
 
 #endif

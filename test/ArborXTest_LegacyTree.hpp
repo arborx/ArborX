@@ -54,11 +54,6 @@ public:
       expand(bounding_volume, Access::get(_primitives, i));
       return value_type{bounding_volume, (index_type)i};
     }
-#if defined(KOKKOS_COMPILER_INTEL) && (KOKKOS_COMPILER_INTEL <= 2021)
-    // FIXME_INTEL: workaround for spurious "missing return
-    // statement at end of non-void function" warning
-    return value_type{};
-#endif
   }
 
   KOKKOS_FUNCTION
@@ -130,9 +125,9 @@ public:
 
   template <typename ExecutionSpace, typename Predicates, typename View,
             typename... Args>
-  std::enable_if_t<Kokkos::is_view_v<std::decay_t<View>>>
-  query(ExecutionSpace const &space, Predicates const &predicates, View &&view,
-        Args &&...args) const
+    requires(Kokkos::is_view_v<std::decay_t<View>>)
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             View &&view, Args &&...args) const
   {
     Tree::query(space, predicates,
                 LegacyCallbackWrapper<ArborX::Details::DefaultCallback>{
@@ -142,10 +137,10 @@ public:
 
   template <typename ExecutionSpace, typename Predicates, typename Callback,
             typename OutputView, typename OffsetView, typename... Args>
-  std::enable_if_t<!Kokkos::is_view_v<std::decay_t<Callback>>>
-  query(ExecutionSpace const &space, Predicates const &predicates,
-        Callback &&callback, OutputView &&out, OffsetView &&offset,
-        Args &&...args) const
+    requires(!Kokkos::is_view_v<std::decay_t<Callback>>)
+  void query(ExecutionSpace const &space, Predicates const &predicates,
+             Callback &&callback, OutputView &&out, OffsetView &&offset,
+             Args &&...args) const
   {
     if constexpr (!ArborX::Details::is_tagged_post_callback<
                       std::decay_t<Callback>>::value)

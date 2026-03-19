@@ -242,11 +242,11 @@ int main(int argc, char *argv[])
       --argc;
     }
   }
-  Kokkos::initialize(argc, argv);
+
+  Kokkos::ScopeGuard guard(argc, argv);
 
   main_<float>(comm);
 
-  Kokkos::finalize();
   MPI_Finalize();
 
   return EXIT_SUCCESS;

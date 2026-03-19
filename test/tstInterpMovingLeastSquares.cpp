@@ -18,6 +18,8 @@
 #include "BoostTest_CUDA_clang_workarounds.hpp"
 #include <boost/test/unit_test.hpp>
 
+#include <iomanip>
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
                               ARBORX_DEVICE_TYPES)
 {
@@ -65,7 +67,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
       space, srcp0, tgtp0, ArborX::Interpolation::CRBF::Wendland<0>{},
       ArborX::Interpolation::PolynomialDegree<1>{}, 2);
   mls0.interpolate(space, srcv0, eval0);
-  ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
+  ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<double>);
 
   // Case 2: f(x, y) = xy + 4x, 8 neighbors, quad
   //        ^
@@ -101,9 +103,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares, DeviceType,
       });
   ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
       space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
-      ArborX::Interpolation::PolynomialDegree<2>{}, 8);
+      ArborX::Interpolation::PolynomialDegree<2>{});
   mls1.interpolate(space, srcv1, eval1);
-  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
+  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, 1.e-12);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
@@ -126,59 +128,185 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_squares_edge_cases, DeviceType,
   ExecutionSpace space{};
 
   // Case 1: Same as previous case 1, but points are 2D and locked on y=0
-  using Point0 = ArborX::Point<2, double>;
-  Kokkos::View<Point0 *, MemorySpace> srcp0("Testing::srcp0", 4);
-  Kokkos::View<Point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
-  Kokkos::View<double *, MemorySpace> srcv0("Testing::srcv0", 4);
-  Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
-  Kokkos::View<double *, MemorySpace> eval0("Testing::eval0", 3);
+  {
+    using Point0 = ArborX::Point<2, double>;
+    Kokkos::View<Point0 *, MemorySpace> srcp0("Testing::srcp0", 4);
+    Kokkos::View<Point0 *, MemorySpace> tgtp0("Testing::tgtp0", 3);
+    Kokkos::View<double *, MemorySpace> srcv0("Testing::srcv0", 4);
+    Kokkos::View<double *, MemorySpace> tgtv0("Testing::tgtv0", 3);
+    Kokkos::View<double *, MemorySpace> eval0("Testing::eval0", 3);
+    Kokkos::parallel_for(
+        "Testing::moving_least_squares_edge_cases::for0",
+        Kokkos::RangePolicy(space, 0, 4), KOKKOS_LAMBDA(int const i) {
+          auto f = [](Point0 const &) { return 3.; };
+
+          srcp0(i) = {{2. * i, 0.}};
+          srcv0(i) = f(srcp0(i));
+
+          if (i < 3)
+          {
+            tgtp0(i) = {{2. * i + 1, 0.}};
+            tgtv0(i) = f(tgtp0(i));
+          }
+        });
+    ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls0(
+        space, srcp0, tgtp0, ArborX::Interpolation::CRBF::Wendland<0>{},
+        ArborX::Interpolation::PolynomialDegree<1>{}, 2);
+    mls0.interpolate(space, srcv0, eval0);
+    ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0,
+                           Kokkos::Experimental::epsilon_v<double>);
+  }
+
+  // Case 2: Same as previous case 2, but points are locked on y=0
+  {
+    using Point1 = ArborX::Point<2, double>;
+    Kokkos::View<Point1 *, MemorySpace> srcp1("Testing::srcp1", 9);
+    Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
+    Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
+    Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
+    Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 4);
+    Kokkos::parallel_for(
+        "Testing::moving_least_squares::for1", Kokkos::RangePolicy(space, 0, 9),
+        KOKKOS_LAMBDA(int const i) {
+          int u = (i / 2) * 2 - 1;
+          int v = (i % 2) * 2 - 1;
+          int x = (i / 3) - 1;
+          auto f = [](Point1 const &p) { return 4 * p[0] + 3.; };
+
+          srcp1(i) = {{x * 2., 0}};
+          srcv1(i) = f(srcp1(i));
+          if (i < 4)
+          {
+            tgtp1(i) = {{u * 1., v * 1.}};
+            tgtv1(i) = f(tgtp1(i));
+          }
+        });
+    ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
+        space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
+        ArborX::Interpolation::PolynomialDegree<2>{});
+    mls1.interpolate(space, srcv1, eval1);
+    ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, 1.e-12);
+  }
+
+  // Case 3: Same but corner source points are also targets
+
+  {
+    using Point1 = ArborX::Point<2, double>;
+    Kokkos::View<Point1 *, MemorySpace> srcp1("Testing::srcp1", 9);
+    Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
+    Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
+    Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
+    Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 4);
+    Kokkos::parallel_for(
+        "Testing::moving_least_squares_edge_cases::for0",
+        Kokkos::RangePolicy(space, 0, 9), KOKKOS_LAMBDA(int const i) {
+          int u = (i / 2) * 2 - 1;
+          int v = (i % 2) * 2 - 1;
+          int x = (i / 3) - 1;
+          int y = (i % 3) - 1;
+          auto f = [](Point1 const &p) { return p[0] * p[1] + 4 * p[0]; };
+
+          srcp1(i) = {{x * 2., y * 2.}};
+          srcv1(i) = f(srcp1(i));
+          if (i < 4)
+          {
+            tgtp1(i) = {{u * 2., v * 2.}};
+            tgtv1(i) = f(tgtp1(i));
+          }
+        });
+    ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
+        space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
+        ArborX::Interpolation::PolynomialDegree<2>{});
+    mls1.interpolate(space, srcv1, eval1);
+    ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1,
+                           10. * Kokkos::Experimental::epsilon_v<double>);
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(moving_least_square_cartesian_convergence,
+                              DeviceType, ARBORX_DEVICE_TYPES)
+{
+  // Test interpolation on a cartesian-type grid and check convergence behavior
+  // under mesh refinement.
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace = typename DeviceType::memory_space;
+  ExecutionSpace space{};
+
+  using Point = ArborX::Point<2, double>;
+
+  auto f = KOKKOS_LAMBDA(Point p)
+  {
+    return Kokkos::sin(4 * p[0]) + Kokkos::sin(2 * p[1]);
+  };
+
+  constexpr int num_targets = 4;
+  Kokkos::View<Point *, MemorySpace> target_coords("target_coords",
+                                                   num_targets);
+  Kokkos::View<double *, MemorySpace> target_values("target_values",
+                                                    num_targets);
   Kokkos::parallel_for(
-      "Testing::moving_least_squares_edge_cases::for0",
-      Kokkos::RangePolicy(space, 0, 4), KOKKOS_LAMBDA(int const i) {
-        auto f = [](Point0 const &) { return 3.; };
-
-        srcp0(i) = {{2. * i, 0.}};
-        srcv0(i) = f(srcp0(i));
-
-        if (i < 3)
-        {
-          tgtp0(i) = {{2. * i + 1, 0.}};
-          tgtv0(i) = f(tgtp0(i));
-        }
+      Kokkos::RangePolicy(space, 0, 1), KOKKOS_LAMBDA(int) {
+        target_coords(0) = {.788675, .788675};
+        target_coords(1) = {.211325, .788675};
+        target_coords(2) = {.788675, .211325};
+        target_coords(3) = {.211325, .211325};
+        for (int i = 0; i < num_targets; ++i)
+          target_values(i) = f(target_coords(i));
       });
-  ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls0(
-      space, srcp0, tgtp0, ArborX::Interpolation::CRBF::Wendland<0>{},
-      ArborX::Interpolation::PolynomialDegree<1>{}, 2);
-  mls0.interpolate(space, srcv0, eval0);
-  ARBORX_MDVIEW_TEST_TOL(eval0, tgtv0, Kokkos::Experimental::epsilon_v<float>);
 
-  // Case 2: Same but corner source points are also targets
-  using Point1 = ArborX::Point<2, double>;
-  Kokkos::View<Point1 *, MemorySpace> srcp1("Testing::srcp1", 9);
-  Kokkos::View<Point1 *, MemorySpace> tgtp1("Testing::tgtp1", 4);
-  Kokkos::View<double *, MemorySpace> srcv1("Testing::srcv1", 9);
-  Kokkos::View<double *, MemorySpace> tgtv1("Testing::tgtv1", 4);
-  Kokkos::View<double *, MemorySpace> eval1("Testing::eval1", 4);
-  Kokkos::parallel_for(
-      "Testing::moving_least_squares_edge_cases::for0",
-      Kokkos::RangePolicy(space, 0, 9), KOKKOS_LAMBDA(int const i) {
-        int u = (i / 2) * 2 - 1;
-        int v = (i % 2) * 2 - 1;
-        int x = (i / 3) - 1;
-        int y = (i % 3) - 1;
-        auto f = [](Point1 const &p) { return p[0] * p[1] + 4 * p[0]; };
+  std::vector<double> expected_errors({
+      2.e-7,
+      5.e-8,
+      1.e-8,
+      7.e-10,
+      2.e-10,
+      1.e-11,
+      3.e-12,
+      3.e-13,
+      4.e-14,
+      5.e-15,
+  });
 
-        srcp1(i) = {{x * 2., y * 2.}};
-        srcv1(i) = f(srcp1(i));
-        if (i < 4)
-        {
-          tgtp1(i) = {{u * 2., v * 2.}};
-          tgtv1(i) = f(tgtp1(i));
-        }
-      });
-  ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls1(
-      space, srcp1, tgtp1, ArborX::Interpolation::CRBF::Wendland<2>{},
-      ArborX::Interpolation::PolynomialDegree<2>{}, 8);
-  mls1.interpolate(space, srcv1, eval1);
-  ARBORX_MDVIEW_TEST_TOL(eval1, tgtv1, Kokkos::Experimental::epsilon_v<float>);
+  for (int num_refinements = 9; num_refinements < 19; ++num_refinements)
+  {
+    int n = (1 << num_refinements) + 1;
+    double h = 2. / (n - 1);
+
+    // We construct 25 points around each target point to avoid constructing a
+    // full mesh grid. 25 points is sufficient to find the 6 nearest neighbors
+    // needed for the 2nd-order polynomial basis.
+    int const n_points_per_target_1d = 5;
+    int const n_points_per_target =
+        n_points_per_target_1d * n_points_per_target_1d;
+    Kokkos::View<Point *, MemorySpace> source_coords(
+        "source_coords", n_points_per_target * num_targets);
+    Kokkos::View<double *, MemorySpace> source_values(
+        "source_values", n_points_per_target * num_targets);
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy(space, 0, num_targets),
+        KOKKOS_LAMBDA(int target_index) {
+          int const start_x = target_coords(target_index)[0] / h;
+          int const start_y = target_coords(target_index)[1] / h;
+          for (int i = -2; i <= 2; ++i)
+            for (int j = -2; j <= 2; ++j)
+            {
+              int const linear_index = target_index * n_points_per_target +
+                                       (i + 2) * n_points_per_target_1d +
+                                       (j + 2);
+              source_coords(linear_index) = {(start_x + i) * h,
+                                             (start_y + j) * h};
+              source_values(linear_index) = f(source_coords(linear_index));
+            }
+        });
+
+    ArborX::Interpolation::MovingLeastSquares<MemorySpace, double> mls(
+        space, source_coords, target_coords);
+    Kokkos::View<double *, MemorySpace> interpolated_values(
+        "interpolated_values", num_targets);
+    mls.interpolate(space, source_values, interpolated_values);
+
+    std::cout << "num_refinements: " << num_refinements << '\n';
+    ARBORX_MDVIEW_TEST_TOL(interpolated_values, target_values,
+                           expected_errors[num_refinements - 9]);
+  }
 }

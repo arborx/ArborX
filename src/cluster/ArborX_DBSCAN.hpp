@@ -64,7 +64,6 @@ struct WithinRadiusGetter
     static_assert(GeometryTraits::is_point_v<Point>);
 
     constexpr int DIM = GeometryTraits::dimension_v<Point>;
-    using ArborX::intersects;
     return intersects(
         Sphere{convert<::ArborX::Point<DIM, Coordinate>>(pair.value), _r});
   }
@@ -184,12 +183,20 @@ enum class Implementation
   FDBSCAN_DenseBox
 };
 
+enum class Algorithm
+{
+  DBSCAN,
+  DBSCAN_STAR
+};
+
 struct Parameters
 {
   // Print timers to standard output
   bool _verbose = false;
   // Algorithm implementation (FDBSCAN or FDBSCAN-DenseBox)
   Implementation _implementation = Implementation::FDBSCAN_DenseBox;
+  // DBSCAN algorithm (DBSCAN/DBSCAN*)
+  Algorithm _algorithm = Algorithm::DBSCAN;
 
   Parameters &setVerbosity(bool verbose)
   {
@@ -201,14 +208,20 @@ struct Parameters
     _implementation = impl;
     return *this;
   }
+  Parameters &setAlgorithm(Algorithm algorithm)
+  {
+    _algorithm = algorithm;
+    return *this;
+  }
 };
 } // namespace DBSCAN
 
-template <typename ExecutionSpace, typename Primitives, typename Coordinate>
-Kokkos::View<int *, typename AccessTraits<Primitives>::memory_space>
-dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
-       Coordinate eps, int core_min_size,
-       DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
+template <typename ExecutionSpace, typename Primitives, typename Coordinate,
+          typename Labels>
+  requires(!std::same_as<Labels, DBSCAN::Parameters>)
+void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
+            Coordinate eps, int core_min_size, Labels &labels,
+            DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
 
@@ -220,16 +233,18 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Primitives must be accessible from the execution space");
+  static_assert(Kokkos::is_view_v<Labels>);
+  static_assert(std::is_integral_v<typename Labels::value_type>);
 
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
 #ifdef KOKKOS_ENABLE_SERIAL
   using UnionFind = Details::UnionFind<
-      MemorySpace,
+      Labels,
       /*DoSerial=*/std::is_same_v<ExecutionSpace, Kokkos::Serial>>;
 #else
-  using UnionFind = Details::UnionFind<MemorySpace>;
+  using UnionFind = Details::UnionFind<Labels>;
 #endif
 
   using Point = typename Points::value_type;
@@ -251,8 +266,6 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::View<int *, MemorySpace> num_neigh("ArborX::DBSCAN::num_neighbors",
                                              0);
 
-  Kokkos::View<int *, MemorySpace> labels("ArborX::DBSCAN::labels", 0);
-
   if (parameters._implementation == DBSCAN::Implementation::FDBSCAN)
   {
     // Build the tree
@@ -273,6 +286,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       // Perform the queries and build clusters through callback
       using CorePoints = Details::CCSCorePoints;
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
+      // For the special case, there's no difference between DBSCAN and DBSCAN*
       Details::HalfTraversal(
           exec_space, bvh,
           Details::FDBSCANCallback<UnionFind, CorePoints>{labels, CorePoints{}},
@@ -295,10 +309,19 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
       // Perform the queries and build clusters through callback
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
-      Details::HalfTraversal(exec_space, bvh,
-                             Details::FDBSCANCallback<UnionFind, CorePoints>{
-                                 labels, CorePoints{num_neigh, core_min_size}},
-                             Details::WithinRadiusGetter<Coordinate>{eps});
+      if (parameters._algorithm == DBSCAN::Algorithm::DBSCAN)
+        Details::HalfTraversal(
+            exec_space, bvh,
+            Details::FDBSCANCallback<UnionFind, CorePoints>{
+                labels, CorePoints{num_neigh, core_min_size}},
+            Details::WithinRadiusGetter<Coordinate>{eps});
+      else
+        Details::HalfTraversal(
+            exec_space, bvh,
+            Details::FDBSCANCallback<UnionFind, CorePoints,
+                                     Details::DBSCANStarTag>{
+                labels, CorePoints{num_neigh, core_min_size}},
+            Details::WithinRadiusGetter<Coordinate>{eps});
       Kokkos::Profiling::popRegion();
     }
   }
@@ -396,6 +419,7 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
       auto const predicates = Experimental::attach_indices(
           Experimental::make_intersects(points, eps));
+      // For the special case, there's no difference between DBSCAN and DBSCAN*
       bvh.query(exec_space, predicates,
                 Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
                                                  decltype(dense_cell_offsets),
@@ -436,12 +460,22 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       Kokkos::Profiling::pushRegion("ArborX::DBSCAN::clusters::query");
       auto const predicates = Experimental::attach_indices(
           Experimental::make_intersects(points, eps));
-      bvh.query(exec_space, predicates,
-                Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
-                                                 decltype(dense_cell_offsets),
-                                                 decltype(permute)>{
-                    labels, CorePoints{num_neigh, core_min_size}, points,
-                    dense_cell_offsets, exec_space, permute, eps});
+      if (parameters._algorithm == DBSCAN::Algorithm::DBSCAN)
+        bvh.query(
+            exec_space, predicates,
+            Details::FDBSCANDenseBoxCallback<UnionFind, CorePoints, Points,
+                                             decltype(dense_cell_offsets),
+                                             decltype(permute)>{
+                labels, CorePoints{num_neigh, core_min_size}, points,
+                dense_cell_offsets, exec_space, permute, eps});
+      else
+        bvh.query(
+            exec_space, predicates,
+            Details::FDBSCANDenseBoxCallback<
+                UnionFind, CorePoints, Points, decltype(dense_cell_offsets),
+                decltype(permute), Details::DBSCANStarTag>{
+                labels, CorePoints{num_neigh, core_min_size}, points,
+                dense_cell_offsets, exec_space, permute, eps});
       Kokkos::Profiling::popRegion();
     }
   }
@@ -485,7 +519,17 @@ dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::Profiling::popRegion();
 
   Kokkos::Profiling::popRegion();
+}
 
+template <typename ExecutionSpace, typename Primitives, typename Coordinate>
+[[deprecated("Please use dbscan() that takes in labels as an argument")]] auto
+dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
+       Coordinate eps, int core_min_size,
+       DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
+{
+  using MemorySpace = typename AccessTraits<Primitives>::memory_space;
+  Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
+  dbscan(exec_space, primitives, eps, core_min_size, labels, parameters);
   return labels;
 }
 

@@ -283,8 +283,8 @@ KOKKOS_INLINE_FUNCTION unsigned long long expandBitsBy<9>(unsigned long long x)
   return x;
 }
 
-template <typename Point,
-          typename Enable = std::enable_if_t<GeometryTraits::is_point_v<Point>>>
+template <typename Point>
+  requires(GeometryTraits::is_point_v<Point>)
 KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
 {
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
@@ -303,9 +303,9 @@ KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
   return r;
 }
 
-template <typename Point,
-          std::enable_if_t<GeometryTraits::is_point_v<Point> &&
-                           GeometryTraits::dimension_v<Point> != 2> * = nullptr>
+template <typename Point>
+  requires(GeometryTraits::is_point_v<Point> &&
+           GeometryTraits::dimension_v<Point> != 2)
 KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
 {
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
@@ -326,9 +326,9 @@ KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
 
 // Calculate a 62-bit Morton code for a 2D point located within [0, 1]^2.
 // Special case because it needs double.
-template <typename Point,
-          std::enable_if_t<GeometryTraits::is_point_v<Point> &&
-                           GeometryTraits::dimension_v<Point> == 2> * = nullptr>
+template <typename Point>
+  requires(GeometryTraits::is_point_v<Point> &&
+           GeometryTraits::dimension_v<Point> == 2)
 KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
 {
   // The interval [0,1] is subdivided into 2,147,483,648 bins (in each

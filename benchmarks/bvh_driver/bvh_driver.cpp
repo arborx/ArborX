@@ -22,11 +22,6 @@
 #include <iostream>
 
 #include "benchmark_registration.hpp"
-
-#ifdef ARBORX_PERFORMANCE_TESTING
-#include <mpi.h>
-#endif
-
 #include <benchmark/benchmark.h>
 
 template <typename ExecutionSpace, typename TreeType>
@@ -98,19 +93,9 @@ void register_bvh_benchmarks(Spec const &spec)
     throw std::runtime_error("HIP backend not available!");
 #endif
 
-#ifdef KOKKOS_ENABLE_OPENMPTARGET
-  if (spec.backends == "all" || spec.backends == "openmptarget")
-    BVHBenchmarkRegistration<Kokkos::Experimental::OpenMPTarget>(
-        spec, "ArborX::BVH<OpenMPTarget>");
-#else
-  if (spec.backends == "openmptarget")
-    throw std::runtime_error("OpenMPTarget backend not available!");
-#endif
-
 #ifdef KOKKOS_ENABLE_SYCL
   if (spec.backends == "all" || spec.backends == "sycl")
-    BVHBenchmarkRegistration<Kokkos::Experimental::SYCL>(spec,
-                                                         "ArborX::BVH<SYCL>");
+    BVHBenchmarkRegistration<Kokkos::SYCL>(spec, "ArborX::BVH<SYCL>");
 #else
   if (spec.backends == "sycl")
     throw std::runtime_error("SYCL backend not available!");
@@ -174,10 +159,7 @@ public:
 
 int main(int argc, char *argv[])
 {
-#ifdef ARBORX_PERFORMANCE_TESTING
-  MPI_Init(&argc, &argv);
-#endif
-  Kokkos::initialize(argc, argv);
+  Kokkos::ScopeGuard guard(argc, argv);
 
   namespace bpo = boost::program_options;
   bpo::options_description desc("Allowed options");
@@ -222,9 +204,6 @@ int main(int argc, char *argv[])
     std::cout << desc << "\n";
     int ac = 2;
     char *av[] = {(char *)"ignored", (char *)"--help"};
-    // benchmark::Initialize() calls exit(0) when `--help` so register
-    // Kokkos::finalize() to be called on normal program termination.
-    std::atexit(Kokkos::finalize);
     benchmark::Initialize(&ac, av);
     return 1;
   }
@@ -273,11 +252,6 @@ int main(int argc, char *argv[])
   }
 
   benchmark::RunSpecifiedBenchmarks();
-
-  Kokkos::finalize();
-#ifdef ARBORX_PERFORMANCE_TESTING
-  MPI_Finalize();
-#endif
 
   return EXIT_SUCCESS;
 }

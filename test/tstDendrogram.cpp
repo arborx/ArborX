@@ -224,7 +224,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(dendrogram_boruvka_same_weights, DeviceType,
   Kokkos::parallel_for(
       "Testing::count_children", Kokkos::RangePolicy(space, 0, 2 * n - 1),
       KOKKOS_LAMBDA(int i) {
-        Kokkos::atomic_inc(&counts(mst.dendrogram_parents(i)));
+        auto parent = mst.dendrogram_parents(i);
+        if (parent == -1)
+        {
+          // Dendrogram root has no parent
+          return;
+        }
+        Kokkos::atomic_inc(&counts(parent));
       });
 
   int wrong_counts;

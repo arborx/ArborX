@@ -149,12 +149,13 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 {
   using MemorySpace = typename Primitives::memory_space;
 
+  bool timer_hooks_set_up = false;
   if (params.verbose)
   {
-    Kokkos::Profiling::Experimental::set_push_region_callback(
-        ArborXBenchmark::push_region);
-    Kokkos::Profiling::Experimental::set_pop_region_callback(
-        ArborXBenchmark::pop_region);
+    timer_hooks_set_up = ArborXBenchmark::try_set_timer_hooks();
+    if (!timer_hooks_set_up)
+      std::cerr << "\n\n\t*** Warning: Kokkos profiling tools are already "
+                   "active, ignoring the the --verbose argument. ***\n\n";
   }
 
   using ArborX::DBSCAN::Implementation;
@@ -162,14 +163,21 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   if (params.implementation == "fdbscan-densebox")
     implementation = Implementation::FDBSCAN_DenseBox;
 
+  using ArborX::DBSCAN::Algorithm;
+  Algorithm algorithm = Algorithm::DBSCAN;
+  if (params.algorithm == "dbscan*")
+    algorithm = Algorithm::DBSCAN_STAR;
+
   ArborX::DBSCAN::Parameters dbscan_params;
-  dbscan_params.setVerbosity(params.verbose).setImplementation(implementation);
+  dbscan_params.setVerbosity(params.verbose)
+      .setImplementation(implementation)
+      .setAlgorithm(algorithm);
 
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::total");
 
   Kokkos::View<int *, MemorySpace> labels("Example::labels", 0);
-  labels = ArborX::dbscan<ExecutionSpace>(exec_space, primitives, params.eps,
-                                          params.core_min_size, dbscan_params);
+  ArborX::dbscan<ExecutionSpace>(exec_space, primitives, params.eps,
+                                 params.core_min_size, labels, dbscan_params);
 
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN::postprocess");
   Kokkos::View<int *, MemorySpace> cluster_indices("Testing::cluster_indices",
@@ -181,7 +189,7 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   Kokkos::Profiling::popRegion();
 
-  if (params.verbose)
+  if (timer_hooks_set_up)
   {
     bool const is_special_case = (params.core_min_size == 2);
 
@@ -218,8 +226,9 @@ bool run_dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   bool success = true;
   if (params.verify)
   {
-    success = ArborX::Details::verifyDBSCAN(exec_space, primitives, params.eps,
-                                            params.core_min_size, labels);
+    success =
+        ArborX::Details::verifyDBSCAN(exec_space, primitives, params.eps,
+                                      params.core_min_size, labels, algorithm);
     printf("Verification %s\n", (success ? "passed" : "failed"));
   }
 
@@ -259,12 +268,14 @@ int main(int argc, char *argv[])
   Parameters params;
 
   std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
+  std::vector<std::string> allowed_algorithms = {"dbscan", "dbscan*"};
 
   bpo::options_description desc("Allowed options");
   bool ascii;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
+      ( "algorithm", bpo::value<std::string>(&params.algorithm)->default_value("dbscan"), ("DBSCAN algorithm " + vec2string(allowed_algorithms, " | ")).c_str() )
       ( "ascii", bpo::bool_switch(&ascii), "ascii file indicator")
       ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
@@ -309,16 +320,21 @@ int main(int argc, char *argv[])
               << "\n";
     return 2;
   }
+  if (!found(allowed_algorithms, params.algorithm))
+  {
+    std::cerr << "Algorithm must be one of " << vec2string(allowed_algorithms)
+              << "\n";
+    return 3;
+  }
 
   // Print out the runtime parameters
-  std::stringstream ss;
-  ss << params.implementation;
   printf("eps               : %f\n", params.eps);
   printf("minpts            : %d\n", params.core_min_size);
   printf("cluster min size  : %d\n", params.cluster_min_size);
   if (!params.filename_labels.empty())
     printf("filename [labels] : %s [binary]\n", params.filename_labels.c_str());
-  printf("implementation    : %s\n", ss.str().c_str());
+  printf("algorithm         : %s\n", params.algorithm.c_str());
+  printf("implementation    : %s\n", params.implementation.c_str());
   printf("verify            : %s\n", (params.verify ? "true" : "false"));
   printf("verbose           : %s\n", (params.verbose ? "true" : "false"));
 

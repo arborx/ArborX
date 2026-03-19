@@ -31,16 +31,14 @@ struct Timer
 std::stack<Timer> current_timers;
 std::vector<Timer> done_timers;
 
-} // namespace
-
-void ArborXBenchmark::push_region(char const *label)
+void push_region(char const *label)
 {
   Kokkos::fence();
   auto now = Timer::clock_type::now();
   current_timers.push({label, now, {}});
 }
 
-void ArborXBenchmark::pop_region()
+void pop_region()
 {
   Kokkos::fence();
   auto now = Timer::clock_type::now();
@@ -50,10 +48,25 @@ void ArborXBenchmark::pop_region()
   done_timers.push_back(timer);
 }
 
+} // namespace
+
 double ArborXBenchmark::get_time(std::string const &label)
 {
   for (auto const &timer : done_timers)
     if (timer.label == label)
       return timer.duration;
   Kokkos::abort(("ArborX: no timer with label \"" + label + "\"").c_str());
+}
+
+bool ArborXBenchmark::try_set_timer_hooks()
+{
+  namespace KPE = Kokkos::Profiling::Experimental;
+  if (KPE::get_callbacks().push_region != nullptr ||
+      KPE::get_callbacks().pop_region != nullptr)
+    return false;
+
+  KPE::set_push_region_callback(push_region);
+  KPE::set_pop_region_callback(pop_region);
+
+  return true;
 }

@@ -13,7 +13,6 @@
 
 namespace ArborXBenchmark
 {
-void push_region(char const *);
-void pop_region();
 double get_time(std::string const &label);
+bool try_set_timer_hooks();
 } // namespace ArborXBenchmark

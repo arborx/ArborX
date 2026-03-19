@@ -40,8 +40,7 @@ void makeCase(ES const &es, std::function<T(T const)> const &tf, T tol = 1e-5)
   Kokkos::parallel_for(
       "Testing::eval_crbf", Kokkos::RangePolicy(es, 0, 4 * range),
       KOKKOS_LAMBDA(int const i) {
-        eval(i) =
-            ArborX::Interpolation::CRBF::evaluate<CRBF>(Point{eval(i)}, 1);
+        eval(i) = ArborX::Interpolation::CRBF::evaluate<CRBF>(Point{eval(i)});
       });
 
   if (bool(tf))

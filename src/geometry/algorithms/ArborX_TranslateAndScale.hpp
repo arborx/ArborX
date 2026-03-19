@@ -20,9 +20,8 @@ namespace ArborX::Details
 {
 // transformation that maps the unit cube into a new axis-aligned box
 // NOTE safe to perform in-place
-template <typename Point, typename Box,
-          std::enable_if_t<GeometryTraits::is_point_v<Point> &&
-                           GeometryTraits::is_box_v<Box>> * = nullptr>
+template <typename Point, typename Box>
+  requires(GeometryTraits::is_point_v<Point> && GeometryTraits::is_box_v<Box>)
 KOKKOS_FUNCTION void translateAndScale(Point const &in, Point &out,
                                        Box const &ref)
 {

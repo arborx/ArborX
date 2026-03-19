@@ -22,6 +22,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
+#include <Kokkos_Swap.hpp>
 
 namespace ArborX::Interpolation::Details
 {
@@ -94,11 +95,16 @@ public:
     // - PHI is the diagonal weight matrix / CRBF evaluated at each source
     // point.
 
-    // We first change the origin of the evaluation to be at the target point.
-    // This lets us use p(0) which is [1 0 ... 0].
-    sourceRecentering(target_point, source_points);
+    // We first change the origin of the evaluation to be at the target point
+    // within about unit distance which is equivalent to recentering and scaling
+    // the monomial basis. This lets us use p(0) which is [1 0 ... 0] and leads
+    // to a more stable algorithm, see, e.g., (3.8) in
+    // Mirzaei, Davoud. "Analysis of moving least squares approximation
+    // revisited." Journal of Computational and Applied Mathematics 282 (2015):
+    // 237-250.
+    sourceNormalization(target_point, source_points);
 
-    // This computes PHI given the source points (radius is computed inside)
+    // This computes PHI given the source points.
     phiComputation(source_points, phi);
 
     // This builds the Vandermonde (P) matrix
@@ -110,11 +116,85 @@ public:
 
     // We need the inverse of P^T.PHI.P, and because it is symmetric, we can use
     // the symmetric SVD algorithm to get it.
-    ::ArborX::Details::symmetricPseudoInverseSVDKernel(moment, svd_diag,
-                                                       svd_unit);
-    // Now, the moment has [P^T.PHI.P]^-1
+    ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
 
-    // Finally, the result is produced by computing p(0).[P^T.PHI.P]^-1.P^T.PHI
+    // Check if matrix is singular
+    auto [is_singular, tolerance] = isSingularMatrix(svd_diag);
+    if (is_singular)
+    {
+      constexpr int n = svd_diag.static_extent(0);
+
+#ifndef NDEBUG
+      int n_zero_values = 0;
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_diag(i)) < tolerance)
+          ++n_zero_values;
+      KOKKOS_ASSERT(n_zero_values > 0);
+#endif
+      ::ArborX::Details::symmetricMatrixFromSVD(svd_diag, svd_unit, moment);
+
+      // Bring matrix in row-echelon form to find rows that form a full rank
+      // matrix
+
+      // svd_unit can be overwritten now and we store a copy of the moment
+      // matrix in it to compute the row echelon form
+      for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j)
+          svd_unit(i, j) = moment(i, j);
+
+      Kokkos::Array<int, n> permutation;
+      for (int i = 0; i < n; ++i)
+        permutation[i] = i;
+
+      rowEchelonForm(svd_unit, permutation, tolerance);
+
+#ifndef NDEBUG
+      int n_zero_values_in_echelon_form = 0;
+      for (int i = 0; i < n; ++i)
+      {
+        CoefficientsType max = 0;
+        for (int j = i; j < n; ++j)
+          if (Kokkos::abs(svd_unit(i, j)) > max)
+            max = Kokkos::abs(svd_unit(i, j));
+        if (max < tolerance)
+          ++n_zero_values_in_echelon_form;
+      }
+      KOKKOS_ASSERT(n_zero_values_in_echelon_form == n_zero_values);
+#endif
+      for (int i = 0; i < n; ++i)
+      {
+        CoefficientsType max = 0;
+        for (int j = i; j < n; ++j)
+          if (Kokkos::abs(svd_unit(i, j)) > max)
+            max = Kokkos::abs(svd_unit(i, j));
+        if (max < tolerance)
+        {
+          int row_index = permutation[i];
+          // Eliminate corresponding column from Vandermonde matrix and
+          // eliminate row and column from moment matrix storing 1 one the
+          // diagonal
+          for (int j = 0; j < n; ++j)
+            moment(row_index, j) = moment(j, row_index) = 0;
+          for (unsigned int j = 0; j < vandermonde.static_extent(0); ++j)
+            vandermonde(j, row_index) = 0;
+          moment(row_index, row_index) = 1.;
+        }
+      }
+      // Compute a SVD for the new matrix
+      ::ArborX::Details::symmetricSVDKernel(moment, svd_diag, svd_unit);
+#ifndef NDEBUG
+      for (int i = 0; i < n; ++i)
+        if (Kokkos::abs(svd_unit(i, i)) < tolerance)
+          Kokkos::abort("Didn't eliminate all zero eigenvalues!");
+#endif
+    }
+
+    // Store [P^T.PHI.P]^-1 in moment
+    ::ArborX::Details::symmetricPseudoInverseSVDKernel(svd_diag, svd_unit,
+                                                       moment);
+
+    // Finally, the result is produced by computing
+    // p(0).[P^T.PHI.P]^-1.P^T.PHI
     coefficientsComputation(phi, vandermonde, moment, coefficients);
   }
 
@@ -146,32 +226,34 @@ private:
     return val;
   }
 
-  // Recenters the source points so that the target is at the origin
-  KOKKOS_FUNCTION void sourceRecentering(TargetPoint const &target_point,
-                                         LocalSourcePoints &source_points) const
+  // Recenters the source points so that the target is at the origin within
+  // about unit distance
+  KOKKOS_FUNCTION void
+  sourceNormalization(TargetPoint const &target_point,
+                      LocalSourcePoints &source_points) const
   {
+    CoefficientsType radius = Kokkos::Experimental::epsilon_v<CoefficientsType>;
+    for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
+    {
+      CoefficientsType const norm =
+          distance(source_points(neighbor), target_point);
+      radius = Kokkos::max(radius, norm);
+    }
+    // The one at the limit would be 0 due to how CRBFs work
+    radius *= CoefficientsType(1.1);
+
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
       for (int k = 0; k < dimension; k++)
-        source_points(neighbor)[k] -= target_point[k];
+        source_points(neighbor)[k] =
+            (source_points(neighbor)[k] - target_point[k]) / radius;
   }
 
   // Computes the weight matrix
   KOKKOS_FUNCTION void phiComputation(LocalSourcePoints const &source_points,
                                       LocalPhi &phi) const
   {
-    CoefficientsType radius = Kokkos::Experimental::epsilon_v<CoefficientsType>;
     for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
-    {
-      CoefficientsType const norm =
-          ArborX::Details::distance(source_points(neighbor), SourcePoint{});
-      radius = Kokkos::max(radius, norm);
-    }
-
-    // The one at the limit would be 0 due to how CRBFs work
-    radius *= CoefficientsType(1.1);
-
-    for (int neighbor = 0; neighbor < _num_neighbors; neighbor++)
-      phi(neighbor) = CRBF::evaluate<CRBFunc>(source_points(neighbor), radius);
+      phi(neighbor) = CRBF::evaluate<CRBFunc>(source_points(neighbor));
   }
 
   // Computes the vandermonde matrix
@@ -200,6 +282,68 @@ private:
           moment(i, j) += vandermonde(neighbor, i) * vandermonde(neighbor, j) *
                           phi(neighbor);
       }
+  }
+
+  KOKKOS_FUNCTION Kokkos::pair<bool, CoefficientsType>
+  isSingularMatrix(LocalSVDDiag const &svd_diag) const
+  {
+    CoefficientsType max_eigen = 0;
+    for (int i = 0; i < poly_size; i++)
+      max_eigen = Kokkos::max(Kokkos::abs(svd_diag(i)), max_eigen);
+
+    constexpr auto epsilon = Kokkos::Experimental::epsilon_v<CoefficientsType>;
+    auto tolerance = poly_size * max_eigen * epsilon;
+    for (int i = 0; i < poly_size; i++)
+      if (Kokkos::abs(svd_diag(i)) <= tolerance)
+        return {true, tolerance};
+    return {false, tolerance};
+  }
+
+  KOKKOS_FUNCTION void
+  rowEchelonForm(LocalMoment &matrix,
+                 Kokkos::Array<int, poly_size> &permutation,
+                 CoefficientsType tolerance) const
+  {
+    int pivot_row = 0;
+    int pivot_col = 0;
+
+    while (pivot_row < poly_size && pivot_col < poly_size)
+    {
+      // Find the k-th pivot:
+      int i_max = 0;
+      CoefficientsType max_entry = 0;
+      for (int i = pivot_row; i < poly_size; ++i)
+        if (Kokkos::abs(matrix(i, pivot_col)) > max_entry)
+        {
+          max_entry = Kokkos::abs(matrix(i, pivot_col));
+          i_max = i;
+        }
+
+      // No pivot in this column, pass to next column
+      if (Kokkos::abs(matrix(i_max, pivot_col)) < tolerance)
+      {
+        ++pivot_col;
+        continue;
+      }
+      // swap rows(pivot_row, i_max)
+      for (int i = 0; i < poly_size; ++i)
+        Kokkos::kokkos_swap(matrix(pivot_row, i), matrix(i_max, i));
+      Kokkos::kokkos_swap(permutation[i_max], permutation[pivot_row]);
+      // Do for all rows below pivot:
+      auto const pivot = matrix(pivot_row, pivot_col);
+      for (int i = pivot_row + 1; i < poly_size; ++i)
+      {
+        CoefficientsType f = matrix(i, pivot_col) / pivot;
+        // Fill with zeros the lower part of pivot column:
+        matrix(i, pivot_col) = 0;
+        // Do for all remaining elements in current row:
+        for (int j = pivot_col + 1; j < poly_size; ++j)
+          matrix(i, j) -= matrix(pivot_row, j) * f;
+      }
+      // Increase pivot row and column
+      ++pivot_row;
+      ++pivot_col;
+    }
   }
 
   // Computes the coefficients

@@ -27,6 +27,12 @@ else()
 
   target_compile_options(benchmark PRIVATE -w)
   target_compile_options(benchmark_main PRIVATE -w)
+
+  # Always build optimized benchmark regardless of ArborX build type
+  target_compile_options(benchmark PRIVATE -O3)
+  target_compile_options(benchmark_main PRIVATE -O3)
+  target_compile_definitions(benchmark PRIVATE NDEBUG)
+  target_compile_definitions(benchmark_main PRIVATE NDEBUG)
 ENDIF()
 
 add_subdirectory(brute_force_vs_bvh)

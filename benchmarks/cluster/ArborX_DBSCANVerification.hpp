@@ -14,6 +14,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <ArborX_DBSCAN.hpp>
 #include <ArborX_LinearBVH.hpp>
 #ifdef ARBORX_ENABLE_MPI
 #include <ArborX_DistributedTree.hpp>
@@ -135,11 +136,45 @@ bool verifyConnectedCorePointsShareIndex(ExecutionSpace const &exec_space,
   return (num_incorrect == 0);
 }
 
-// Check that border points share index with at least one core point, and
-// that noise points have index -1
+// Check that noise points have index -1
 template <typename ExecutionSpace, typename Offset, typename Neighbors>
-bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space, Offset offset,
-                                Neighbors neighbors, bool verbose)
+bool verifyNoisePoints(ExecutionSpace const &exec_space, Offset offset,
+                       Neighbors neighbors, bool verbose)
+{
+  auto const n = offset.size() - 1;
+
+  int num_incorrect;
+  Kokkos::parallel_reduce(
+      "ArborX::DBSCAN::verify_connected_border_points",
+      Kokkos::RangePolicy(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i, int &update) {
+        auto const self = neighbors(offset(i));
+        if (self.is_core)
+          return;
+        for (int j = offset(i) + 1; j < offset(i + 1); ++j)
+        {
+          auto const neigh = neighbors(j);
+          if (neigh.is_core)
+            return; // border point
+        }
+
+        // Noise points must have index -1
+        if (self.label != -1)
+        {
+          update++;
+          if (verbose)
+            dual_print("Noise point does not have index -1", self);
+        }
+      },
+      num_incorrect);
+  return (num_incorrect == 0);
+}
+
+// Check that border points share index with at least one core point
+template <typename ExecutionSpace, typename Offset, typename Neighbors>
+bool verifyConnectedBorderPoints(ExecutionSpace const &exec_space,
+                                 Offset offset, Neighbors neighbors,
+                                 bool verbose)
 {
   auto const n = offset.size() - 1;
 
@@ -174,12 +209,43 @@ bool verifyBorderAndNoisePoints(ExecutionSpace const &exec_space, Offset offset,
           if (verbose)
             dual_print("Border point does not belong to a cluster", self);
         }
-        // Noise points must have index -1
-        if (!is_border && self.label != -1)
+      },
+      num_incorrect);
+  return (num_incorrect == 0);
+}
+
+// Check that border points are marked as noise
+template <typename ExecutionSpace, typename Offset, typename Neighbors>
+bool verifyIgnoredBorderPoints(ExecutionSpace const &exec_space, Offset offset,
+                               Neighbors neighbors, bool verbose)
+{
+  auto const n = offset.size() - 1;
+
+  int num_incorrect;
+  Kokkos::parallel_reduce(
+      "ArborX::DBSCAN::verify_connected_border_points",
+      Kokkos::RangePolicy(exec_space, 0, n),
+      KOKKOS_LAMBDA(int i, int &update) {
+        auto const self = neighbors(offset(i));
+        if (self.is_core)
+          return;
+        bool is_border = false;
+        for (int j = offset(i) + 1; j < offset(i + 1); ++j)
         {
-          if (verbose)
-            dual_print("Noise point does not have index -1", self);
+          auto const neigh = neighbors(j);
+          if (neigh.is_core)
+          {
+            is_border = true;
+            break;
+          }
+        }
+
+        // Border point must be connected to a core point
+        if (is_border && self.label != -1)
+        {
           update++;
+          if (verbose)
+            dual_print("Border point does not have index -1", self);
         }
       },
       num_incorrect);
@@ -296,6 +362,7 @@ template <typename ExecutionSpace, typename Primitives, typename Labels,
           typename Coordinate>
 bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
                   Coordinate eps, int core_min_size, Labels const &labels,
+                  DBSCAN::Algorithm algorithm = DBSCAN::Algorithm::DBSCAN,
                   bool verbose = false)
 {
   Kokkos::Profiling::ScopedRegion guard("ArborX::DBSCAN::verify");
@@ -351,7 +418,10 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
   std::vector<Verify> verify{
       static_cast<Verify>(verifyCorePointsNonnegativeIndex),
       static_cast<Verify>(verifyConnectedCorePointsShareIndex),
-      static_cast<Verify>(verifyBorderAndNoisePoints),
+      static_cast<Verify>(verifyNoisePoints),
+      (algorithm == DBSCAN::Algorithm::DBSCAN
+           ? static_cast<Verify>(verifyConnectedBorderPoints)
+           : static_cast<Verify>(verifyIgnoredBorderPoints)),
       static_cast<Verify>(verifyClustersAreUnique)};
   return std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
     return verify(exec_space, offset, neighbors, verbose);
@@ -471,7 +541,8 @@ bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
   std::vector<Verify> verify{
       static_cast<Verify>(verifyCorePointsNonnegativeIndex),
       static_cast<Verify>(verifyConnectedCorePointsShareIndex),
-      static_cast<Verify>(verifyBorderAndNoisePoints)};
+      static_cast<Verify>(verifyNoisePoints),
+      static_cast<Verify>(verifyConnectedBorderPoints)};
   int local_success =
       std::all_of(verify.begin(), verify.end(), [&](Verify const &verify) {
         return verify(exec_space, offset, neighbors, verbose);
