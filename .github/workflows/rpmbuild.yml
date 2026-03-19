@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   rpmbuild:
-    continue-on-error: ${{ matrix.config.continue-on-error == 'true' }}
+    continue-on-error: true
     strategy:
       matrix:
         config:
