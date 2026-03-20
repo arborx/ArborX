@@ -30,7 +30,7 @@ class PrimitivesIntersect
 public:
   using memory_space = typename Primitives::memory_space;
 
-  KOKKOS_FUNCTION PrimitivesIntersect(UserPrimitives const &primitives)
+  PrimitivesIntersect(UserPrimitives const &primitives)
       : _primitives(primitives)
   {}
 
@@ -45,7 +45,7 @@ class PrimitivesOrderedIntersect
 public:
   using memory_space = typename Primitives::memory_space;
 
-  KOKKOS_FUNCTION PrimitivesOrderedIntersect(UserPrimitives const &primitives)
+  PrimitivesOrderedIntersect(UserPrimitives const &primitives)
       : _primitives(primitives)
   {}
 
