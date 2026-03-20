@@ -175,7 +175,7 @@ public:
           // diagonal
           for (int j = 0; j < n; ++j)
             moment(row_index, j) = moment(j, row_index) = 0;
-          for (unsigned int j = 0; j < vandermonde.static_extent(0); ++j)
+          for (int j = 0; j < vandermonde.extent_int(0); ++j)
             vandermonde(j, row_index) = 0;
           moment(row_index, row_index) = 1.;
         }
