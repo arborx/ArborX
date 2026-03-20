@@ -76,7 +76,7 @@ for mpi in '' mpich openmpi; do
     -DARBORX_ENABLE_TESTS=ON \
     -DARBORX_ENABLE_EXAMPLES=OFF \
     -DARBORX_ENABLE_BENCHMARKS=OFF \
-    $(test -z "${mpi}" && echo -DARBORX_ENABLE_MPI=OFF || echo -DARBORX_ENABLE_MPI=ON) \
+    $(test -z "${mpi}" && echo -DARBORX_ENABLE_MPI=OFF || echo -DARBORX_ENABLE_MPI=ON -DMPIEXEC_PREFLAGS="--allow-run-as-root") \
     -DCMAKE_INSTALL_DATADIR=${MPI_LIB:-%{_datadir}} \
     -DCMAKE_INSTALL_INCLUDEDIR=${MPI_INCLUDE:-%{_includedir}} \
     %{nil}
