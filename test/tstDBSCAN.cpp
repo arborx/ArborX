@@ -209,6 +209,9 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl,
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+#if KOKKOS_COMPILER_NVHPC
+#pragma diag_suppress = 1445 // deprecated_entity_with_custom_message
+#endif
     // Test deprecated DBSCAN interface
     BOOST_TEST(
         verifyDBSCAN(space, points, r - (Coordinate)0.1, 2,
@@ -217,6 +220,9 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl,
         verifyDBSCAN(space, points, r, 2, dbscan(space, points, r, 2, params)));
     BOOST_TEST(
         verifyDBSCAN(space, points, r, 3, dbscan(space, points, r, 3, params)));
+#if KOKKOS_COMPILER_NVHPC
+#pragma diag_default = 1445 // deprecated_entity_with_custom_message
+#endif
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
