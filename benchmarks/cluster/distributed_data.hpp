@@ -32,7 +32,7 @@ generateDistributedData(MPI_Comm comm,
 
   auto factors = ArborX::Details::closestFactors<DIM>(comm_size);
 
-  std::array<int, DIM> Is;
+  Kokkos::Array<int, DIM> Is;
   for (int d = 0, s = comm_rank; d < DIM; ++d)
   {
     Is[d] = s % factors[d];
