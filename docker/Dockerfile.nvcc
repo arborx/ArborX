@@ -52,6 +52,10 @@ ENV PATH=${OPENMPI_DIR}/bin:$PATH
 # Install Boost
 # Note: can't use libboost-program-options-dev and libboost-test-dev coming
 # with Ubuntu 22.04 (1.74.0 does not work with CUDA)
+# Also, get rid of Boost warnings when building ArborX:
+# boost/include/boost/fusion/container/vector/vector.hpp(195):
+# warning #20012-D: __device__ annotation is ignored on a function("vector_data") that is explicitly
+# defaulted on its first declaration __attribute__((host)) __attribute__((device))
 ENV BOOST_DIR=/opt/boost
 RUN BOOST_VERSION=1.86.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
@@ -62,6 +66,7 @@ RUN BOOST_VERSION=1.86.0 && \
     mkdir -p boost && \
     tar -xf ${BOOST_ARCHIVE} -C boost --strip-components=1 && \
     cd boost && \
+    sed -i 'N; s/BOOST_FUSION_GPU_ENABLED\(.*\n.*BOOST_DEFAULTED_FUNCTION.*\)/\1/; P; D' boost/fusion/container/vector/vector.hpp && \
     CXXFLAGS="-w" ./bootstrap.sh --prefix=${BOOST_DIR} && \
     echo "using mpi ;" >> project-config.jam && \
     ./b2 -j${NPROCS} \
