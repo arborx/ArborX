@@ -56,6 +56,11 @@ double ArborXBenchmark::get_time(std::string const &label)
     if (timer.label == label)
       return timer.duration;
   Kokkos::abort(("ArborX: no timer with label \"" + label + "\"").c_str());
+#ifdef KOKKOS_COMPILER_NVCC
+  // FIXME_NVCC: silence compiler warning
+  // "#940-D: missing return statement at end of non-void function"
+  return 0;
+#endif
 }
 
 bool ArborXBenchmark::try_set_timer_hooks()

@@ -136,7 +136,7 @@ struct IntersectedCell : public IntersectedCellForSorting
 {
   float optical_path_length; // optical distance through box
   int cell_id;               // box ID
-  KOKKOS_FUNCTION IntersectedCell() = default;
+  KOKKOS_DEFAULTED_FUNCTION IntersectedCell() = default;
   KOKKOS_FUNCTION IntersectedCell(float entry_length, float path_length,
                                   int primitive_index, int predicate_index)
       : IntersectedCellForSorting{entry_length, predicate_index}
