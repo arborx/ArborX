@@ -37,12 +37,12 @@ pipeline {
 
         stage('Build') {
             parallel {
-                stage('CUDA-12.0.1-NVCC-CUDA-AWARE-MPI') {
+                stage('CUDA-12.2.2-NVCC-CUDA-AWARE-MPI') {
                     agent {
                         dockerfile {
                             filename "Dockerfile.nvcc"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:12.0.1-devel-ubuntu22.04 --build-arg KOKKOS_VERSION=4.5.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1'
+                            additionalBuildArgs '--build-arg BASE=nvidia/cuda:12.2.2-devel-ubuntu22.04 --build-arg KOKKOS_VERSION=4.5.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_EXTENSIONS=OFF -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_VOLTA70=ON" --build-arg CUDA_AWARE_MPI=1'
                             args '-v /tmp/ccache:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
                         }
@@ -221,7 +221,7 @@ pipeline {
                         dockerfile {
                             filename "Dockerfile"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=ubuntu:22.04 --build-arg ADDITIONAL_PACKAGES="clang clang-tidy" --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_STANDARD=20 -DKokkos_ENABLE_OPENMP=ON -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
+                            additionalBuildArgs '--build-arg BASE=ubuntu:24.04 --build-arg ADDITIONAL_PACKAGES="clang clang-tidy" --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_OPTIONS="-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_STANDARD=20 -DKokkos_ENABLE_OPENMP=ON -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu"'
                             args '-v /tmp/ccache:/tmp/ccache'
                             label 'docker'
                         }
@@ -340,12 +340,12 @@ pipeline {
                     }
                 }
 
-                stage('HIP-5.6') {
+                stage('HIP-6.2.4') {
                     agent {
                         dockerfile {
                             filename "Dockerfile.hipcc"
                             dir "docker"
-                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-20.04:5.6 --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
+                            additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-24.04:6.2.4-complete --build-arg KOKKOS_VERSION=4.6.00 --build-arg KOKKOS_ARCH=${KOKKOS_ARCH}'
                             args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES} --env AMDGPU_TARGET=${AMDGPU_TARGET}'
                             label 'rocm-docker'
                         }
