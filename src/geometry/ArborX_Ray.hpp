@@ -438,7 +438,7 @@ KOKKOS_INLINE_FUNCTION auto distance(Ray<Coordinate> const &ray,
   Coordinate tmin;
   Coordinate tmax;
   bool intersects = intersection(ray, box, tmin, tmax) && (tmax >= 0);
-  return intersects ? (tmin > 0 ? tmin : (Coordinate)0)
+  return intersects ? Kokkos::max(tmin, (Coordinate)0)
                     : Details::KokkosExt::ArithmeticTraits::infinity<
                           Coordinate>::value;
 }
