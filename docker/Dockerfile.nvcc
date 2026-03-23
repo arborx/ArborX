@@ -1,4 +1,4 @@
-ARG BASE=nvidia/cuda:12.0.1-devel-ubuntu22.04
+ARG BASE=nvidia/cuda:12.2.2-devel-ubuntu22.04
 FROM $BASE
 
 ARG NPROCS=4
@@ -53,7 +53,7 @@ ENV PATH=${OPENMPI_DIR}/bin:$PATH
 # Note: can't use libboost-program-options-dev and libboost-test-dev coming
 # with Ubuntu 22.04 (1.74.0 does not work with CUDA)
 ENV BOOST_DIR=/opt/boost
-RUN BOOST_VERSION=1.75.0 && \
+RUN BOOST_VERSION=1.86.0 && \
     BOOST_VERSION_UNDERSCORE=$(echo "$BOOST_VERSION" | sed -e "s/\./_/g") && \
     BOOST_URL=https://archives.boost.io/release/${BOOST_VERSION}/source && \
     BOOST_ARCHIVE=boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2 && \
