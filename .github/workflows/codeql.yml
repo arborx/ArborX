@@ -1,0 +1,89 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ["master"]
+  schedule:
+    - cron: "0 8 * * 0"
+
+permissions: read-all
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+      with:
+        egress-policy: audit
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
+      with:
+        languages: c-cpp
+
+    - name: Checkout Kokkos
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        repository: kokkos/kokkos
+        path: kokkos
+        ref: 4.5.00
+
+    - name: Configure_kokkos
+      run: |
+        mkdir -p kokkos/{build,install}
+        cd kokkos/build
+        cmake \
+          -S ${{github.workspace}}/kokkos \
+          -B ${{github.workspace}}/kokkos/build \
+          -D Kokkos_ENABLE_SERIAL=ON \
+          -D CMAKE_CXX_STANDARD=20 \
+          -D Kokkos_ENABLE_COMPILER_WARNINGS=ON \
+          -D Kokkos_ENABLE_TESTS=OFF \
+          -D Kokkos_ENABLE_DEPRECATED_CODE_4=OFF \
+          -D CMAKE_BUILD_TYPE=RELEASE \
+          -D CMAKE_INSTALL_PREFIX=${{github.workspace}}/kokkos/install
+
+    - name: Build and install Kokkos
+      working-directory: kokkos/build
+      run: make -j2 install
+
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        path: arborx
+
+    - name: Configure ArborX
+      run: |
+        mkdir -p arborx/build
+        cd arborx/build
+        cmake \
+          -S ${{github.workspace}}/arborx \
+          -B ${{github.workspace}}/arborx/build . \
+          -D Kokkos_ROOT=${{github.workspace}}/kokkos/install \
+          -D CMAKE_CXX_FLAGS=-Werror \
+          -D ArborX_ENABLE_MPI=ON \
+          -D ArborX_ENABLE_BENCHMARKS=ON \
+          -D ArborX_ENABLE_EXAMPLES=ON \
+          -D ArborX_ENABLE_TESTS=ON \
+          -D CMAKE_BUILD_TYPE=Debug
+
+    - name: Build ArborX
+      working-directory: arborx/build
+      run: make -j2
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
+      with:
+        category: "/language:c-cpp"
