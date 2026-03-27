@@ -74,8 +74,24 @@ cmake_dependent_option(ARBORX_ENABLE_GPU_AWARE_MPI
                        "Allow using device data in MPI communication"
                        OFF "ARBORX_ENABLE_MPI" OFF)
 
+option(ARBORX_ENABLE_TRILINOS "Enable Trilinos support" OFF)
+if(ARBORX_ENABLE_TRILINOS)
+  if (NOT ARBORX_ENABLE_MPI)
+    message(FATAL_ERROR "Trilinos support requires MPI support. Please enable ARBORX_ENABLE_MPI.")
+  endif()
+  set(ARBORX_TRILINOS_COMPONENT_LIST "PanzerAdaptersSTK;PanzerDiscFE")
+  find_package(Trilinos REQUIRED CONFIG COMPONENTS ${ARBORX_TRILINOS_COMPONENT_LIST})
+  if (Trilinos_VERSION VERSION_LESS 16.0)
+    message(FATAL_ERROR "Trilinos 16.0 or newer is required")
+  endif()
+  foreach(component ${ARBORX_TRILINOS_COMPONENT_LIST})
+    target_link_libraries(ArborX INTERFACE ${component}::all_libs)
+  endforeach()
+endif()
+
 target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/adapters>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/geometry>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/cluster>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/distributed>
@@ -83,6 +99,7 @@ target_include_directories(ArborX INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/spatial>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/adapters>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/geometry>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/cluster>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/ArborX/distributed>
