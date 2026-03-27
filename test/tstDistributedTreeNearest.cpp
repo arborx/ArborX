@@ -133,25 +133,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(hello_world_nearest, DeviceType,
   // Now do the same with callbacks
   if (comm_rank < comm_size - 1)
   {
+    std::vector<int> offsets = {0, 3};
+    std::vector<PairIndexRank> values = {{comm_size - 1 - comm_rank, 0},
+                                         {comm_size - 2 - comm_rank, n - 1},
+                                         {comm_size - 1 - comm_rank, 1}};
+
     ARBORX_TEST_QUERY_TREE_CALLBACK(
         ExecutionSpace{}, tree, nearest_queries,
         ArborX::Experimental::declare_callback_constrained(
             DistributedNearestCallback{comm_rank}),
-        make_reference_solution<PairRankIndex>(
-            {{comm_size - 1 - comm_rank, 0},
-             {comm_size - 2 - comm_rank, n - 1},
-             {comm_size - 1 - comm_rank, 1}},
-            {0, 3}));
+        make_compressed_storage(offsets, values));
   }
   else
   {
+    std::vector<int> offsets = {0, 2};
+    std::vector<PairIndexRank> values = {{comm_size - 1 - comm_rank, 0},
+                                         {comm_size - 1 - comm_rank, 1}};
+
     ARBORX_TEST_QUERY_TREE_CALLBACK(
         ExecutionSpace{}, tree, nearest_queries,
         ArborX::Experimental::declare_callback_constrained(
             DistributedNearestCallback{comm_rank}),
-        make_reference_solution<PairRankIndex>(
-            {{comm_size - 1 - comm_rank, 0}, {comm_size - 1 - comm_rank, 1}},
-            {0, 2}));
+        make_compressed_storage(offsets, values));
   }
 }
 
