@@ -325,16 +325,6 @@ struct intersects<KDOPTag, BoxTag, KDOP, Box>
   }
 };
 
-template <typename Triangle, typename Box>
-struct intersects<TriangleTag, BoxTag, Triangle, Box>
-{
-  KOKKOS_FUNCTION static constexpr bool apply(Triangle const &triangle,
-                                              Box const &box)
-  {
-    return intersects<BoxTag, TriangleTag, Box, Triangle>::apply(box, triangle);
-  }
-};
-
 template <typename Point, typename KDOP>
 struct intersects<PointTag, KDOPTag, Point, KDOP>
 {
