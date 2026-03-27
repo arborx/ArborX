@@ -32,24 +32,6 @@ struct is_boost_rtree<BoostExt::RTree<Geometry>> : std::true_type
 template <typename Geometry>
 inline constexpr bool is_boost_rtree_v = is_boost_rtree<Geometry>::value;
 
-template <typename MemorySpace>
-struct Iota
-{
-  static_assert(Kokkos::is_memory_space_v<MemorySpace>);
-  using memory_space = MemorySpace;
-  int _n;
-};
-
-template <typename MemorySpace>
-struct ArborX::AccessTraits<Iota<MemorySpace>>
-{
-  using Self = Iota<MemorySpace>;
-
-  using memory_space = typename Self::memory_space;
-  static KOKKOS_FUNCTION size_t size(Self const &self) { return self._n; }
-  static KOKKOS_FUNCTION auto get(Self const &, int i) { return i; }
-};
-
 struct Spec
 {
   using PointCloudType = ArborXBenchmark::PointCloudType;
@@ -153,10 +135,7 @@ auto makeTree(ExecutionSpace const &space, Primitives const &primitives)
   if constexpr (is_boost_rtree_v<TreeType>)
     return TreeType(space, primitives);
   else
-    return TreeType(space,
-                    Iota<typename TreeType::memory_space>{
-                        static_cast<int>(primitives.size())},
-                    primitives);
+    return TreeType(space, primitives.size(), primitives);
 }
 
 template <typename DeviceType>
