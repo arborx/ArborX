@@ -31,6 +31,7 @@
 #include <boost/program_options.hpp>
 
 #include <iostream>
+#include <numbers>
 #include <numeric>
 
 using Point = ArborX::Point<3>;
@@ -270,7 +271,7 @@ int main(int argc, char *argv[])
                            Kokkos::rand<GeneratorType, float>::draw(g, dz)};
 
           float upsilon = Kokkos::rand<GeneratorType, float>::draw(
-              g, 2.f * Kokkos::numbers::pi_v<float>);
+              g, 2.f * std::numbers::pi_v<float>);
           float theta =
               acos(1 - 2 * Kokkos::rand<GeneratorType, float>::draw(g));
           Vector direction{cos(upsilon) * sin(theta), sin(upsilon) * sin(theta),

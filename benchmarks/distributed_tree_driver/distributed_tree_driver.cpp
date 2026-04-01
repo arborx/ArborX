@@ -20,6 +20,7 @@
 
 #include <cmath>    // sqrt, cbrt
 #include <iostream> // cout
+#include <numbers>
 #include <random>
 #include <vector>
 
@@ -224,11 +225,11 @@ void main_(MPI_Comm comm, Parameters const &params)
       break;
     case 2:
       // Derivation: n_values*(pi*r^2)/(2a)^2 = n_neighbors
-      r = std::sqrt(n_neighbors * 4.f / Kokkos::numbers::pi_v<Coordinate>);
+      r = std::sqrt(n_neighbors * 4.f / std::numbers::pi_v<Coordinate>);
       break;
     case 3:
       // Derivation: n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
-      r = std::cbrt(n_neighbors * 6.f / Kokkos::numbers::pi_v<Coordinate>);
+      r = std::cbrt(n_neighbors * 6.f / std::numbers::pi_v<Coordinate>);
       break;
     }
 

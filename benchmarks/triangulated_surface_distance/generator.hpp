@@ -15,6 +15,8 @@
 #include <Kokkos_Array.hpp>
 #include <Kokkos_MathematicalConstants.hpp>
 
+#include <numbers>
+
 using Point = ArborX::Point<3>;
 
 struct GeometryParams
@@ -26,7 +28,7 @@ struct GeometryParams
 
 auto icosahedron()
 {
-  auto a = Kokkos::numbers::phi_v<float>;
+  auto a = std::numbers::phi_v<float>;
   auto b = 1.f;
 
   std::vector<Point> vertices;
@@ -263,8 +265,8 @@ void rotateVertices(ExecutionSpace const &space,
 
   Point o{0, 0, 0};
   Vector k{1 / std::sqrt(2.f), -1 / std::sqrt(2.f), 0}; // normalized axis
-  auto cos = Kokkos::cos(Kokkos::numbers::pi_v<float> / 180 * angle);
-  auto sin = Kokkos::sin(Kokkos::numbers::pi_v<float> / 180 * angle);
+  auto cos = Kokkos::cos(std::numbers::pi_v<float> / 180 * angle);
+  auto sin = Kokkos::sin(std::numbers::pi_v<float> / 180 * angle);
   Kokkos::parallel_for(
       "Benchmark::project_to_surface",
       Kokkos::RangePolicy<ExecutionSpace>(space, 0, points.size()),
