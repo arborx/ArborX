@@ -20,6 +20,7 @@
 
 #include <chrono>
 #include <cmath> // cbrt
+#include <numbers>
 
 #include <benchmark/benchmark.h>
 
@@ -179,7 +180,7 @@ auto makeSpatialQueries(int n_values, int n_queries, int n_neighbors,
   // distributed points in a [-a,a]^3 box is approximately n_neighbors.
   // Calculation: n_values*(4/3*pi*r^3)/(2a)^3 = n_neighbors
   double const r = std::cbrt(static_cast<double>(n_neighbors) * 6. /
-                             Kokkos::numbers::pi_v<double>);
+                             std::numbers::pi_v<double>);
 
   return ArborX::Experimental::make_intersects(random_points, r);
 }
