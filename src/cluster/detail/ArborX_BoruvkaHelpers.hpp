@@ -731,6 +731,9 @@ void computeParentsAndReorderEdges(
   Kokkos::resize(Kokkos::WithoutInitializing, chain_levels, num_levels);
 }
 
+#if defined(KOKKOS_ENABLE_HIP) && defined(KOKKOS_COMPILER_CLANG)
+#pragma clang optimize off
+#endif
 // Compute upper bound on the shortest edge of each component.
 template <class ExecutionSpace, class BVH, class Labels, class Metric,
           class Radii>
@@ -772,6 +775,9 @@ void resetSharedRadii(ExecutionSpace const &space, BVH const &bvh,
         }
       });
 }
+#if defined(KOKKOS_ENABLE_HIP) && defined(KOKKOS_COMPILER_CLANG)
+#pragma clang optimize on
+#endif
 
 } // namespace ArborX::Details
 
