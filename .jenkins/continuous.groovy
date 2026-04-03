@@ -431,7 +431,6 @@ pipeline {
                                     -D ARBORX_ENABLE_TESTS=ON \
                                     -D ARBORX_ENABLE_EXAMPLES=ON \
                                     -D ARBORX_ENABLE_BENCHMARKS=ON \
-                                    -D ARBORX_ENABLE_ONEDPL=ON \
                                 ..
                             '''
                             sh 'make -j8 VERBOSE=1'
