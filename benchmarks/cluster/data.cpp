@@ -22,25 +22,36 @@ namespace ArborXBenchmark
 
 // Explicit instantiations
 using MemorySpace = typename Kokkos::DefaultExecutionSpace::memory_space;
-#define INSTANTIATE_LOADER(DIM)                                                \
-  template Kokkos::View<ArborX::Point<DIM> *, MemorySpace>                     \
-  loadData<DIM, MemorySpace>(ArborXBenchmark::Parameters const &);
-INSTANTIATE_LOADER(2)
-INSTANTIATE_LOADER(3)
-INSTANTIATE_LOADER(4)
-INSTANTIATE_LOADER(5)
-INSTANTIATE_LOADER(6)
+#define INSTANTIATE_LOADER(DIM, Coordinate)                                    \
+  template Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace>         \
+  loadData<DIM, Coordinate, MemorySpace>(ArborXBenchmark::Parameters const &)
+INSTANTIATE_LOADER(2, float);
+INSTANTIATE_LOADER(3, float);
+INSTANTIATE_LOADER(4, float);
+INSTANTIATE_LOADER(5, float);
+INSTANTIATE_LOADER(6, float);
+INSTANTIATE_LOADER(2, double);
+INSTANTIATE_LOADER(3, double);
+INSTANTIATE_LOADER(4, double);
+INSTANTIATE_LOADER(5, double);
+INSTANTIATE_LOADER(6, double);
 #undef INSTANTIATE_LOADER
 
 #ifdef ARBORX_ENABLE_MPI
-#define INSTANTIATE_MPI_LOADER(DIM)                                            \
-  template Kokkos::View<ArborX::Point<DIM> *, MemorySpace>                     \
-  loadData<DIM, MemorySpace>(MPI_Comm, ArborXBenchmark::Parameters const &);
-INSTANTIATE_MPI_LOADER(2)
-INSTANTIATE_MPI_LOADER(3)
-INSTANTIATE_MPI_LOADER(4)
-INSTANTIATE_MPI_LOADER(5)
-INSTANTIATE_MPI_LOADER(6)
+#define INSTANTIATE_MPI_LOADER(DIM, Coordinate)                                \
+  template Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace>         \
+  loadData<DIM, Coordinate, MemorySpace>(MPI_Comm,                             \
+                                         ArborXBenchmark::Parameters const &);
+INSTANTIATE_MPI_LOADER(2, float);
+INSTANTIATE_MPI_LOADER(3, float);
+INSTANTIATE_MPI_LOADER(4, float);
+INSTANTIATE_MPI_LOADER(5, float);
+INSTANTIATE_MPI_LOADER(6, float);
+INSTANTIATE_MPI_LOADER(2, double);
+INSTANTIATE_MPI_LOADER(3, double);
+INSTANTIATE_MPI_LOADER(4, double);
+INSTANTIATE_MPI_LOADER(5, double);
+INSTANTIATE_MPI_LOADER(6, double);
 #undef INSTANTIATE_LOADER
 #endif
 

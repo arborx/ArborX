@@ -24,7 +24,7 @@ struct Parameters
   int core_min_size;
   std::string dendrogram;
   int dim;
-  float eps;
+  double eps;
   std::string filename;
   std::string filename_labels;
   std::string implementation;
