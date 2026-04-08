@@ -32,11 +32,10 @@ namespace ArborXBenchmark
 
 using ArborX::Point;
 
-template <int DIM>
-std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
-                                   int num_samples)
+template <typename Point>
+auto sampleData(std::vector<Point> const &data, int num_samples)
 {
-  std::vector<Point<DIM>> sampled_data(num_samples);
+  std::vector<Point> sampled_data(num_samples);
 
   // We use a hardcoded Lehmer (or Park-Miller) random generator instead of C++
   // <random> to guarantee sampling reproducibility across platforms and
@@ -62,10 +61,9 @@ std::vector<Point<DIM>> sampleData(std::vector<Point<DIM>> const &data,
   return sampled_data;
 }
 
-template <int DIM>
-std::vector<Point<DIM>> loadData(std::string const &filename,
-                                 bool binary = true, int max_num_points = -1,
-                                 int comm_rank = 0, int comm_size = 1)
+template <typename Point>
+auto loadData(std::string const &filename, bool binary = true,
+              int max_num_points = -1, int comm_rank = 0, int comm_size = 1)
 {
   if (comm_size > 1 && !binary)
     throw std::runtime_error(
@@ -82,7 +80,7 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
     input.open(filename, std::ifstream::binary);
   ARBORX_ASSERT(input.good());
 
-  std::vector<Point<DIM>> v;
+  std::vector<Point> v;
 
   int num_points = 0;
   int dim = 0;
@@ -96,6 +94,9 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
     input.read(reinterpret_cast<char *>(&num_points), sizeof(int));
     input.read(reinterpret_cast<char *>(&dim), sizeof(int));
   }
+
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<Point>;
+  using Coordinate = ArborX::GeometryTraits::coordinate_type_t<Point>;
 
   ARBORX_ASSERT(dim == DIM);
 
@@ -118,9 +119,19 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
   else
   {
     // Directly read into a point
-    auto const value_size = sizeof(Point<DIM>);
+    auto const value_size = dim * sizeof(float);
     input.seekg(num_points_per_proc * comm_rank * value_size, std::ios::cur);
-    input.read(reinterpret_cast<char *>(v.data()), num_points * value_size);
+    if constexpr (std::is_same_v<Coordinate, float>)
+      input.read(reinterpret_cast<char *>(v.data()), num_points * value_size);
+    else
+    {
+      // We need to read into a temporary buffer and convert to the output type
+      std::vector<ArborX::Point<DIM, float>> tmp(num_points);
+      input.read(reinterpret_cast<char *>(tmp.data()), num_points * value_size);
+      for (int i = 0; i < num_points; ++i)
+        for (int d = 0; d < DIM; ++d)
+          v[i][d] = tmp[i][d];
+    }
   }
   input.close();
 
@@ -131,51 +142,55 @@ std::vector<Point<DIM>> loadData(std::string const &filename,
   return v;
 }
 
-template <int DIM, typename Generator>
-auto randomDomainPoint(Generator &generator, float L)
+template <typename Point, typename Generator>
+auto randomDomainPoint(Generator &generator, double L)
 {
-  std::uniform_real_distribution<float> distribution(0.f, 1.f);
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<Point>;
+
+  std::uniform_real_distribution<double> distribution(0, 1);
   auto rd = [&distribution, &generator]() { return distribution(generator); };
 
-  Point<DIM> point;
+  Point point;
   for (int d = 0; d < DIM; ++d)
     point[d] = rd() * L;
 
   return point;
 }
 
-template <int DIM, typename Generator>
-auto randomBallPoint(Generator &generator, Point<DIM> const &center,
-                     float radius)
+template <typename Point, typename Generator>
+auto randomBallPoint(Generator &generator, Point const &center, double radius)
 {
-  std::uniform_real_distribution<float> distribution(-1.f, 1.f);
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<Point>;
+
+  std::uniform_real_distribution<double> distribution(-1, 1);
   auto rd = [&distribution, &generator]() { return distribution(generator); };
 
-  Point<DIM> p;
-  float norm2;
+  Point p;
+  double norm2;
   do
   {
-    norm2 = 0.f;
+    norm2 = 0;
     for (int d = 0; d < DIM; ++d)
     {
       p[d] = rd();
       norm2 += p[d] * p[d];
     }
-  } while (norm2 > 1.f);
+  } while (norm2 > 1);
   for (int d = 0; d < DIM; ++d)
     p[d] = center[d] + p[d] * radius;
   return p;
 }
 
-template <int DIM, typename Generator>
-auto randomShiftPoint(Generator &generator, Point<DIM> const &center,
-                      float radius)
+template <typename Point, typename Generator>
+auto randomShiftPoint(Generator &generator, Point const &center, float radius)
 {
-  std::normal_distribution<float> distribution(0.f, 1.f);
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<Point>;
+
+  std::normal_distribution<double> distribution(0, 1);
   auto rd = [&distribution, &generator]() { return distribution(generator); };
 
-  Point<DIM> direction;
-  float norm = 0.f;
+  Point direction;
+  double norm = 0;
   for (int d = 0; d < DIM; ++d)
   {
     direction[d] = rd();
@@ -183,7 +198,7 @@ auto randomShiftPoint(Generator &generator, Point<DIM> const &center,
   }
   norm = std::sqrt(norm);
 
-  Point<DIM> p;
+  Point p;
   for (int d = 0; d < DIM; ++d)
     p[d] = center[d] + (direction[d] / norm) * radius;
 
@@ -234,13 +249,14 @@ auto randomShiftPoint(Generator &generator, Point<DIM> const &center,
 //
 // [1] J. Gan and Y. Tao. "On the hardness and approximation of Euclidean
 //     DBSCAN." ACM Transactions on Database Systems (TODS), 2017.
-template <int DIM>
-std::vector<Point<DIM>> GanTao(int n, bool variable_density = false,
-                               int num_clusters = 10, int c_reset = 100,
-                               float rho_noise = 1e-4)
+template <typename Point>
+auto GanTao(int n, bool variable_density = false, int num_clusters = 10,
+            int c_reset = 100, double rho_noise = 1e-4)
 {
+  constexpr int DIM = ArborX::GeometryTraits::dimension_v<Point>;
+
   // FIXME
-  float const L = 1e6;
+  double const L = 1e6;
   int const n_wo_noise = n - (n * rho_noise);
   int const num_different_densities = (variable_density ? 10 : 1);
   double const rho_restart = double(num_clusters - 1) / n_wo_noise;
@@ -257,20 +273,20 @@ std::vector<Point<DIM>> GanTao(int n, bool variable_density = false,
   };
 
   auto random_point_in_domain = [&generator_center, L]() {
-    return randomDomainPoint<DIM>(generator_center, L);
+    return randomDomainPoint<Point>(generator_center, L);
   };
-  auto random_point_shift = [&generator_shift](auto const &c, float r) {
+  auto random_point_shift = [&generator_shift](auto const &c, double r) {
     return randomShiftPoint(generator_shift, c, r);
   };
-  auto random_point_in_ball = [&generator_ball](auto const &c, float r) {
+  auto random_point_in_ball = [&generator_ball](auto const &c, double r) {
     return randomBallPoint(generator_ball, c, r);
   };
 
-  std::vector<Point<DIM>> points(n);
+  std::vector<Point> points(n);
 
-  Point<DIM> origin;
-  float r_vicinity;
-  float r_shift;
+  Point origin;
+  double r_vicinity;
+  double r_shift;
   int count;
   bool do_restart = true;
   int num_restarts = 0;
@@ -329,10 +345,12 @@ auto vec2view(std::vector<T> const &in, std::string const &label = "")
   return out;
 }
 
-template <int DIM, typename MemorySpace>
-Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
+template <int DIM, typename Coordinate, typename MemorySpace>
+Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace>
 loadData(ArborXBenchmark::Parameters const &params)
 {
+  using Point = ArborX::Point<DIM, Coordinate>;
+
   if (!params.filename.empty())
   {
     // Read in data
@@ -344,7 +362,7 @@ loadData(ArborXBenchmark::Parameters const &params)
            (params.binary ? "binary" : "text"), max_num_points);
     printf("samples           : %d\n", num_samples);
 
-    auto v = loadData<DIM>(filename, params.binary, max_num_points);
+    auto v = loadData<Point>(filename, params.binary, max_num_points);
     if (num_samples > 0 && num_samples < (int)v.size())
       v = sampleData(v, num_samples);
 
@@ -355,15 +373,17 @@ loadData(ArborXBenchmark::Parameters const &params)
   int dim = params.dim;
   printf("generator         : n = %d, dim = %d, density = %s\n", params.n, dim,
          (params.variable_density ? "variable" : "constant"));
-  return vec2view<MemorySpace>(GanTao<DIM>(params.n, params.variable_density),
+  return vec2view<MemorySpace>(GanTao<Point>(params.n, params.variable_density),
                                "Benchmark::primitives");
 }
 
 #ifdef ARBORX_ENABLE_MPI
-template <int DIM, typename MemorySpace>
-Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
+template <int DIM, typename Coordinate, typename MemorySpace>
+Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace>
 loadData(MPI_Comm comm, ArborXBenchmark::Parameters const &params)
 {
+  using Point = ArborX::Point<DIM, Coordinate>;
+
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
 
@@ -380,8 +400,8 @@ loadData(MPI_Comm comm, ArborXBenchmark::Parameters const &params)
 
     int comm_size;
     MPI_Comm_size(comm, &comm_size);
-    auto v = loadData<DIM>(filename, params.binary, max_num_points, comm_rank,
-                           comm_size);
+    auto v = loadData<Point>(filename, params.binary, max_num_points, comm_rank,
+                             comm_size);
     return vec2view<MemorySpace>(v, "Benchmark::primitives");
   }
 
@@ -390,7 +410,7 @@ loadData(MPI_Comm comm, ArborXBenchmark::Parameters const &params)
   if (comm_rank == 0)
     printf("generator         : n = %d, dim = %d, density = %s\n", params.n,
            dim, (params.variable_density ? "variable" : "constant"));
-  return vec2view<MemorySpace>(GanTao<DIM>(params.n, params.variable_density),
+  return vec2view<MemorySpace>(GanTao<Point>(params.n, params.variable_density),
                                "Benchmark::primitives");
 }
 #endif

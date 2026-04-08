@@ -113,6 +113,8 @@ int main(int argc, char *argv[])
   namespace bpo = boost::program_options;
   using namespace ArborXBenchmark;
 
+  using Coordinate = float;
+
   Parameters params;
 
   std::vector<std::string> allowed_dendrograms = {"boruvka", "union-find"};
@@ -175,16 +177,18 @@ int main(int argc, char *argv[])
            : ArborXBenchmark::getDataDimension(params.filename, params.binary));
 #define SWITCH_DIM(DIM)                                                        \
   case DIM:                                                                    \
-    run_hdbscan(exec_space,                                                    \
-                ArborXBenchmark::loadData<DIM, MemorySpace>(params), params);  \
-    break;
+    run_hdbscan(                                                               \
+        exec_space,                                                            \
+        ArborXBenchmark::loadData<DIM, Coordinate, MemorySpace>(params),       \
+        params);                                                               \
+    break
   switch (dim)
   {
-    SWITCH_DIM(2)
-    SWITCH_DIM(3)
-    SWITCH_DIM(4)
-    SWITCH_DIM(5)
-    SWITCH_DIM(6)
+    SWITCH_DIM(2);
+    SWITCH_DIM(3);
+    SWITCH_DIM(4);
+    SWITCH_DIM(5);
+    SWITCH_DIM(6);
   default:
     std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
   }

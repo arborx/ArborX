@@ -269,9 +269,11 @@ int main(int argc, char *argv[])
 
   std::vector<std::string> allowed_impls = {"fdbscan", "fdbscan-densebox"};
   std::vector<std::string> allowed_algorithms = {"dbscan", "dbscan*"};
+  std::vector<std::string> allowed_precisions = {"float", "double"};
 
   bpo::options_description desc("Allowed options");
   bool ascii;
+  std::string precision;
   // clang-format off
   desc.add_options()
       ( "help", "help message" )
@@ -280,12 +282,13 @@ int main(int argc, char *argv[])
       ( "cluster-min-size", bpo::value<int>(&params.cluster_min_size)->default_value(1), "minimum cluster size")
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
       ( "dimension", bpo::value<int>(&params.dim)->default_value(-1), "dimension of points to generate" )
-      ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
+      ( "eps", bpo::value<double>(&params.eps), "DBSCAN eps" )
       ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
       ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), ("implementation " + vec2string(allowed_impls, " | ")).c_str() )
       ( "labels", bpo::value<std::string>(&params.filename_labels)->default_value(""), "clutering results output" )
       ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
       ( "n", bpo::value<int>(&params.n)->default_value(10), "number of points to generate" )
+      ( "precision", bpo::value<std::string>(&precision)->default_value("float"), "data precision" )
       ( "samples", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
       ( "variable-density", bpo::bool_switch(&params.variable_density), "type of cluster density to generate" )
       ( "verbose", bpo::bool_switch(&params.verbose), "verbose")
@@ -326,6 +329,12 @@ int main(int argc, char *argv[])
               << "\n";
     return 3;
   }
+  if (!found(allowed_precisions, precision))
+  {
+    std::cerr << "Precision must be one of " << vec2string(allowed_precisions)
+              << "\n";
+    return 4;
+  }
 
   // Print out the runtime parameters
   printf("eps               : %f\n", params.eps);
@@ -335,6 +344,7 @@ int main(int argc, char *argv[])
     printf("filename [labels] : %s [binary]\n", params.filename_labels.c_str());
   printf("algorithm         : %s\n", params.algorithm.c_str());
   printf("implementation    : %s\n", params.implementation.c_str());
+  printf("precision         : %s\n", precision.c_str());
   printf("verify            : %s\n", (params.verify ? "true" : "false"));
   printf("verbose           : %s\n", (params.verbose ? "true" : "false"));
 
@@ -344,22 +354,38 @@ int main(int argc, char *argv[])
       (params.filename.empty()
            ? params.dim
            : ArborXBenchmark::getDataDimension(params.filename, params.binary));
-#define SWITCH_DIM(DIM)                                                        \
+#define SWITCH_DIM(DIM, TYPE)                                                  \
   case DIM:                                                                    \
-    success = run_dbscan(exec_space,                                           \
-                         ArborXBenchmark::loadData<DIM, MemorySpace>(params),  \
-                         params);                                              \
-    break;
+    success = run_dbscan(                                                      \
+        exec_space, ArborXBenchmark::loadData<DIM, TYPE, MemorySpace>(params), \
+        params);                                                               \
+    break
   bool success = true;
-  switch (dim)
+  if (precision == "float")
   {
-    SWITCH_DIM(2)
-    SWITCH_DIM(3)
-    SWITCH_DIM(4)
-    SWITCH_DIM(5)
-    SWITCH_DIM(6)
-  default:
-    std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
+    switch (dim)
+    {
+      SWITCH_DIM(2, float);
+      SWITCH_DIM(3, float);
+      SWITCH_DIM(4, float);
+      SWITCH_DIM(5, float);
+      SWITCH_DIM(6, float);
+    default:
+      std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
+    }
+  }
+  else if (precision == "double")
+  {
+    switch (dim)
+    {
+      SWITCH_DIM(2, double);
+      SWITCH_DIM(3, double);
+      SWITCH_DIM(4, double);
+      SWITCH_DIM(5, double);
+      SWITCH_DIM(6, double);
+    default:
+      std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
+    }
   }
 #undef SWITCH_DIM
 

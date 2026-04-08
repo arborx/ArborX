@@ -28,13 +28,13 @@ namespace ArborXBenchmark
 
 int getDataDimension(std::string const &filename, bool binary);
 
-template <int DIM, typename MemorySpace>
-Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
+template <int DIM, typename Coordinate, typename MemorySpace>
+Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace>
 loadData(ArborXBenchmark::Parameters const &params);
 
 #ifdef ARBORX_ENABLE_MPI
-template <int DIM, typename MemorySpace>
-Kokkos::View<ArborX::Point<DIM> *, MemorySpace>
+template <int DIM, typename Coordinate, typename MemorySpace>
+Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace>
 loadData(MPI_Comm comm, ArborXBenchmark::Parameters const &params);
 #endif
 
