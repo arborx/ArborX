@@ -253,7 +253,7 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
 
   using Box = Box<DIM, Coordinate>;
 
-  Coordinate eps = static_cast<Coordinate>(user_eps);
+  auto eps = static_cast<Coordinate>(user_eps);
   bool const is_special_case = (core_min_size == 2);
 
   bool const verbose = parameters._verbose;
