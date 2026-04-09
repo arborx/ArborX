@@ -216,11 +216,10 @@ struct Parameters
 };
 } // namespace DBSCAN
 
-template <typename ExecutionSpace, typename Primitives, typename Coordinate,
-          typename Labels>
+template <typename ExecutionSpace, typename Primitives, typename Labels>
   requires(!std::same_as<Labels, DBSCAN::Parameters>)
 void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
-            Coordinate eps, int core_min_size, Labels &labels,
+            double user_eps, int core_min_size, Labels &labels,
             DBSCAN::Parameters const &parameters = DBSCAN::Parameters())
 {
   Kokkos::Profiling::pushRegion("ArborX::DBSCAN");
@@ -236,7 +235,7 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   static_assert(Kokkos::is_view_v<Labels>);
   static_assert(std::is_integral_v<typename Labels::value_type>);
 
-  ARBORX_ASSERT(eps > 0);
+  ARBORX_ASSERT(user_eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
 #ifdef KOKKOS_ENABLE_SERIAL
@@ -250,12 +249,11 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   using Point = typename Points::value_type;
   static_assert(GeometryTraits::is_point_v<Point>);
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
-  static_assert(
-      std::is_same_v<typename GeometryTraits::coordinate_type<Point>::type,
-                     Coordinate>);
+  using Coordinate = typename GeometryTraits::coordinate_type_t<Point>;
 
   using Box = Box<DIM, Coordinate>;
 
+  auto eps = static_cast<Coordinate>(user_eps);
   bool const is_special_case = (core_min_size == 2);
 
   bool const verbose = parameters._verbose;

@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
       ( "help", "help message" )
       ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
       ( "dimension", bpo::value<int>(&params.dim)->default_value(-1), "dimension of points to generate" )
-      ( "eps", bpo::value<float>(&params.eps), "DBSCAN eps" )
+      ( "eps", bpo::value<double>(&params.eps), "DBSCAN eps" )
       ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
       ( "impl", bpo::value<std::string>(&params.implementation)->default_value("fdbscan"), ("implementation " + vec2string(allowed_impls, " | ")).c_str() )
       ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
@@ -246,16 +246,28 @@ int main(int argc, char *argv[])
 
   if (!params.filename.empty())
   {
-#define SWITCH_DIM(DIM)                                                        \
+#define SWITCH_DIM(DIM, TYPE)                                                  \
   case DIM:                                                                    \
-    success = run_dist_dbscan(                                                 \
-        comm, exec_space, loadData<DIM, MemorySpace>(comm, params), params);   \
-    break;
+    success = run_dist_dbscan(comm, exec_space,                                \
+                              loadData<DIM, TYPE, MemorySpace>(comm, params),  \
+                              params);                                         \
+    break
 
-    switch (dim)
+    if (precision == "float")
     {
-      SWITCH_DIM(2)
-      SWITCH_DIM(3)
+      switch (dim)
+      {
+        SWITCH_DIM(2, float);
+        SWITCH_DIM(3, float);
+      }
+    }
+    else if (precision == "double")
+    {
+      switch (dim)
+      {
+        SWITCH_DIM(2, double);
+        SWITCH_DIM(3, double);
+      }
     }
 #undef SWITCH_DIM
   }
@@ -268,22 +280,22 @@ int main(int argc, char *argv[])
         comm, exec_space,                                                      \
         generateDistributedData<DIM, TYPE, MemorySpace>(comm, params),         \
         params);                                                               \
-    break;
+    break
 
     if (precision == "float")
     {
       switch (dim)
       {
-        SWITCH_DIM(2, float)
-        SWITCH_DIM(3, float)
+        SWITCH_DIM(2, float);
+        SWITCH_DIM(3, float);
       }
     }
     else if (precision == "double")
     {
       switch (dim)
       {
-        SWITCH_DIM(2, double)
-        SWITCH_DIM(3, double)
+        SWITCH_DIM(2, double);
+        SWITCH_DIM(3, double);
       }
     }
 #undef SWITCH_DIM
