@@ -92,7 +92,7 @@
 - Implement box-triangle intersection [\#1059](https://github.com/arborx/ArborX/pull/1059)
 - Add tetrahedron geometry [EXPERIMENTAL] [\#1079](https://github.com/arborx/ArborX/pull/1079)
 - Expand KDOP to support different dimensions and precision [EXPERIMENTAL] [\#982](https://github.com/arborx/ArborX/pull/982)
-- Add 2D KDOP geometries [EXERIMENTAL] [\#1088](https://github.com/arborx/ArborX/pull/1088)
+- Add 2D KDOP geometries [EXPERIMENTAL] [\#1088](https://github.com/arborx/ArborX/pull/1088)
 - Improve performance of the distributed algorithms [\#1098](https://github.com/arborx/ArborX/pull/1098), [\#1103](https://github.com/arborx/ArborX/pull/1103)
 - Add `make_ordered_intersects` helper function to implicitly construct ordered intersect queries for a set of geometries [EXPERIMENTAL] [\#1117](https://github.com/arborx/ArborX/pull/1117)
 
