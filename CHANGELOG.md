@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.1.0](https://github.com/arborx/arborx/tree/v2.1.0) (2026-04-28)
+
+[Full Changelog](https://github.com/arborx/arborx/compare/v2.0.1...v2.1.0)
+
+**New features:**
+- Distributed DBSCAN algorithm [\#1228](https://github.com/arborx/ArborX/pull/1228), [\#1254](https://github.com/arborx/ArborX/pull/1254)
+
+**Build Changes:**
+
+**Enhancements:**
+- Template `ArborX::Experimental::Ray` on floating-point type [\#1248](https://github.com/arborx/ArborX/pull/1248)
+- Add point-tetrahedron distance calculation [\#1256](https://github.com/arborx/ArborX/pull/1256)
+- Add barycentric coordinates for triangle and tetrahedron [EXPERIMENTAL] [\#1260](https://github.com/arborx/ArborX/pull/1260)
+- Add segment-triangle intersection (3D) [\#1268](https://github.com/arborx/ArborX/pull/1268)
+- Add ellipsoid-box intersection (3D) [\#1293](https://github.com/arborx/ArborX/pull/1293)
+- Add sphere-triangle intersection [\#1296](https://github.com/arborx/ArborX/pull/1296)
+- Add sphere-sphere intersection and distance [\#1328](https://github.com/arborx/ArborX/pull/1328)
+- Improve accuracy of moving least squares (MLS) interpolation [\#1306](https://github.com/arborx/ArborX/pull/1306), [\#1308](https://github.com/arborx/ArborX/pull/1308), [\#1314](https://github.com/arborx/ArborX/pull/1314)
+- Add closest point for segment, triangle and box [EXPERIMENTAL] [\#1311](https://github.com/arborx/ArborX/pull/1311)
+- Add DBSCAN* clustering algorithm [\#1321](https://github.com/arborx/ArborX/pull/1321)
+- Move `distance` and `intersects` to the `ArborX` namespace [\#1307](https://github.com/arborx/ArborX/pull/1307)
+
+**Deprecations:**
+- Deprecate DBSCAN interface returning labels [\#1313](https://github.com/arborx/ArborX/pull/1313)
+
+**Fixed bugs:**
+- Fix internally used precision in the BruteForce nearest query to match user-provided [\#1242](https://github.com/arborx/ArborX/pull/1242)
+- Fix ellipsoid-segment intersection for degenerated segments [\#1269](https://github.com/arborx/ArborX/pull/1269)
+- Fix BVH `query` segfaults with certain Nvidia compilers [\#1297](https://github.com/arborx/ArborX/pull/1297)
+- Fix out-of-bounds access in MST [\#1309](https://github.com/arborx/ArborX/pull/1309)
+- Fix compilation issue with the latest Kokkos and SYCL [\#1332](https://github.com/arborx/ArborX/pull/1332)
+
 ## [2.0.1](https://github.com/arborx/arborx/tree/v2.0.1) (2025-07-17)
 
 [Full Changelog](https://github.com/arborx/arborx/compare/v2.0...v2.0.1)
@@ -60,7 +92,7 @@
 - Implement box-triangle intersection [\#1059](https://github.com/arborx/ArborX/pull/1059)
 - Add tetrahedron geometry [EXPERIMENTAL] [\#1079](https://github.com/arborx/ArborX/pull/1079)
 - Expand KDOP to support different dimensions and precision [EXPERIMENTAL] [\#982](https://github.com/arborx/ArborX/pull/982)
-- Add 2D KDOP geometries [EXERIMENTAL] [\#1088](https://github.com/arborx/ArborX/pull/1088)
+- Add 2D KDOP geometries [EXPERIMENTAL] [\#1088](https://github.com/arborx/ArborX/pull/1088)
 - Improve performance of the distributed algorithms [\#1098](https://github.com/arborx/ArborX/pull/1098), [\#1103](https://github.com/arborx/ArborX/pull/1103)
 - Add `make_ordered_intersects` helper function to implicitly construct ordered intersect queries for a set of geometries [EXPERIMENTAL] [\#1117](https://github.com/arborx/ArborX/pull/1117)
 
