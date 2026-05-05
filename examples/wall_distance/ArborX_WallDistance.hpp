@@ -18,6 +18,7 @@
 #include <ArborX_Segment.hpp>
 
 #include <Kokkos_DynRankView.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 #include <string>
 
