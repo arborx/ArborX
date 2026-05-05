@@ -138,11 +138,9 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
   // FIXME: do we require that workset_distances is already allocated with the
   // right size?
   int const num_worksets = worksets.size();
-  int const max_num_cells_per_workset = workset_distances.extent(1);
   int const num_int_points_per_cell = workset_distances.extent(2);
 
   KOKKOS_ASSERT((int)workset_distances.extent(0) == num_worksets);
-  KOKKOS_ASSERT((int)workset_distances.extent(1) == max_num_cells_per_workset);
   KOKKOS_ASSERT((int)workset_distances.extent(2) == num_int_points_per_cell);
 
   auto ir_index = panzer::getIntegrationRuleIndex(ir.order(), worksets[0]);
