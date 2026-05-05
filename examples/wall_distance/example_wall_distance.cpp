@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include "../../benchmarks/utils/ArborXBenchmark_TimeMonitor.hpp"
 #include "ArborX_WallDistance.hpp"
 #include <ArborX_Version.hpp>
 
@@ -206,22 +207,48 @@ int main(int argc, char *argv[])
                              "Example::workset_distances"),
           num_worksets, max_num_cells_per_workset, num_int_points_per_cell);
 
+      space.fence();
+
+      ArborXBenchmark::TimeMonitor time_monitor;
+
       if (mesh->getDimension() == 2)
       {
         constexpr int DIM = 2;
+
+        auto construction_time = time_monitor.getNewTimer("construction");
+        construction_time->start();
         ArborX::Experimental::WallDistance<MemorySpace, DIM, Coordinate,
                                            ReplicateSides>
             wall_distance(space, *mesh, wall_names);
+        space.fence();
+        construction_time->stop();
+
+        auto query_time = time_monitor.getNewTimer("query");
+        query_time->start();
         wall_distance.distance(space, *worksets, ir, workset_distances);
+        space.fence();
+        query_time->stop();
       }
       else
       {
         constexpr int DIM = 3;
+
+        auto construction_time = time_monitor.getNewTimer("construction");
+        construction_time->start();
         ArborX::Experimental::WallDistance<MemorySpace, DIM, Coordinate,
                                            ReplicateSides>
             wall_distance(space, *mesh, wall_names);
+        space.fence();
+        construction_time->stop();
+
+        auto query_time = time_monitor.getNewTimer("query");
+        query_time->start();
         wall_distance.distance(space, *worksets, ir, workset_distances);
+        space.fence();
+        query_time->stop();
       }
+
+      time_monitor.summarize(comm);
 
       // Copy workset distances to a flat array
       Kokkos::View<Coordinate *, MemorySpace> wall_distances(
