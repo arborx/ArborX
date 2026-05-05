@@ -18,6 +18,7 @@
 #include <detail/ArborX_Predicates.hpp>
 
 #include <Kokkos_DynRankView.hpp>
+#include <Kokkos_Profiling_ScopedRegion.hpp>
 
 #include <numeric> // exclusive_scan
 #include <vector>
