@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     ("help", "help message" )
     ("basis-order", bpo::value<int>(&basis_order)->default_value(1), "basis order")
     ("basis-type", bpo::value<std::string>(&basis_type)->default_value("HGrad"), "basis type")
-    ("block-name", bpo::value<std::string>(&block_name)->default_value("eblock-0_0"), "block name")
+    ("block-name", bpo::value<std::string>(&block_name)->default_value(""), "block name")
     ("filename", bpo::value<std::string>(&filename)->default_value("mesh.exo"), "mesh filename")
     ("int-order", bpo::value<int>(&int_order)->default_value(2), "integration order")
     ("output-filename", bpo::value<std::string>(&out_filename)->default_value("output.exo"), "output filename")
@@ -178,6 +178,17 @@ int main(int argc, char *argv[])
     panzer_stk::STK_ExodusReaderFactory factory(filename);
     Teuchos::RCP<panzer_stk::STK_Interface> mesh =
         factory.buildUncommitedMesh(comm);
+
+    if (block_name == "")
+    {
+      std::vector<std::string> block_names;
+      mesh->getElementBlockNames(block_names);
+      KOKKOS_ASSERT(!block_names.empty());
+      block_name = block_names[0];
+      if (comm_rank == 0)
+        std::cout << "No block name provided, using first available name: \""
+                  << block_name << "\"" << std::endl;
+    }
 
     if (type == "node")
     {
