@@ -61,6 +61,9 @@ public:
                 panzer::IntegrationRule const &ir,
                 WorksetDistances &workset_distances);
 
+  template <typename ExecutionSpace, typename Distances>
+  void distance(ExecutionSpace const &space, Distances &distances);
+
   template <typename ExecutionSpace, typename Points, typename Distances>
   void distance(ExecutionSpace const &space, Points const &points,
                 Distances &distances);

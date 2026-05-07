@@ -27,10 +27,10 @@
 #include <mpi.h>
 
 constexpr int workset_size = 64;
+static std::string const distance_field_name = "wall_distance";
 
 Teuchos::RCP<panzer_stk::STK_Interface>
 build_mesh(std::string const &filename, MPI_Comm comm, std::string &block_name,
-           std::string const &distance_field_name,
            std::string const &distance_type)
 {
   int comm_rank;
@@ -49,7 +49,6 @@ build_mesh(std::string const &filename, MPI_Comm comm, std::string &block_name,
       std::cout << "No block name provided, using first available name: \""
                 << block_name << "\"" << std::endl;
   }
-
   if (distance_type == "node")
     mesh->addSolutionField(distance_field_name, block_name);
   else if (distance_type == "cell")
@@ -86,6 +85,116 @@ auto build_worksets(Teuchos::RCP<panzer_stk::STK_Interface> const &mesh,
   return workset_container.getWorksets(workset_descriptor);
 }
 
+template <int DIM, typename Coordinate, bool ReplicateSides,
+          typename ExecutionSpace, typename WallDistances>
+auto main_(MPI_Comm comm, ExecutionSpace const &space,
+           panzer_stk::STK_Interface const &mesh,
+           std::vector<std::string> const &wall_names,
+           std::string const &distance_type, std::string const & /*block_name*/,
+           std::vector<panzer::Workset> const &worksets,
+           panzer::IntegrationRule const &ir, WallDistances &wall_distances)
+{
+  using MemorySpace = typename ExecutionSpace::memory_space;
+
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+
+  ArborXBenchmark::TimeMonitor time_monitor;
+
+  auto construction_time = time_monitor.getNewTimer("construction");
+  construction_time->start();
+  ArborX::Experimental::WallDistance<MemorySpace, DIM, Coordinate,
+                                     ReplicateSides>
+      wall_distance(space, mesh, wall_names);
+  space.fence();
+  construction_time->stop();
+
+  if (distance_type == "node")
+  {
+    auto meta = mesh.getMetaData();
+    auto bulk = mesh.getBulkData();
+
+    std::vector<stk::mesh::Entity> part_nodes;
+    stk::mesh::get_selected_entities(meta->universal_part(),
+                                     bulk->buckets(stk::topology::NODE_RANK),
+                                     part_nodes);
+
+    int const num_nodes = part_nodes.size();
+
+    Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace> points(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "Example::points"),
+        num_nodes);
+    auto points_host = Kokkos::create_mirror_view(points);
+
+    auto const &coords = mesh.getCoordinatesField();
+    for (stk::mesh::Entity const &node : part_nodes)
+    {
+      auto i = bulk->local_id(node);
+      std::cout << "i = " << i << " [" << num_nodes << "]" << std::endl;
+      auto const *x = stk::mesh::field_data(coords, node);
+      if constexpr (DIM == 2)
+        points_host(i) = {x[0], x[1]};
+      else
+        points_host(i) = {x[0], x[1], x[2]};
+    }
+    Kokkos::deep_copy(space, points, points_host);
+
+    Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                   wall_distances, num_nodes);
+
+    auto query_time = time_monitor.getNewTimer("query");
+    query_time->start();
+    wall_distance.distance(space, points, wall_distances);
+    space.fence();
+    query_time->stop();
+  }
+  else if (distance_type == "cell")
+  {
+    int const num_worksets = (worksets).size();
+    int const max_num_cells_per_workset = ir.dl_scalar->extent(0);
+    int const num_int_points_per_cell = ir.dl_scalar->extent(1);
+
+    Kokkos::View<Coordinate ***, MemorySpace> workset_distances(
+        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                           "Example::workset_distances"),
+        num_worksets, max_num_cells_per_workset, num_int_points_per_cell);
+
+    space.fence();
+
+    auto query_time = time_monitor.getNewTimer("query");
+    query_time->start();
+    wall_distance.distance(space, worksets, ir, workset_distances);
+    space.fence();
+    query_time->stop();
+
+    // Copy workset distances to a flat array
+    Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                   wall_distances, num_worksets * max_num_cells_per_workset);
+    for (int workset_id = 0; workset_id < num_worksets; ++workset_id)
+    {
+      auto const &workset = (worksets)[workset_id];
+      auto num_cells = workset.num_cells;
+      if (num_cells == 0)
+        continue;
+
+      auto local_cell_ids = workset.getLocalCellIDs();
+      Kokkos::parallel_for(
+          "Example::copy_distances", Kokkos::RangePolicy(space, 0, num_cells),
+          KOKKOS_LAMBDA(int i) {
+            Coordinate avg = 0;
+            for (int p = 0; p < num_int_points_per_cell; ++p)
+              avg += workset_distances(workset_id, i, p);
+            wall_distances(local_cell_ids(i)) = avg / num_int_points_per_cell;
+          });
+    }
+  }
+
+  time_monitor.summarize(comm);
+
+  return wall_distances;
+}
+
 int main(int argc, char *argv[])
 {
   MPI_Init(&argc, &argv);
@@ -111,9 +220,9 @@ int main(int argc, char *argv[])
 
   namespace bpo = boost::program_options;
 
-  // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
-  // are not on MPI rank 0 to prevent Kokkos from printing the help message
-  // multiply.
+  // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if
+  // we are not on MPI rank 0 to prevent Kokkos from printing the help
+  // message multiply.
   auto *help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
     return x == "--help" || x == "--kokkos-help";
   });
@@ -203,94 +312,55 @@ int main(int argc, char *argv[])
   }
 
   constexpr bool ReplicateSides = true;
-  std::string const distance_field_name = "wall_distance";
 
   {
-    ExecutionSpace space;
-
-    ArborXBenchmark::TimeMonitor time_monitor;
-
     // Note: when running in parallel, use
     //   export IOSS_PROPERTIES="DECOMPOSITION_METHOD=RIB"
     // for automatic mesh decomposition. This requires NetCDF-C compiled
     // with parallel support.
-    auto mesh = build_mesh(filename, comm, block_name, distance_field_name,
-                           distance_type);
+    auto mesh = build_mesh(filename, comm, block_name, distance_type);
+    auto worksets =
+        build_worksets(mesh, block_name, basis_type, basis_order, int_order);
 
-    using ArborX::Experimental::WallDistance;
-    using Index2D = WallDistance<MemorySpace, 2, Coordinate, ReplicateSides>;
-    using Index3D = WallDistance<MemorySpace, 3, Coordinate, ReplicateSides>;
+    panzer::CellData cell_data(workset_size, mesh->getCellTopology(block_name));
+    panzer::IntegrationRule ir(int_order, cell_data);
 
-    auto construction_time = time_monitor.getNewTimer("construction");
-    construction_time->start();
-    std::variant<Index2D, Index3D> wall_distance;
+    ExecutionSpace space;
+
+    Kokkos::View<Coordinate *, MemorySpace> wall_distances;
     if (mesh->getDimension() == 2)
-      wall_distance.emplace<Index2D>(space, *mesh, wall_names);
+      main_<2, Coordinate, ReplicateSides>(comm, space, *mesh, wall_names,
+                                           distance_type, block_name, *worksets,
+                                           ir, wall_distances);
     else
-      wall_distance.emplace<Index3D>(space, *mesh, wall_names);
+      main_<3, Coordinate, ReplicateSides>(comm, space, *mesh, wall_names,
+                                           distance_type, block_name, *worksets,
+                                           ir, wall_distances);
     space.fence();
-    construction_time->stop();
+
+    auto wall_distances_host = Kokkos::create_mirror_view_and_copy(
+        Kokkos::HostSpace{}, wall_distances);
 
     if (distance_type == "node")
     {
-    }
-    else if (distance_type == "cell")
-    {
-      auto worksets =
-          build_worksets(mesh, block_name, basis_type, basis_order, int_order);
+      auto meta = mesh->getMetaData();
+      auto bulk = mesh->getBulkData();
 
-      panzer::CellData cell_data(workset_size,
-                                 mesh->getCellTopology(block_name));
-      panzer::IntegrationRule ir(int_order, cell_data);
+      auto *field = mesh->getSolutionField(distance_field_name, block_name);
 
-      int const num_worksets = (*worksets).size();
-      int const max_num_cells_per_workset = ir.dl_scalar->extent(0);
-      int const num_int_points_per_cell = ir.dl_scalar->extent(1);
+      stk::mesh::EntityVector nodes;
+      stk::mesh::get_selected_entities(
+          meta->universal_part(),
+          mesh->getBulkData()->buckets(stk::topology::NODE_RANK), nodes);
 
-      Kokkos::View<Coordinate ***, MemorySpace> workset_distances(
-          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                             "Example::workset_distances"),
-          num_worksets, max_num_cells_per_workset, num_int_points_per_cell);
-
-      space.fence();
-
-      auto query_time = time_monitor.getNewTimer("query");
-      query_time->start();
-      std::visit(
-          [&](auto &&index) {
-            index.distance(space, *worksets, ir, workset_distances);
-          },
-          wall_distance);
-      space.fence();
-      query_time->stop();
-
-      // Copy workset distances to a flat array
-      Kokkos::View<Coordinate *, MemorySpace> wall_distances(
-          Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                             "Example::wall_distances"),
-          num_worksets * max_num_cells_per_workset);
-      for (int workset_id = 0; workset_id < num_worksets; ++workset_id)
+      for (stk::mesh::Entity const &node : nodes)
       {
-        auto const &workset = (*worksets)[workset_id];
-        auto num_cells = workset.num_cells;
-        if (num_cells == 0)
-          continue;
-
-        auto local_cell_ids = workset.getLocalCellIDs();
-        Kokkos::parallel_for(
-            "Example::copy_distances", Kokkos::RangePolicy(space, 0, num_cells),
-            KOKKOS_LAMBDA(int i) {
-              Coordinate avg = 0;
-              for (int p = 0; p < num_int_points_per_cell; ++p)
-                avg += workset_distances(workset_id, i, p);
-              wall_distances(local_cell_ids(i)) = avg / num_int_points_per_cell;
-            });
+        auto *f = stk::mesh::field_data(*field, node);
+        *f = wall_distances_host(bulk->local_id(node));
       }
-      space.fence();
-
-      auto wall_distances_host = Kokkos::create_mirror_view_and_copy(
-          Kokkos::HostSpace{}, wall_distances);
-
+    }
+    else
+    {
       // Store wall distances in the output file
       auto *field = mesh->getCellField(distance_field_name, block_name);
       std::vector<stk::mesh::Entity> elements;
@@ -303,7 +373,6 @@ int main(int argc, char *argv[])
         field_data[0] = wall_distances_host(localId);
       }
     }
-    time_monitor.summarize(comm);
 
     mesh->writeToExodus(out_filename);
   }
