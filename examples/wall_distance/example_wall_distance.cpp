@@ -15,6 +15,9 @@
 
 #include <boost/program_options.hpp>
 
+#include <string>
+#include <vector>
+
 #include <Panzer_IntegrationRule.hpp>
 #include <Panzer_STK_ExodusReaderFactory.hpp>
 #include <Panzer_STK_WorksetFactory.hpp>
@@ -24,6 +27,38 @@
 #include <mpi.h>
 
 constexpr int workset_size = 64;
+
+Teuchos::RCP<panzer_stk::STK_Interface>
+build_mesh(std::string const &filename, MPI_Comm comm, std::string &block_name,
+           std::string const &distance_field_name,
+           std::string const &distance_type)
+{
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+
+  panzer_stk::STK_ExodusReaderFactory factory(filename);
+  auto mesh = factory.buildUncommitedMesh(comm);
+
+  if (block_name == "")
+  {
+    std::vector<std::string> block_names;
+    mesh->getElementBlockNames(block_names);
+    KOKKOS_ASSERT(!block_names.empty());
+    block_name = block_names[0];
+    if (comm_rank == 0)
+      std::cout << "No block name provided, using first available name: \""
+                << block_name << "\"" << std::endl;
+  }
+
+  if (distance_type == "node")
+    mesh->addSolutionField(distance_field_name, block_name);
+  else if (distance_type == "cell")
+    mesh->addCellField(distance_field_name, block_name);
+
+  factory.completeMeshConstruction(*mesh, comm);
+
+  return mesh;
+}
 
 auto build_worksets(Teuchos::RCP<panzer_stk::STK_Interface> const &mesh,
                     std::string const &block_name,
@@ -98,7 +133,7 @@ int main(int argc, char *argv[])
   int int_order;
   std::string block_name;
   std::vector<std::string> wall_names;
-  std::string type;
+  std::string distance_type;
   bool verbose;
 
   bpo::options_description desc("Allowed options");
@@ -106,12 +141,12 @@ int main(int argc, char *argv[])
   desc.add_options()
     ("help", "help message" )
     ("basis-order", bpo::value<int>(&basis_order)->default_value(1), "basis order")
-    ("basis-type", bpo::value<std::string>(&basis_type)->default_value("HGrad"), "basis type")
+    ("basis-distance_type", bpo::value<std::string>(&basis_type)->default_value("HGrad"), "basis distance_type")
     ("block-name", bpo::value<std::string>(&block_name)->default_value(""), "block name")
     ("filename", bpo::value<std::string>(&filename)->default_value("mesh.exo"), "mesh filename")
     ("int-order", bpo::value<int>(&int_order)->default_value(2), "integration order")
     ("output-filename", bpo::value<std::string>(&out_filename)->default_value("output.exo"), "output filename")
-    ("type", bpo::value<std::string>(&type)->default_value("node"), "type of field to write (node or cell)")
+    ("type", bpo::value<std::string>(&distance_type)->default_value("node"), "type of field to write (node or cell)")
     ("verbose", bpo::bool_switch(&verbose), "verbose")
     ("wall-names", bpo::value<std::vector<std::string>>(&wall_names)->multitoken(), "names of walls")
     ;
@@ -136,10 +171,10 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  if (type != "node" && type != "cell")
+  if (distance_type != "node" && distance_type != "cell")
   {
     if (comm_rank == 0)
-      std::cerr << "Invalid type: " << type
+      std::cerr << "Invalid distance_type: " << distance_type
                 << ". Must be \"node\" or \"cell\".\n";
     MPI_Finalize();
     return 2;
@@ -162,7 +197,7 @@ int main(int argc, char *argv[])
     printf("block name        : %s\n", block_name.c_str());
     printf("filename          : %s\n", filename.c_str());
     printf("integration order : %d\n", int_order);
-    printf("type              : %s\n", type.c_str());
+    printf("distance type     : %s\n", distance_type.c_str());
     printf("verbose           : %s\n", (verbose ? "true" : "false"));
     printf("wall names        : %s\n", vec2string(wall_names).c_str());
   }
@@ -171,35 +206,36 @@ int main(int argc, char *argv[])
   std::string const distance_field_name = "wall_distance";
 
   {
+    ExecutionSpace space;
+
+    ArborXBenchmark::TimeMonitor time_monitor;
+
     // Note: when running in parallel, use
     //   export IOSS_PROPERTIES="DECOMPOSITION_METHOD=RIB"
     // for automatic mesh decomposition. This requires NetCDF-C compiled
     // with parallel support.
-    panzer_stk::STK_ExodusReaderFactory factory(filename);
-    Teuchos::RCP<panzer_stk::STK_Interface> mesh =
-        factory.buildUncommitedMesh(comm);
+    auto mesh = build_mesh(filename, comm, block_name, distance_field_name,
+                           distance_type);
 
-    if (block_name == "")
+    using ArborX::Experimental::WallDistance;
+    using Index2D = WallDistance<MemorySpace, 2, Coordinate, ReplicateSides>;
+    using Index3D = WallDistance<MemorySpace, 3, Coordinate, ReplicateSides>;
+
+    auto construction_time = time_monitor.getNewTimer("construction");
+    construction_time->start();
+    std::variant<Index2D, Index3D> wall_distance;
+    if (mesh->getDimension() == 2)
+      wall_distance.emplace<Index2D>(space, *mesh, wall_names);
+    else
+      wall_distance.emplace<Index3D>(space, *mesh, wall_names);
+    space.fence();
+    construction_time->stop();
+
+    if (distance_type == "node")
     {
-      std::vector<std::string> block_names;
-      mesh->getElementBlockNames(block_names);
-      KOKKOS_ASSERT(!block_names.empty());
-      block_name = block_names[0];
-      if (comm_rank == 0)
-        std::cout << "No block name provided, using first available name: \""
-                  << block_name << "\"" << std::endl;
     }
-
-    if (type == "node")
+    else if (distance_type == "cell")
     {
-      mesh->addSolutionField(distance_field_name, block_name);
-      factory.completeMeshConstruction(*mesh, comm);
-    }
-    else if (type == "cell")
-    {
-      mesh->addCellField(distance_field_name, block_name);
-      factory.completeMeshConstruction(*mesh, comm);
-
       auto worksets =
           build_worksets(mesh, block_name, basis_type, basis_order, int_order);
 
@@ -211,8 +247,6 @@ int main(int argc, char *argv[])
       int const max_num_cells_per_workset = ir.dl_scalar->extent(0);
       int const num_int_points_per_cell = ir.dl_scalar->extent(1);
 
-      ExecutionSpace space;
-
       Kokkos::View<Coordinate ***, MemorySpace> workset_distances(
           Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                              "Example::workset_distances"),
@@ -220,46 +254,15 @@ int main(int argc, char *argv[])
 
       space.fence();
 
-      ArborXBenchmark::TimeMonitor time_monitor;
-
-      if (mesh->getDimension() == 2)
-      {
-        constexpr int DIM = 2;
-
-        auto construction_time = time_monitor.getNewTimer("construction");
-        construction_time->start();
-        ArborX::Experimental::WallDistance<MemorySpace, DIM, Coordinate,
-                                           ReplicateSides>
-            wall_distance(space, *mesh, wall_names);
-        space.fence();
-        construction_time->stop();
-
-        auto query_time = time_monitor.getNewTimer("query");
-        query_time->start();
-        wall_distance.distance(space, *worksets, ir, workset_distances);
-        space.fence();
-        query_time->stop();
-      }
-      else
-      {
-        constexpr int DIM = 3;
-
-        auto construction_time = time_monitor.getNewTimer("construction");
-        construction_time->start();
-        ArborX::Experimental::WallDistance<MemorySpace, DIM, Coordinate,
-                                           ReplicateSides>
-            wall_distance(space, *mesh, wall_names);
-        space.fence();
-        construction_time->stop();
-
-        auto query_time = time_monitor.getNewTimer("query");
-        query_time->start();
-        wall_distance.distance(space, *worksets, ir, workset_distances);
-        space.fence();
-        query_time->stop();
-      }
-
-      time_monitor.summarize(comm);
+      auto query_time = time_monitor.getNewTimer("query");
+      query_time->start();
+      std::visit(
+          [&](auto &&index) {
+            index.distance(space, *worksets, ir, workset_distances);
+          },
+          wall_distance);
+      space.fence();
+      query_time->stop();
 
       // Copy workset distances to a flat array
       Kokkos::View<Coordinate *, MemorySpace> wall_distances(
@@ -300,6 +303,7 @@ int main(int argc, char *argv[])
         field_data[0] = wall_distances_host(localId);
       }
     }
+    time_monitor.summarize(comm);
 
     mesh->writeToExodus(out_filename);
   }
