@@ -89,7 +89,6 @@ WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::WallDistance(
         prefix + "global_sides", 0, 0, 0);
     Details::gatherGlobalSides(comm, space, local_sides, global_sides);
 
-    space.fence();
     _index = BoundingVolumeHierarchy(
         space,
         Details::Geometries<DIM, decltype(global_sides)>{key, global_sides});

@@ -89,39 +89,6 @@ struct ArborX::AccessTraits<ArborX::Details::Geometries<DIM, Sides>>
 namespace ArborX::Details
 {
 
-template <typename View>
-inline auto create_layout_right_mirror_view_no_init(View const &src)
-{
-  static_assert(View::rank == 3);
-
-  using HostMemorySpace = typename View::traits::host_mirror_space;
-
-  constexpr bool has_compatible_layout =
-      (std::is_same_v<typename View::array_layout, Kokkos::LayoutRight> ||
-       (View::rank == 1 &&
-        (std::is_same_v<typename View::array_layout, Kokkos::LayoutLeft> ||
-         std::is_same_v<typename View::array_layout, Kokkos::LayoutRight>)));
-  constexpr bool has_compatible_memory_space =
-      std::is_same_v<typename View::memory_space, HostMemorySpace>;
-
-  if constexpr (has_compatible_layout && has_compatible_memory_space)
-  {
-    return src;
-  }
-  else
-  {
-    typename HostMemorySpace::execution_space space;
-    auto mirror_view = Kokkos::View<typename View::traits::data_type,
-                                    Kokkos::LayoutRight, HostMemorySpace>(
-        Kokkos::view_alloc(
-            space, HostMemorySpace{}, Kokkos::WithoutInitializing,
-            std::string(src.label()).append("_layout_right_mirror")),
-        src.extent(0), src.extent(1), src.extent(2));
-    space.fence();
-    return mirror_view;
-  }
-}
-
 template <typename LocalSides>
 void getLocalSides(panzer_stk::STK_Interface const &mesh,
                    std::vector<std::string> const &wall_names,
@@ -157,10 +124,12 @@ static void gatherGlobalSides(MPI_Comm comm, ExecutionSpace const &space,
                               LocalSides const &local_sides,
                               GlobalSides &global_sides)
 {
-  Kokkos::Profiling::ScopedRegion guard(
-      "ArborX::WallDistance::gatherGlobalSides");
+  std::string prefix = "ArborX::WallDistance::gatherGlobalSides";
+  Kokkos::Profiling::ScopedRegion guard(prefix);
+  prefix += "::";
 
   using MemorySpace = typename GlobalSides::memory_space;
+  using Scalar = typename GlobalSides::value_type;
 
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
@@ -195,24 +164,32 @@ static void gatherGlobalSides(MPI_Comm comm, ExecutionSpace const &space,
   std::exclusive_scan(global_counts.begin(), global_counts.end(),
                       offsets.begin(), 0);
   offsets[comm_size] = offsets[comm_size - 1] + global_counts.back();
-  int num_global_sides = offsets.back();
+  int num_global = offsets.back();
 
-  Kokkos::resize(Kokkos::view_alloc(Kokkos::WithoutInitializing), global_sides,
-                 num_global_sides, extent1, extent2);
-
-  // Create host-side mirror for sides
-  // Have to be careful with layouts
-  auto local_sides_host =
-      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, local_sides);
-  Kokkos::fence();
-  auto global_sides_host =
-      create_layout_right_mirror_view_no_init(global_sides);
+  // Need a LayoutRight view for MPI transfers
+  Kokkos::View<Scalar ***, Kokkos::LayoutRight, MemorySpace> global_sides_aux(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         prefix + "global_sides_aux"),
+      num_global, extent1, extent2);
 
   auto const offset_rank = offsets[comm_rank];
-  for (int i = 0; i < num_local; ++i)
-    for (int j = 0; j < extent1; ++j)
-      for (int k = 0; k < extent2; ++k)
-        global_sides_host(offset_rank + i, j, k) = local_sides_host(i, j, k);
+  Kokkos::parallel_for(
+      prefix + "initialize_global_sides",
+      Kokkos::RangePolicy(space, 0, num_local), KOKKOS_LAMBDA(int i) {
+        for (int j = 0; j < extent1; ++j)
+          for (int k = 0; k < extent2; ++k)
+            global_sides_aux(offset_rank + i, j, k) = local_sides(i, j, k);
+      });
+
+  auto global_sides_host =
+      Kokkos::create_mirror_view(Kokkos::WithoutInitializing, global_sides_aux);
+  auto copy_extent = Kokkos::pair(offsets[comm_rank], offsets[comm_rank + 1]);
+  Kokkos::deep_copy(space,
+                    Kokkos::subview(global_sides_host, copy_extent,
+                                    Kokkos::ALL(), Kokkos::ALL()),
+                    Kokkos::subview(global_sides_aux, copy_extent,
+                                    Kokkos::ALL(), Kokkos::ALL()));
+  space.fence();
 
   for (int rank = 0; rank < comm_size; ++rank)
   {
@@ -220,16 +197,16 @@ static void gatherGlobalSides(MPI_Comm comm, ExecutionSpace const &space,
     global_counts[rank] *= data_size;
   }
 
-  // FIXME: hardcoded to MPI_DOUBLE
+  static_assert(std::is_same_v<Scalar, double>);
   MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, global_sides_host.data(),
                  global_counts.data(), offsets.data(), MPI_DOUBLE, comm);
 
   // For multi-dimensional views, we need to first copy into a separate
   // storage because of a different layout
-  auto tmp_view = Kokkos::create_mirror_view_and_copy(
-      Kokkos::view_alloc(space, MemorySpace{}), global_sides_host);
-  Kokkos::deep_copy(space, global_sides, tmp_view);
-  space.fence();
+  Kokkos::deep_copy(space, global_sides_aux, global_sides_host);
+  Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                 global_sides, num_global, extent1, extent2);
+  Kokkos::deep_copy(space, global_sides, global_sides_aux);
 }
 
 // Check that the topologies in all element blocks are the same, and are ones
