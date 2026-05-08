@@ -127,16 +127,18 @@ auto main_(MPI_Comm comm, ExecutionSpace const &space,
         num_nodes);
     auto points_host = Kokkos::create_mirror_view(points);
 
+    // FIXME: this is essentially a custom indexing that has to match here and
+    // during the output
+    int i = 0;
     auto const &coords = mesh.getCoordinatesField();
     for (stk::mesh::Entity const &node : part_nodes)
     {
-      auto i = bulk->local_id(node);
-      std::cout << "i = " << i << " [" << num_nodes << "]" << std::endl;
       auto const *x = stk::mesh::field_data(coords, node);
       if constexpr (DIM == 2)
         points_host(i) = {x[0], x[1]};
       else
         points_host(i) = {x[0], x[1], x[2]};
+      ++i;
     }
     Kokkos::deep_copy(space, points, points_host);
 
@@ -353,10 +355,14 @@ int main(int argc, char *argv[])
           meta->universal_part(),
           mesh->getBulkData()->buckets(stk::topology::NODE_RANK), nodes);
 
+      // FIXME: has to match the indexing used during the query
+      int i = 0;
       for (stk::mesh::Entity const &node : nodes)
       {
-        auto *f = stk::mesh::field_data(*field, node);
-        *f = wall_distances_host(bulk->local_id(node));
+        auto *field_data = stk::mesh::field_data(*field, node);
+        KOKKOS_ASSERT(field_data != nullptr); // sanity check
+        *field_data = wall_distances_host(i);
+        ++i;
       }
     }
     else

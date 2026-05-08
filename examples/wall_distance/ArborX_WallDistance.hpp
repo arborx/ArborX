@@ -110,7 +110,7 @@ template <typename ExecutionSpace, typename Points, typename Distances>
 void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
     ExecutionSpace const &space, Points const &points, Distances &distances)
 {
-  std::string prefix = "ArborX::WallDistance::distance";
+  std::string prefix = "ArborX::WallDistance::distance [points]";
   Kokkos::Profiling::ScopedRegion guard(prefix);
   prefix += "::";
 
@@ -133,7 +133,7 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
     ExecutionSpace const &space, std::vector<panzer::Workset> const &worksets,
     panzer::IntegrationRule const &ir, WorksetDistances &workset_distances)
 {
-  std::string prefix = "ArborX::WallDistance::workset_distance";
+  std::string prefix = "ArborX::WallDistance::distance [integration points]";
   Kokkos::Profiling::ScopedRegion guard(prefix);
   prefix += "::";
 
