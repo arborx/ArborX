@@ -115,9 +115,9 @@ auto main_(MPI_Comm comm, ExecutionSpace const &space,
     auto bulk = mesh.getBulkData();
 
     std::vector<stk::mesh::Entity> part_nodes;
-    stk::mesh::get_selected_entities(meta->universal_part(),
-                                     bulk->buckets(stk::topology::NODE_RANK),
-                                     part_nodes);
+    stk::mesh::get_selected_entities(
+        meta->locally_owned_part() | meta->globally_shared_part(),
+        bulk->buckets(stk::topology::NODE_RANK), part_nodes);
 
     int const num_nodes = part_nodes.size();
 
@@ -129,16 +129,15 @@ auto main_(MPI_Comm comm, ExecutionSpace const &space,
 
     // FIXME: this is essentially a custom indexing that has to match here and
     // during the output
-    int i = 0;
     auto const &coords = mesh.getCoordinatesField();
     for (stk::mesh::Entity const &node : part_nodes)
     {
       auto const *x = stk::mesh::field_data(coords, node);
+      auto const i = bulk->local_id(node);
       if constexpr (DIM == 2)
         points_host(i) = {x[0], x[1]};
       else
         points_host(i) = {x[0], x[1], x[2]};
-      ++i;
     }
     Kokkos::deep_copy(space, points, points_host);
 
@@ -352,17 +351,16 @@ int main(int argc, char *argv[])
 
       stk::mesh::EntityVector nodes;
       stk::mesh::get_selected_entities(
-          meta->universal_part(),
+          meta->locally_owned_part() | meta->globally_shared_part(),
           mesh->getBulkData()->buckets(stk::topology::NODE_RANK), nodes);
 
       // FIXME: has to match the indexing used during the query
-      int i = 0;
       for (stk::mesh::Entity const &node : nodes)
       {
+        auto const i = bulk->local_id(node);
         auto *field_data = stk::mesh::field_data(*field, node);
         KOKKOS_ASSERT(field_data != nullptr); // sanity check
         *field_data = wall_distances_host(i);
-        ++i;
       }
     }
     else
