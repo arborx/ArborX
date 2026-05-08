@@ -111,42 +111,9 @@ auto main_(MPI_Comm comm, ExecutionSpace const &space,
 
   if (distance_type == "node")
   {
-    auto meta = mesh.getMetaData();
-    auto bulk = mesh.getBulkData();
-
-    std::vector<stk::mesh::Entity> part_nodes;
-    stk::mesh::get_selected_entities(
-        meta->locally_owned_part() | meta->globally_shared_part(),
-        bulk->buckets(stk::topology::NODE_RANK), part_nodes);
-
-    int const num_nodes = part_nodes.size();
-
-    Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace> points(
-        Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                           "Example::points"),
-        num_nodes);
-    auto points_host = Kokkos::create_mirror_view(points);
-
-    // FIXME: this is essentially a custom indexing that has to match here and
-    // during the output
-    auto const &coords = mesh.getCoordinatesField();
-    for (stk::mesh::Entity const &node : part_nodes)
-    {
-      auto const *x = stk::mesh::field_data(coords, node);
-      auto const i = bulk->local_id(node);
-      if constexpr (DIM == 2)
-        points_host(i) = {x[0], x[1]};
-      else
-        points_host(i) = {x[0], x[1], x[2]};
-    }
-    Kokkos::deep_copy(space, points, points_host);
-
-    Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
-                   wall_distances, num_nodes);
-
     auto query_time = time_monitor.getNewTimer("query");
     query_time->start();
-    wall_distance.distance(space, points, wall_distances);
+    wall_distance.distance(space, mesh, wall_distances);
     space.fence();
     query_time->stop();
   }

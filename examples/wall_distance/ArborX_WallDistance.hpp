@@ -55,15 +55,19 @@ public:
                panzer_stk::STK_Interface const &mesh,
                std::vector<std::string> const &wall_names);
 
+  // Distances from mesh nodes
+  template <typename ExecutionSpace, typename Distances>
+  void distance(ExecutionSpace const &space,
+                panzer_stk::STK_Interface const &mesh, Distances &distances);
+
+  // Distances from integration points
   template <typename ExecutionSpace, typename WorksetDistances>
   void distance(ExecutionSpace const &space,
                 std::vector<panzer::Workset> const &worksets,
                 panzer::IntegrationRule const &ir,
                 WorksetDistances &workset_distances);
 
-  template <typename ExecutionSpace, typename Distances>
-  void distance(ExecutionSpace const &space, Distances &distances);
-
+  // Distances from any set of ArborX points
   template <typename ExecutionSpace, typename Points, typename Distances>
   void distance(ExecutionSpace const &space, Points const &points,
                 Distances &distances);
@@ -124,6 +128,49 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
     _index.query(space, queries,
                  declare_callback_constrained(Details::WallDistanceCallback{}),
                  distances, offset);
+}
+
+template <typename MemorySpace, int DIM, typename Coordinate,
+          bool ReplicateSides>
+template <typename ExecutionSpace, typename Distances>
+void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
+    ExecutionSpace const &space, panzer_stk::STK_Interface const &mesh,
+    Distances &distances)
+{
+  std::string prefix = "ArborX::WallDistance::distance [nodes]";
+  Kokkos::Profiling::ScopedRegion guard(prefix);
+  prefix += "::";
+
+  auto meta = mesh.getMetaData();
+  auto bulk = mesh.getBulkData();
+
+  std::vector<stk::mesh::Entity> part_nodes;
+  stk::mesh::get_selected_entities(
+      meta->locally_owned_part() | meta->globally_shared_part(),
+      bulk->buckets(stk::topology::NODE_RANK), part_nodes);
+
+  int const num_nodes = part_nodes.size();
+
+  Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace> points(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, prefix + "points"),
+      num_nodes);
+  auto points_host = Kokkos::create_mirror_view(points);
+
+  auto const &coords = mesh.getCoordinatesField();
+  for (stk::mesh::Entity const &node : part_nodes)
+  {
+    auto const *x = stk::mesh::field_data(coords, node);
+    auto const i = bulk->local_id(node);
+    if constexpr (DIM == 2)
+      points_host(i) = {x[0], x[1]};
+    else
+      points_host(i) = {x[0], x[1], x[2]};
+  }
+  Kokkos::deep_copy(space, points, points_host);
+
+  Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                 distances, num_nodes);
+  distance(space, points, distances);
 }
 
 template <typename MemorySpace, int DIM, typename Coordinate,
