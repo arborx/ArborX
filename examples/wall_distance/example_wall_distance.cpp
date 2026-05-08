@@ -26,7 +26,7 @@
 #include <Teuchos_RCPStdSharedPtrConversions.hpp>
 #include <mpi.h>
 
-constexpr int workset_size = 64;
+constexpr int workset_size = 128;
 static std::string const distance_field_name = "wall_distance";
 
 Teuchos::RCP<panzer_stk::STK_Interface>
