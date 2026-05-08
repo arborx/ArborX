@@ -24,6 +24,7 @@
 #include <vector>
 
 #include <Panzer_STK_Interface.hpp>
+#include <mpi.h>
 
 namespace ArborX::Details
 {

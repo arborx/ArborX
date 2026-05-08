@@ -26,6 +26,7 @@
 #include <Panzer_STK_Interface.hpp>
 #include <Panzer_Workset.hpp>
 #include <Panzer_Workset_Utilities.hpp> // getIntegrationRuleIndex
+#include <mpi.h>
 
 namespace ArborX::Experimental
 {
