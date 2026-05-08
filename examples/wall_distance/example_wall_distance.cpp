@@ -87,7 +87,7 @@ auto build_worksets(Teuchos::RCP<panzer_stk::STK_Interface> const &mesh,
 
 template <int DIM, typename Coordinate, bool ReplicateSides,
           typename ExecutionSpace, typename WallDistances>
-auto main_(MPI_Comm comm, ExecutionSpace const &space,
+void main_(MPI_Comm comm, ExecutionSpace const &space,
            panzer_stk::STK_Interface const &mesh,
            std::vector<std::string> const &wall_names,
            std::string const &distance_type, std::string const & /*block_name*/,
@@ -159,8 +159,6 @@ auto main_(MPI_Comm comm, ExecutionSpace const &space,
   }
 
   time_monitor.summarize(comm);
-
-  return wall_distances;
 }
 
 int main(int argc, char *argv[])
@@ -292,8 +290,10 @@ int main(int argc, char *argv[])
       std::cout << "Mesh construction time: " << timer.seconds()
                 << " seconds\n";
     timer.reset();
-    auto worksets =
-        build_worksets(mesh, block_name, basis_type, basis_order, int_order);
+    Teuchos::RCP<std::vector<panzer::Workset>> worksets;
+    if (distance_type == "cell")
+      worksets =
+          build_worksets(mesh, block_name, basis_type, basis_order, int_order);
     if (comm_rank == 0)
       std::cout << "Worksets construction time: " << timer.seconds()
                 << " seconds\n";
