@@ -286,9 +286,17 @@ int main(int argc, char *argv[])
     //   export IOSS_PROPERTIES="DECOMPOSITION_METHOD=RIB"
     // for automatic mesh decomposition. This requires NetCDF-C compiled
     // with parallel support.
+    Kokkos::Timer timer;
     auto mesh = build_mesh(filename, comm, block_name, distance_type);
+    if (comm_rank == 0)
+      std::cout << "Mesh construction time: " << timer.seconds()
+                << " seconds\n";
+    timer.reset();
     auto worksets =
         build_worksets(mesh, block_name, basis_type, basis_order, int_order);
+    if (comm_rank == 0)
+      std::cout << "Worksets construction time: " << timer.seconds()
+                << " seconds\n";
 
     panzer::CellData cell_data(workset_size, mesh->getCellTopology(block_name));
     panzer::IntegrationRule ir(int_order, cell_data);
