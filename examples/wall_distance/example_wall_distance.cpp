@@ -165,9 +165,6 @@ int main(int argc, char *argv[])
 {
   MPI_Init(&argc, &argv);
 
-  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
-  using MemorySpace = typename ExecutionSpace::memory_space;
-
   MPI_Comm const comm = MPI_COMM_WORLD;
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
@@ -198,8 +195,6 @@ int main(int argc, char *argv[])
     std::swap(*help_it, *(argv + argc - 1));
     --argc;
   }
-
-  Kokkos::ScopeGuard guard(argc, argv);
 
   std::string basis_type;
   std::string filename;
@@ -280,6 +275,11 @@ int main(int argc, char *argv[])
   constexpr bool ReplicateSides = true;
 
   {
+    Kokkos::ScopeGuard guard(argc, argv);
+
+    using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+    using MemorySpace = typename ExecutionSpace::memory_space;
+
     // Note: when running in parallel, use
     //   export IOSS_PROPERTIES="DECOMPOSITION_METHOD=RIB"
     // for automatic mesh decomposition. This requires NetCDF-C compiled
