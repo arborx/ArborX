@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     --argc;
   }
 
-  Kokkos::ScopeGuard guard(argc, argv);
+  Kokkos::initialize(argc, argv);
 
   namespace bpo = boost::program_options;
   using namespace ArborXBenchmark;
@@ -301,6 +301,7 @@ int main(int argc, char *argv[])
 #undef SWITCH_DIM
   }
 
+  Kokkos::finalize();
   MPI_Finalize();
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;
