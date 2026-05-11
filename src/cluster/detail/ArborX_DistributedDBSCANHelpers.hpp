@@ -130,6 +130,55 @@ void computeCountsAndOffsets(MPI_Comm comm, Index k, std::vector<int> &counts,
     offsets[i + 1] = counts[i] + offsets[i];
 }
 
+template <typename ExecutionSpace, typename GhostIds, typename GhostRanks,
+          typename LocalLabels, typename GlobalLabels>
+void convertLocalToGlobal(MPI_Comm comm, ExecutionSpace const &space,
+                          long long n_local, GhostIds const &ghost_ids,
+                          GhostRanks const &ghost_ranks,
+                          LocalLabels const &local_labels, GlobalLabels &labels)
+{
+  std::string prefix = "ArborX::DistributedDBSCAN::convertLocalToGlobal";
+  Kokkos::Profiling::ScopedRegion guard(prefix);
+  prefix += "::";
+
+  using MemorySpace = typename LocalLabels::memory_space;
+
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+
+  std::vector<int> counts;
+  std::vector<long long> offsets;
+  computeCountsAndOffsets(comm, n_local, counts, offsets);
+
+  Kokkos::View<long long *, MemorySpace> rank_offsets(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         prefix + "rank_offsets"),
+      offsets.size());
+  Kokkos::deep_copy(
+      space, rank_offsets,
+      Kokkos::View<long long *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
+          offsets.data(), offsets.size()));
+
+  Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), labels,
+                 local_labels.size());
+  Kokkos::parallel_for(
+      prefix + "convert_labels",
+      Kokkos::RangePolicy(space, 0, local_labels.size()), KOKKOS_LAMBDA(int i) {
+        auto label = local_labels(i);
+        if (label == -1)
+        {
+          labels(i) = -1;
+          return;
+        }
+
+        if (label < n_local)
+          labels(i) = rank_offsets(comm_rank) + label;
+        else
+          labels(i) = rank_offsets(ghost_ranks(label - n_local)) +
+                      ghost_ids(label - n_local);
+      });
+}
+
 template <typename ExecutionSpace, typename Points>
 auto gatherGlobalBoxes(MPI_Comm comm, ExecutionSpace const &space,
                        Points const &points)
