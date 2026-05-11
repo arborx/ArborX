@@ -80,38 +80,8 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
          core_min_size, local_labels, params);
 
   // Step 3: convert local labels to global
-  Kokkos::View<long long *, MemorySpace> rank_offsets(prefix + "rank_offsets",
-                                                      0);
-  {
-    std::vector<int> counts;
-    std::vector<long long> offsets;
-    Details::computeCountsAndOffsets(comm, (long long)n_local, counts, offsets);
-
-    Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
-                   rank_offsets, offsets.size());
-    Kokkos::deep_copy(
-        space, rank_offsets,
-        Kokkos::View<long long *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
-            offsets.data(), offsets.size()));
-  }
-  Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), labels,
-                 local_labels.size());
-  Kokkos::parallel_for(
-      prefix + "convert_labels",
-      Kokkos::RangePolicy(space, 0, local_labels.size()), KOKKOS_LAMBDA(int i) {
-        auto label = local_labels(i);
-        if (label == -1)
-        {
-          labels(i) = -1;
-          return;
-        }
-
-        if (label < n_local)
-          labels(i) = rank_offsets(comm_rank) + label;
-        else
-          labels(i) = rank_offsets(ghost_ranks(label - n_local)) +
-                      ghost_ids(label - n_local);
-      });
+  Details::convertLocalToGlobal(comm, space, n_local, ghost_ids, ghost_ranks,
+                                local_labels, labels);
   Kokkos::resize(local_labels, 0); // free space
 
   // Step 4: pack and communicate results back to owning ranks
