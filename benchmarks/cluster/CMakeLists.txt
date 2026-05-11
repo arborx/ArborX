@@ -23,8 +23,9 @@ target_link_libraries(ArborX_Benchmark_HDBSCAN.exe ArborX::ArborX Boost::program
 add_test(NAME ArborX_Benchmark_MST COMMAND ArborX_Benchmark_MST.exe --ascii --filename=${input_file})
 
 if (ARBORX_ENABLE_MPI)
+  set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/benchmarks/utils)
   add_executable(ArborX_Benchmark_DistributedDBSCAN.exe distributed_dbscan.cpp)
-  target_include_directories(ArborX_Benchmark_DistributedDBSCAN.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_include_directories(ArborX_Benchmark_DistributedDBSCAN.exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${ARBORX_BENCHMARK_UTILS_INCLUDE_DIR})
   target_link_libraries(ArborX_Benchmark_DistributedDBSCAN.exe ArborX::ArborX Boost::program_options cluster_benchmark_helpers)
   add_test(NAME ArborX_Benchmark_DistributedDBSCAN COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} $<TARGET_FILE:ArborX_Benchmark_DistributedDBSCAN.exe> ${MPIEXEC_POSTFLAGS} --n 1000 --dimension 3 --num-seq 4 --spacing 4 --core-min-size 2 --eps 2 --verify)
 endif()
