@@ -173,7 +173,7 @@ endif()
 cmake_dependent_option(ARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS "Enable header self-containment unit tests" ON "ARBORX_ENABLE_TESTS" OFF)
 if(ARBORX_ENABLE_HEADER_SELF_CONTAINMENT_TESTS)
   # Globbing all the header filenames to test for self-containment and presence of header guards
-  file(GLOB_RECURSE ArborX_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}/src src/*.hpp)
+  file(GLOB_RECURSE ArborX_HEADERS RELATIVE ${PROJECT_SOURCE_DIR}/src src/*.hpp)
   # Findout what headers are using macros defined in ArborX_Config.hpp
   file(STRINGS src/ArborX_Config.hpp.in ArborX_DEFINITIONS REGEX "define ARBORX_")
   foreach(_definition ${ArborX_DEFINITIONS})
