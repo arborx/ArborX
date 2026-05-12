@@ -1,4 +1,4 @@
-set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/benchmarks/utils)
+set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/benchmarks/utils)
 
 set(mesh_file "unit_sphere.txt")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${mesh_file} ${CMAKE_CURRENT_BINARY_DIR}/${mesh_file} COPYONLY)

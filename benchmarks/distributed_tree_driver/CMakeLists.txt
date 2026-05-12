@@ -1,4 +1,4 @@
-set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/benchmarks/utils)
+set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/benchmarks/utils)
 
 add_executable(ArborX_Benchmark_DistributedTree.exe distributed_tree_driver.cpp)
 target_link_libraries(ArborX_Benchmark_DistributedTree.exe ArborX::ArborX Boost::program_options)
