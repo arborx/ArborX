@@ -61,6 +61,11 @@ public:
   void distance(ExecutionSpace const &space,
                 panzer_stk::STK_Interface const &mesh, Distances &distances);
 
+  template <typename ExecutionSpace, typename Distances>
+  void distance(ExecutionSpace const &space,
+                panzer_stk::STK_Interface const &mesh,
+                std::string const &block_name, Distances &distances);
+
   // Distances from integration points
   template <typename ExecutionSpace, typename WorksetDistances>
   void distance(ExecutionSpace const &space,
@@ -136,7 +141,7 @@ template <typename MemorySpace, int DIM, typename Coordinate,
 template <typename ExecutionSpace, typename Distances>
 void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
     ExecutionSpace const &space, panzer_stk::STK_Interface const &mesh,
-    Distances &distances)
+    std::string const &block_name, Distances &distances)
 {
   std::string prefix = "ArborX::WallDistance::distance [nodes]";
   Kokkos::Profiling::ScopedRegion guard(prefix);
@@ -147,7 +152,8 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
 
   std::vector<stk::mesh::Entity> part_nodes;
   stk::mesh::get_selected_entities(
-      meta->locally_owned_part() | meta->globally_shared_part(),
+      *meta->get_part(block_name) &
+          (meta->locally_owned_part() | meta->globally_shared_part()),
       bulk->buckets(stk::topology::NODE_RANK), part_nodes);
 
   int const num_nodes = part_nodes.size();
@@ -172,6 +178,19 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
   Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
                  distances, num_nodes);
   distance(space, points, distances);
+}
+
+template <typename MemorySpace, int DIM, typename Coordinate,
+          bool ReplicateSides>
+template <typename ExecutionSpace, typename Distances>
+void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
+    ExecutionSpace const &space, panzer_stk::STK_Interface const &mesh,
+    Distances &distances)
+{
+  std::vector<std::string> block_names;
+  mesh.getElementBlockNames(block_names);
+  KOKKOS_ASSERT(!block_names.empty());
+  distance(space, mesh, block_names[0], distances);
 }
 
 template <typename MemorySpace, int DIM, typename Coordinate,

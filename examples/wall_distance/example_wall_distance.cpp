@@ -90,7 +90,7 @@ template <int DIM, typename Coordinate, bool ReplicateSides,
 void main_(MPI_Comm comm, ExecutionSpace const &space,
            panzer_stk::STK_Interface const &mesh,
            std::vector<std::string> const &wall_names,
-           std::string const &distance_type, std::string const & /*block_name*/,
+           std::string const &distance_type, std::string const &block_name,
            std::vector<panzer::Workset> const &worksets,
            panzer::IntegrationRule const &ir, WallDistances &wall_distances)
 {
@@ -113,7 +113,7 @@ void main_(MPI_Comm comm, ExecutionSpace const &space,
   {
     auto query_time = time_monitor.getNewTimer("query");
     query_time->start();
-    wall_distance.distance(space, mesh, wall_distances);
+    wall_distance.distance(space, mesh, block_name, wall_distances);
     space.fence();
     query_time->stop();
   }
@@ -326,7 +326,8 @@ int main(int argc, char *argv[])
 
       stk::mesh::EntityVector nodes;
       stk::mesh::get_selected_entities(
-          meta->locally_owned_part() | meta->globally_shared_part(),
+          *meta->get_part(block_name) &
+              (meta->locally_owned_part() | meta->globally_shared_part()),
           mesh->getBulkData()->buckets(stk::topology::NODE_RANK), nodes);
 
       // FIXME: has to match the indexing used during the query
