@@ -1,4 +1,4 @@
-set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/benchmarks/utils)
+set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/benchmarks/utils)
 set(UNIT_TESTS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/test)
 
 add_executable(ArborX_Benchmark_BoundingVolumeHierarchy.exe bvh_driver.cpp)

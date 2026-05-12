@@ -1,4 +1,4 @@
-set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/benchmarks/utils)
+set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/benchmarks/utils)
 
 add_executable(ArborX_Benchmark_TriangulatedSurfaceDistance.exe triangulated_surface_distance.cpp)
 target_include_directories(ArborX_Benchmark_TriangulatedSurfaceDistance.exe PRIVATE ${ARBORX_BENCHMARK_UTILS_INCLUDE_DIR})
