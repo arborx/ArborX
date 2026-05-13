@@ -64,7 +64,7 @@ public:
   template <typename ExecutionSpace, typename Distances>
   void distance(ExecutionSpace const &space,
                 panzer_stk::STK_Interface const &mesh,
-                std::string const &block_name, Distances &distances);
+                stk::mesh::Selector const &selector, Distances &distances);
 
   // Distances from integration points
   template <typename ExecutionSpace, typename WorksetDistances>
@@ -141,22 +141,19 @@ template <typename MemorySpace, int DIM, typename Coordinate,
 template <typename ExecutionSpace, typename Distances>
 void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
     ExecutionSpace const &space, panzer_stk::STK_Interface const &mesh,
-    std::string const &block_name, Distances &distances)
+    stk::mesh::Selector const &selector, Distances &distances)
 {
   std::string prefix = "ArborX::WallDistance::distance [nodes]";
   Kokkos::Profiling::ScopedRegion guard(prefix);
   prefix += "::";
 
-  auto meta = mesh.getMetaData();
   auto bulk = mesh.getBulkData();
 
-  std::vector<stk::mesh::Entity> part_nodes;
+  std::vector<stk::mesh::Entity> nodes;
   stk::mesh::get_selected_entities(
-      *meta->get_part(block_name) &
-          (meta->locally_owned_part() | meta->globally_shared_part()),
-      bulk->buckets(stk::topology::NODE_RANK), part_nodes);
+      selector, bulk->buckets(stk::topology::NODE_RANK), nodes);
 
-  int const num_nodes = part_nodes.size();
+  int const num_nodes = nodes.size();
 
   Kokkos::View<ArborX::Point<DIM, Coordinate> *, MemorySpace> points(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing, prefix + "points"),
@@ -164,10 +161,10 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
   auto points_host = Kokkos::create_mirror_view(points);
 
   auto const &coords = mesh.getCoordinatesField();
-  for (stk::mesh::Entity const &node : part_nodes)
+  for (int i = 0; i < num_nodes; ++i)
   {
+    auto const &node = nodes[i];
     auto const *x = stk::mesh::field_data(coords, node);
-    auto const i = bulk->local_id(node);
     if constexpr (DIM == 2)
       points_host(i) = {x[0], x[1]};
     else
@@ -187,10 +184,14 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
     ExecutionSpace const &space, panzer_stk::STK_Interface const &mesh,
     Distances &distances)
 {
+  std::string prefix = "ArborX::WallDistance::distance [all nodes]";
   std::vector<std::string> block_names;
   mesh.getElementBlockNames(block_names);
   KOKKOS_ASSERT(!block_names.empty());
-  distance(space, mesh, block_names[0], distances);
+
+  auto meta = mesh.getMetaData();
+  auto selector = meta->locally_owned_part() | meta->globally_shared_part();
+  distance(space, mesh, selector, distances);
 }
 
 template <typename MemorySpace, int DIM, typename Coordinate,

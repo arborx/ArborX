@@ -111,9 +111,13 @@ void main_(MPI_Comm comm, ExecutionSpace const &space,
 
   if (distance_type == "node")
   {
+    auto meta = mesh.getMetaData();
+    auto selector = *meta->get_part(block_name) &
+                    (meta->locally_owned_part() | meta->globally_shared_part());
+
     auto query_time = time_monitor.getNewTimer("query");
     query_time->start();
-    wall_distance.distance(space, mesh, block_name, wall_distances);
+    wall_distance.distance(space, mesh, selector, wall_distances);
     space.fence();
     query_time->stop();
   }
@@ -324,16 +328,19 @@ int main(int argc, char *argv[])
 
       auto *field = mesh->getSolutionField(distance_field_name, block_name);
 
+      auto selector =
+          *meta->get_part(block_name) &
+          (meta->locally_owned_part() | meta->globally_shared_part());
+
       stk::mesh::EntityVector nodes;
       stk::mesh::get_selected_entities(
-          *meta->get_part(block_name) &
-              (meta->locally_owned_part() | meta->globally_shared_part()),
-          mesh->getBulkData()->buckets(stk::topology::NODE_RANK), nodes);
+          selector, mesh->getBulkData()->buckets(stk::topology::NODE_RANK),
+          nodes);
+      int const num_nodes = nodes.size();
 
-      // FIXME: has to match the indexing used during the query
-      for (stk::mesh::Entity const &node : nodes)
+      for (int i = 0; i < num_nodes; ++i)
       {
-        auto const i = bulk->local_id(node);
+        auto const &node = nodes[i];
         auto *field_data = stk::mesh::field_data(*field, node);
         KOKKOS_ASSERT(field_data != nullptr); // sanity check
         *field_data = wall_distances_host(i);
