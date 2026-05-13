@@ -27,11 +27,11 @@
 #include <mpi.h>
 
 constexpr int workset_size = 128;
-static std::string const distance_field_name = "wall_distance";
 
 Teuchos::RCP<panzer_stk::STK_Interface>
 build_mesh(std::string const &filename, MPI_Comm comm,
            std::vector<std::string> &block_names,
+           std::string const &distance_field_name,
            std::string const &distance_type)
 {
   int comm_rank;
@@ -217,6 +217,7 @@ int main(int argc, char *argv[])
   std::vector<std::string> wall_names;
   std::string distance_type;
   bool verbose;
+  std::string distance_field_name;
 
   bpo::options_description desc("Allowed options");
   // clang-format off
@@ -226,6 +227,7 @@ int main(int argc, char *argv[])
     ("basis-distance_type", bpo::value<std::string>(&basis_type)->default_value("HGrad"), "basis distance_type")
     ("block-names", bpo::value<std::vector<std::string>>(&block_names)->multitoken(), "block name")
     ("filename", bpo::value<std::string>(&filename)->default_value("mesh.exo"), "mesh filename")
+    ("field-name", bpo::value<std::string>(&distance_field_name)->default_value("wall_distance"), "wall distance field name in Exodus")
     ("int-order", bpo::value<int>(&int_order)->default_value(2), "integration order")
     ("output-filename", bpo::value<std::string>(&out_filename)->default_value("output.exo"), "output filename")
     ("type", bpo::value<std::string>(&distance_type)->default_value("node"), "type of field to write (node or cell)")
@@ -277,6 +279,7 @@ int main(int argc, char *argv[])
     printf("basis order       : %d\n", basis_order);
     printf("basis type        : %s\n", basis_type.c_str());
     printf("block names       : %s\n", vec2string(block_names).c_str());
+    printf("field name        : %s\n", distance_field_name.c_str());
     printf("filename          : %s\n", filename.c_str());
     printf("integration order : %d\n", int_order);
     printf("distance type     : %s\n", distance_type.c_str());
@@ -297,7 +300,8 @@ int main(int argc, char *argv[])
     // for automatic mesh decomposition. This requires NetCDF-C compiled
     // with parallel support.
     Kokkos::Timer timer;
-    auto mesh = build_mesh(filename, comm, block_names, distance_type);
+    auto mesh = build_mesh(filename, comm, block_names, distance_field_name,
+                           distance_type);
     if (comm_rank == 0)
       std::cout << "Mesh construction time: " << timer.seconds()
                 << " seconds\n";
