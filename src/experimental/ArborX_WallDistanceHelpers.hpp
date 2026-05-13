@@ -20,7 +20,8 @@
 #include <Kokkos_DynRankView.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
-#include <numeric> // exclusive_scan
+#include <algorithm> // find_if
+#include <numeric>   // exclusive_scan
 #include <vector>
 
 #include <Panzer_STK_Interface.hpp>
@@ -221,16 +222,13 @@ static int get_topology_key(panzer_stk::STK_Interface const &mesh)
   std::vector<std::string> elem_block_names;
   mesh.getElementBlockNames(elem_block_names);
 
-  auto equal_topologies = [&mesh](std::string const &a, std::string const &b) {
-    return mesh.getCellTopology(a)->getKey() ==
-           mesh.getCellTopology(b)->getKey();
-  };
-
-  if (std::adjacent_find(elem_block_names.begin(), elem_block_names.end(),
-                         equal_topologies) != elem_block_names.end())
+  auto key = mesh.getCellTopology(elem_block_names[0])->getKey();
+  if (std::find_if(elem_block_names.begin(), elem_block_names.end(),
+                   [&mesh, key](auto const &name) {
+                     return mesh.getCellTopology(name)->getKey() != key;
+                   }) != elem_block_names.end())
     throw std::runtime_error("Different topologies in element blocks");
 
-  auto key = mesh.getCellTopology(elem_block_names[0])->getKey();
   if (std::find(accepted_topologies.begin(), accepted_topologies.end(), key) ==
       accepted_topologies.end())
     throw std::runtime_error(
