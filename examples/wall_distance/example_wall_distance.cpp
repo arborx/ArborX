@@ -30,7 +30,8 @@ constexpr int workset_size = 128;
 static std::string const distance_field_name = "wall_distance";
 
 Teuchos::RCP<panzer_stk::STK_Interface>
-build_mesh(std::string const &filename, MPI_Comm comm, std::string &block_name,
+build_mesh(std::string const &filename, MPI_Comm comm,
+           std::vector<std::string> &block_names,
            std::string const &distance_type)
 {
   int comm_rank;
@@ -39,20 +40,16 @@ build_mesh(std::string const &filename, MPI_Comm comm, std::string &block_name,
   panzer_stk::STK_ExodusReaderFactory factory(filename);
   auto mesh = factory.buildUncommitedMesh(comm);
 
-  if (block_name == "")
-  {
-    std::vector<std::string> block_names;
+  if (block_names.empty())
     mesh->getElementBlockNames(block_names);
-    KOKKOS_ASSERT(!block_names.empty());
-    block_name = block_names[0];
-    if (comm_rank == 0)
-      std::cout << "No block name provided, using first available name: \""
-                << block_name << "\"" << std::endl;
+
+  for (auto const &block_name : block_names)
+  {
+    if (distance_type == "node")
+      mesh->addSolutionField(distance_field_name, block_name);
+    else if (distance_type == "cell")
+      mesh->addCellField(distance_field_name, block_name);
   }
-  if (distance_type == "node")
-    mesh->addSolutionField(distance_field_name, block_name);
-  else if (distance_type == "cell")
-    mesh->addCellField(distance_field_name, block_name);
 
   factory.completeMeshConstruction(*mesh, comm);
 
@@ -60,29 +57,36 @@ build_mesh(std::string const &filename, MPI_Comm comm, std::string &block_name,
 }
 
 auto build_worksets(Teuchos::RCP<panzer_stk::STK_Interface> const &mesh,
-                    std::string const &block_name,
+                    std::vector<std::string> const &block_names,
                     std::string const &basis_type, int const basis_order,
                     int int_order)
 {
   using Teuchos::rcp;
 
-  panzer::CellData cell_data(workset_size, mesh->getCellTopology(block_name));
+  std::vector<panzer::Workset> worksets;
+  for (auto const &block_name : block_names)
+  {
+    panzer::CellData cell_data(workset_size, mesh->getCellTopology(block_name));
 
-  panzer::WorksetNeeds needs;
-  auto basis = rcp(new panzer::PureBasis(basis_type, basis_order, cell_data));
-  auto ir = rcp(new panzer::IntegrationRule(int_order, cell_data));
-  needs.bases.push_back(basis);
-  needs.int_rules.push_back(ir);
-  needs.cellData = cell_data;
+    panzer::WorksetNeeds needs;
+    auto basis = rcp(new panzer::PureBasis(basis_type, basis_order, cell_data));
+    auto ir = rcp(new panzer::IntegrationRule(int_order, cell_data));
+    needs.bases.push_back(basis);
+    needs.int_rules.push_back(ir);
+    needs.cellData = cell_data;
 
-  auto workset_factory = Teuchos::rcp(new panzer_stk::WorksetFactory(mesh));
+    auto workset_factory = Teuchos::rcp(new panzer_stk::WorksetFactory(mesh));
 
-  panzer::WorksetContainer workset_container;
-  workset_container.setFactory(workset_factory);
-  workset_container.setNeeds(block_name, needs);
+    panzer::WorksetContainer workset_container;
+    workset_container.setFactory(workset_factory);
+    workset_container.setNeeds(block_name, needs);
 
-  panzer::WorksetDescriptor workset_descriptor(block_name);
-  return workset_container.getWorksets(workset_descriptor);
+    panzer::WorksetDescriptor workset_descriptor(block_name);
+    auto block_worksets = workset_container.getWorksets(workset_descriptor);
+    worksets.insert(worksets.end(), block_worksets->begin(),
+                    block_worksets->end());
+  }
+  return worksets;
 }
 
 template <int DIM, typename Coordinate, bool ReplicateSides,
@@ -90,7 +94,8 @@ template <int DIM, typename Coordinate, bool ReplicateSides,
 void main_(MPI_Comm comm, ExecutionSpace const &space,
            panzer_stk::STK_Interface const &mesh,
            std::vector<std::string> const &wall_names,
-           std::string const &distance_type, std::string const &block_name,
+           std::string const &distance_type,
+           std::vector<std::string> const &block_names,
            std::vector<panzer::Workset> const &worksets,
            panzer::IntegrationRule const &ir, WallDistances &wall_distances)
 {
@@ -112,8 +117,11 @@ void main_(MPI_Comm comm, ExecutionSpace const &space,
   if (distance_type == "node")
   {
     auto meta = mesh.getMetaData();
-    auto selector = *meta->get_part(block_name) &
-                    (meta->locally_owned_part() | meta->globally_shared_part());
+
+    stk::mesh::Selector selector;
+    for (auto const &block_name : block_names)
+      selector |= *meta->get_part(block_name);
+    selector &= meta->locally_owned_part() | meta->globally_shared_part();
 
     auto query_time = time_monitor.getNewTimer("query");
     query_time->start();
@@ -205,7 +213,7 @@ int main(int argc, char *argv[])
   std::string out_filename;
   int basis_order;
   int int_order;
-  std::string block_name;
+  std::vector<std::string> block_names;
   std::vector<std::string> wall_names;
   std::string distance_type;
   bool verbose;
@@ -216,7 +224,7 @@ int main(int argc, char *argv[])
     ("help", "help message" )
     ("basis-order", bpo::value<int>(&basis_order)->default_value(1), "basis order")
     ("basis-distance_type", bpo::value<std::string>(&basis_type)->default_value("HGrad"), "basis distance_type")
-    ("block-name", bpo::value<std::string>(&block_name)->default_value(""), "block name")
+    ("block-names", bpo::value<std::vector<std::string>>(&block_names)->multitoken(), "block name")
     ("filename", bpo::value<std::string>(&filename)->default_value("mesh.exo"), "mesh filename")
     ("int-order", bpo::value<int>(&int_order)->default_value(2), "integration order")
     ("output-filename", bpo::value<std::string>(&out_filename)->default_value("output.exo"), "output filename")
@@ -268,7 +276,7 @@ int main(int argc, char *argv[])
   {
     printf("basis order       : %d\n", basis_order);
     printf("basis type        : %s\n", basis_type.c_str());
-    printf("block name        : %s\n", block_name.c_str());
+    printf("block names       : %s\n", vec2string(block_names).c_str());
     printf("filename          : %s\n", filename.c_str());
     printf("integration order : %d\n", int_order);
     printf("distance type     : %s\n", distance_type.c_str());
@@ -289,20 +297,21 @@ int main(int argc, char *argv[])
     // for automatic mesh decomposition. This requires NetCDF-C compiled
     // with parallel support.
     Kokkos::Timer timer;
-    auto mesh = build_mesh(filename, comm, block_name, distance_type);
+    auto mesh = build_mesh(filename, comm, block_names, distance_type);
     if (comm_rank == 0)
       std::cout << "Mesh construction time: " << timer.seconds()
                 << " seconds\n";
     timer.reset();
-    Teuchos::RCP<std::vector<panzer::Workset>> worksets;
+    std::vector<panzer::Workset> worksets;
     if (distance_type == "cell")
       worksets =
-          build_worksets(mesh, block_name, basis_type, basis_order, int_order);
+          build_worksets(mesh, block_names, basis_type, basis_order, int_order);
     if (comm_rank == 0)
       std::cout << "Worksets construction time: " << timer.seconds()
                 << " seconds\n";
 
-    panzer::CellData cell_data(workset_size, mesh->getCellTopology(block_name));
+    panzer::CellData cell_data(workset_size,
+                               mesh->getCellTopology(block_names[0]));
     panzer::IntegrationRule ir(int_order, cell_data);
 
     ExecutionSpace space;
@@ -310,27 +319,31 @@ int main(int argc, char *argv[])
     Kokkos::View<Coordinate *, MemorySpace> wall_distances;
     if (mesh->getDimension() == 2)
       main_<2, Coordinate, ReplicateSides>(comm, space, *mesh, wall_names,
-                                           distance_type, block_name, *worksets,
+                                           distance_type, block_names, worksets,
                                            ir, wall_distances);
     else
       main_<3, Coordinate, ReplicateSides>(comm, space, *mesh, wall_names,
-                                           distance_type, block_name, *worksets,
+                                           distance_type, block_names, worksets,
                                            ir, wall_distances);
     space.fence();
 
     auto wall_distances_host = Kokkos::create_mirror_view_and_copy(
         Kokkos::HostSpace{}, wall_distances);
 
+    // Store wall distances in the output file
     if (distance_type == "node")
     {
       auto meta = mesh->getMetaData();
       auto bulk = mesh->getBulkData();
 
-      auto *field = mesh->getSolutionField(distance_field_name, block_name);
+      // The field is the same on all blocks. But the panzer's interface only
+      // allows to specify one block.
+      auto *field = mesh->getSolutionField(distance_field_name, block_names[0]);
 
-      auto selector =
-          *meta->get_part(block_name) &
-          (meta->locally_owned_part() | meta->globally_shared_part());
+      stk::mesh::Selector selector;
+      for (auto const &block_name : block_names)
+        selector |= *meta->get_part(block_name);
+      selector &= meta->locally_owned_part() | meta->globally_shared_part();
 
       stk::mesh::EntityVector nodes;
       stk::mesh::get_selected_entities(
@@ -348,16 +361,21 @@ int main(int argc, char *argv[])
     }
     else
     {
-      // Store wall distances in the output file
-      auto *field = mesh->getCellField(distance_field_name, block_name);
-      std::vector<stk::mesh::Entity> elements;
-      mesh->getMyElements(block_name, elements);
-      for (std::size_t el = 0; el < elements.size(); el++)
+      for (auto const &block_name : block_names)
       {
-        std::size_t localId = mesh->elementLocalId(elements[el]);
-        double *field_data = stk::mesh::field_data(*field, elements[el]);
-        KOKKOS_ASSERT(field_data != nullptr); // sanity check
-        field_data[0] = wall_distances_host(localId);
+        // The field is the same on all blocks. But the panzer's interface only
+        // allows to specify one block.
+        auto *field = mesh->getCellField(distance_field_name, block_name);
+
+        std::vector<stk::mesh::Entity> elements;
+        mesh->getMyElements(block_name, elements);
+        for (std::size_t el = 0; el < elements.size(); el++)
+        {
+          std::size_t localId = mesh->elementLocalId(elements[el]);
+          double *field_data = stk::mesh::field_data(*field, elements[el]);
+          KOKKOS_ASSERT(field_data != nullptr); // sanity check
+          field_data[0] = wall_distances_host(localId);
+        }
       }
     }
 
