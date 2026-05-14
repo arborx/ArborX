@@ -447,26 +447,41 @@ private:
     Kokkos::Profiling::ScopedRegion guard(
         "ArborX::Distributor::preparePointToPointCommunication");
 
-    int comm_size;
-    MPI_Comm_size(_comm, &comm_size);
+    int comm_rank;
+    MPI_Comm_rank(_comm, &comm_rank);
 
-    std::vector<int> src_counts_dense(comm_size);
-    int const dest_size = _destinations.size();
-    for (int i = 0; i < dest_size; ++i)
-    {
-      src_counts_dense[_destinations[i]] =
-          _dest_offsets[i + 1] - _dest_offsets[i];
-    }
-    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, src_counts_dense.data(), 1,
-                 MPI_INT, _comm);
+    int outdegree = _destinations.size();
+    std::vector<int> dest_weights(outdegree);
+    for (int i = 0; i < outdegree; ++i)
+      dest_weights[i] = _dest_offsets[i + 1] - _dest_offsets[i];
 
+    MPI_Comm graph_comm;
+    MPI_Dist_graph_create(_comm, (outdegree ? 1 : 0), &comm_rank, &outdegree,
+                          _destinations.data(), dest_weights.data(),
+                          MPI_INFO_NULL, 0 /*reorder*/, &graph_comm);
+
+    int indegree, outdegree_check, weighted;
+    MPI_Dist_graph_neighbors_count(graph_comm, &indegree, &outdegree_check,
+                                   &weighted);
+    ARBORX_ASSERT(outdegree_check == outdegree);
+
+    // FIXME: it should be possible to call MPI_Dist_graph_neighbors with
+    // maxoutdegree = 0. However, running on Frontier results in an error:
+    //   Invalid argument for maxoutdegree: value is 0 but must be at least 8
+    // So, we provide correct outdegree instead here.
+    _sources.resize(indegree);
+    std::vector<int> source_weights(indegree);
+    MPI_Dist_graph_neighbors(graph_comm, indegree, _sources.data(),
+                             source_weights.data(), outdegree,
+                             _destinations.data(), dest_weights.data());
+
+    MPI_Comm_free(&graph_comm);
+
+    // Reconstruct the sparse offsets
+    _src_offsets.clear();
     _src_offsets.push_back(0);
-    for (int i = 0; i < comm_size; ++i)
-      if (src_counts_dense[i] > 0)
-      {
-        _sources.push_back(i);
-        _src_offsets.push_back(_src_offsets.back() + src_counts_dense[i]);
-      }
+    for (int count : source_weights)
+      _src_offsets.push_back(_src_offsets.back() + count);
 
     return _src_offsets.back();
   }
