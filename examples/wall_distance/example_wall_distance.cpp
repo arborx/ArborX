@@ -97,7 +97,8 @@ void main_(MPI_Comm comm, ExecutionSpace const &space,
            std::string const &distance_type,
            std::vector<std::string> const &block_names,
            std::vector<panzer::Workset> const &worksets,
-           panzer::IntegrationRule const &ir, WallDistances &wall_distances)
+           panzer::IntegrationRule const &ir, WallDistances &wall_distances,
+           bool verbose)
 {
   using MemorySpace = typename ExecutionSpace::memory_space;
 
@@ -170,7 +171,8 @@ void main_(MPI_Comm comm, ExecutionSpace const &space,
     }
   }
 
-  time_monitor.summarize(comm);
+  if (verbose)
+    time_monitor.summarize(comm);
 }
 
 int main(int argc, char *argv[])
@@ -182,14 +184,6 @@ int main(int argc, char *argv[])
   MPI_Comm_rank(comm, &comm_rank);
   int comm_size;
   MPI_Comm_size(comm, &comm_size);
-  if (comm_rank == 0)
-  {
-    std::cout << "ArborX version    : " << ArborX::version() << std::endl;
-    std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
-    std::cout << "Kokkos version    : " << ArborX::Details::KokkosExt::version()
-              << std::endl;
-    std::cout << "#MPI ranks        : " << comm_size << std::endl;
-  }
 
   using Coordinate = double;
 
@@ -238,6 +232,15 @@ int main(int argc, char *argv[])
   bpo::variables_map vm;
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
+
+  if (comm_rank == 0)
+  {
+    std::cout << "ArborX version    : " << ArborX::version() << std::endl;
+    std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
+    std::cout << "Kokkos version    : " << ArborX::Details::KokkosExt::version()
+              << std::endl;
+    std::cout << "#MPI ranks        : " << comm_size << std::endl;
+  }
 
   if (is_help_present)
   {
@@ -305,14 +308,16 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
       std::cout << "Mesh construction time: " << timer.seconds()
                 << " seconds\n";
-    timer.reset();
     std::vector<panzer::Workset> worksets;
     if (distance_type == "cell")
+    {
+      timer.reset();
       worksets =
           build_worksets(mesh, block_names, basis_type, basis_order, int_order);
-    if (comm_rank == 0)
-      std::cout << "Worksets construction time: " << timer.seconds()
-                << " seconds\n";
+      if (comm_rank == 0)
+        std::cout << "Worksets construction time: " << timer.seconds()
+                  << " seconds\n";
+    }
 
     panzer::CellData cell_data(workset_size,
                                mesh->getCellTopology(block_names[0]));
@@ -324,11 +329,11 @@ int main(int argc, char *argv[])
     if (mesh->getDimension() == 2)
       main_<2, Coordinate, ReplicateSides>(comm, space, *mesh, wall_names,
                                            distance_type, block_names, worksets,
-                                           ir, wall_distances);
+                                           ir, wall_distances, verbose);
     else
       main_<3, Coordinate, ReplicateSides>(comm, space, *mesh, wall_names,
                                            distance_type, block_names, worksets,
-                                           ir, wall_distances);
+                                           ir, wall_distances, verbose);
     space.fence();
 
     auto wall_distances_host = Kokkos::create_mirror_view_and_copy(
