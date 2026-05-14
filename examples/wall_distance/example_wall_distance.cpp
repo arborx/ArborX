@@ -51,6 +51,7 @@ build_mesh(std::string const &filename, MPI_Comm comm,
       mesh->addCellField(distance_field_name, block_name);
   }
 
+  mesh->initialize(comm, false, false);
   factory.completeMeshConstruction(*mesh, comm);
 
   return mesh;
