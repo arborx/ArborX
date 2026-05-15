@@ -2,7 +2,7 @@ set(ARBORX_BENCHMARK_UTILS_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/benchmarks/utils)
 
 add_executable(ArborX_Benchmark_DistributedTree.exe distributed_tree_driver.cpp)
 target_link_libraries(ArborX_Benchmark_DistributedTree.exe ArborX::ArborX Boost::program_options)
-if(ARBORX_ENABLE_CALIPER)
+if(ARBORX_ENABLE_CALIPER_LINKING)
   target_link_libraries(ArborX_Benchmark_DistributedTree.exe caliper)
 endif()
 target_include_directories(ArborX_Benchmark_DistributedTree.exe PRIVATE ${ARBORX_BENCHMARK_UTILS_INCLUDE_DIR})
