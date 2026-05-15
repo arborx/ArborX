@@ -181,17 +181,6 @@ auto gatherGlobalBoxes(MPI_Comm comm, ExecutionSpace const &space,
   return global_boxes;
 }
 
-struct IndexOnlyCallback
-{
-  template <typename Query, typename Value, typename Index, typename Output>
-  KOKKOS_FUNCTION auto operator()(Query const &,
-                                  PairValueIndex<Value, Index> const &value,
-                                  Output const &out) const
-  {
-    out(value.index);
-  }
-};
-
 template <typename ExecutionSpace, typename Points, typename Coordinate,
           typename Offsets, typename RanksTo>
 void computeRanksTo(MPI_Comm comm, ExecutionSpace const &space,
@@ -239,7 +228,7 @@ void computeRanksTo(MPI_Comm comm, ExecutionSpace const &space,
 
   BoundingVolumeHierarchy index(space, primitives);
   index.query(space, Experimental::make_intersects(points, eps),
-              IndexOnlyCallback{}, ranks_to, offsets);
+              Experimental::ExtractPairIndexCallback{}, ranks_to, offsets);
 }
 
 template <typename ExecutionSpace, typename Points, typename Coordinate,

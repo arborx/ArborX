@@ -53,8 +53,9 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
   // Find the k nearest local trees.
   Kokkos::View<int *, MemorySpace> offset(prefix + "::offset", 0);
   Kokkos::View<int *, MemorySpace> nearest_ranks(prefix + "::nearest_ranks", 0);
-  tree._top_tree.query(space, predicates, DistributedTree::IndexOnlyCallback{},
-                       nearest_ranks, offset);
+  tree._top_tree.query(space, predicates,
+                       Experimental::ExtractPairIndexCallback{}, nearest_ranks,
+                       offset);
 
   // Accumulate total leave count in the local trees until it reaches k which
   // is the number of neighbors queried for.  Stop if local trees get
@@ -142,7 +143,7 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
   tree._top_tree.query(space,
                        WithinDistanceFromPredicates<Predicates, Distances>{
                            predicates, distances},
-                       DistributedTree::IndexOnlyCallback{}, nearest_ranks,
+                       Experimental::ExtractPairIndexCallback{}, nearest_ranks,
                        offset);
 
   auto const &bottom_tree = tree._bottom_tree;
