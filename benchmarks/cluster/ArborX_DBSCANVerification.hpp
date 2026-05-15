@@ -429,16 +429,6 @@ bool verifyDBSCAN(ExecutionSpace exec_space, Primitives const &primitives,
 }
 
 #ifdef ARBORX_ENABLE_MPI
-struct IndexCallback
-{
-  template <typename Query, typename Value, typename Output>
-  KOKKOS_FUNCTION auto operator()(Query const &, Value const &value,
-                                  Output const &out) const
-  {
-    out({value.index});
-  }
-};
-
 template <typename Labels, typename IsCore>
 struct IndexRankLabelCoreCallback
 {
@@ -495,7 +485,7 @@ bool verifyDBSCAN(MPI_Comm comm, ExecutionSpace exec_space,
     Kokkos::View<int *, MemorySpace> offset("ArborX::DBSCAN::offset", 0);
     Kokkos::View<unsigned *, MemorySpace> indices("ArborX::DBSCAN::indices", 0);
     index.query(exec_space, ArborX::Experimental::make_intersects(points, eps),
-                IndexCallback{}, indices, offset);
+                Experimental::ExtractPairIndexCallback{}, indices, offset);
 
     Kokkos::parallel_for(
         "ArborX::DBSCAN::set_is_core", Kokkos::RangePolicy(exec_space, 0, n),

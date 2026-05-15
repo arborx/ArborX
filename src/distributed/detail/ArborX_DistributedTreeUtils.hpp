@@ -339,17 +339,6 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
   offset = new_offset;
 }
 
-struct IndexOnlyCallback
-{
-  template <typename Query, typename Value, typename Index, typename Output>
-  KOKKOS_FUNCTION auto operator()(Query const &,
-                                  PairValueIndex<Value, Index> const &value,
-                                  Output const &out) const
-  {
-    out(value.index);
-  }
-};
-
 } // namespace ArborX::Details::DistributedTree
 
 #endif
