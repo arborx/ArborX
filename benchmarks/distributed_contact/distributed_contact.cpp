@@ -123,17 +123,6 @@ auto buildMesh(MPI_Comm comm,
   return std::make_pair(primitives, predicates);
 }
 
-// Callback to store the result indices
-struct ExtractIndex
-{
-  template <typename Query, typename Value, typename Output>
-  KOKKOS_FUNCTION void operator()(Query const &, Value const &value,
-                                  Output const &out) const
-  {
-    out(value.index);
-  }
-};
-
 template <typename Coordinate>
 int main_(MPI_Comm const comm)
 {
@@ -203,7 +192,8 @@ int main_(MPI_Comm const comm)
   MPI_Barrier(comm);
   query_time->start();
   tree.query(space, ArborX::Experimental::make_intersects(predicates),
-             ExtractIndex{}, indices, offsets);
+             ArborX::Experimental::ExtractPairIndexCallback{}, indices,
+             offsets);
   query_time->stop();
 
   time_monitor.summarize(comm);
