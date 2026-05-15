@@ -35,9 +35,18 @@ else()
   target_compile_definitions(benchmark_main PRIVATE NDEBUG)
 ENDIF()
 
-option(ARBORX_ENABLE_CALIPER "Enable Caliper instrumentation" OFF)
-if(ARBORX_ENABLE_CALIPER)
-  find_package(caliper REQUIRED)
+# In certain scenarios, using Caliper may require additional linking.
+# See https://github.com/llnl/Caliper/issues/737
+if(UNIX AND NOT APPLE)
+  if(ARBORX_ENABLE_CALIPER)
+    message(WARNING "ARBORX_ENABLE_CALIPER was set to ON, but this is a non-Apple system. Forcing to OFF.")
+  endif()
+  set(ARBORX_ENABLE_CALIPER OFF CACHE INTERNAL "Caliper linking is not required on this platform" FORCE)
+else()
+  option(ARBORX_ENABLE_CALIPER "Enable Caliper instrumentation" OFF)
+  if(ARBORX_ENABLE_CALIPER)
+    find_package(caliper REQUIRED)
+  endif()
 endif()
 
 add_subdirectory(brute_force_vs_bvh)
