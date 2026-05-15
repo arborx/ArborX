@@ -5,7 +5,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${mesh_file} ${CMAKE_CURRENT_BINARY_D
 
 add_executable(ArborX_Benchmark_DistributedContact.exe distributed_contact.cpp)
 target_link_libraries(ArborX_Benchmark_DistributedContact.exe ArborX::ArborX)
-if(ARBORX_ENABLE_CALIPER)
+if(ARBORX_ENABLE_CALIPER_LINKING)
   target_link_libraries(ArborX_Benchmark_DistributedContact.exe caliper)
 endif()
 target_include_directories(ArborX_Benchmark_DistributedContact.exe PRIVATE ${ARBORX_BENCHMARK_UTILS_INCLUDE_DIR})

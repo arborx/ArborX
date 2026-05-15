@@ -35,17 +35,15 @@ else()
   target_compile_definitions(benchmark_main PRIVATE NDEBUG)
 ENDIF()
 
-# In certain scenarios, using Caliper may require additional linking.
-# See https://github.com/llnl/Caliper/issues/737
-if(UNIX AND NOT APPLE)
-  if(ARBORX_ENABLE_CALIPER)
-    message(WARNING "ARBORX_ENABLE_CALIPER was set to ON, but this is a non-Apple system. Forcing to OFF.")
-  endif()
-  set(ARBORX_ENABLE_CALIPER OFF CACHE INTERNAL "Caliper linking is not required on this platform" FORCE)
-else()
-  option(ARBORX_ENABLE_CALIPER "Enable Caliper instrumentation" OFF)
-  if(ARBORX_ENABLE_CALIPER)
+option(ARBORX_ENABLE_CALIPER "Enable Caliper instrumentation" OFF)
+if(ARBORX_ENABLE_CALIPER)
+  # In certain scenarios, using Caliper may require additional linking.
+  # See https://github.com/llnl/Caliper/issues/737
+  if(UNIX AND NOT APPLE)
+    set(ARBORX_ENABLE_CALIPER_LINKING OFF CACHE INTERNAL "Caliper linking is not required on this platform" FORCE)
+  else()
     find_package(caliper REQUIRED)
+    set(ARBORX_ENABLE_CALIPER_LINKING ON CACHE INTERNAL "Caliper linking is required on this platform" FORCE)
   endif()
 endif()
 
