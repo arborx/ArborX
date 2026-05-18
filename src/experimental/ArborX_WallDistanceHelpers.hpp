@@ -77,7 +77,7 @@ struct ArborX::AccessTraits<ArborX::Details::Geometries<DIM, Sides>>
       KOKKOS_ASSERT(self._topology_key == shards::Hexahedron<8>::key);
 
       // Split quad side into two triangles
-      // NOTE: for non-plana quads faces we may need to do something smarter,
+      // NOTE: for non-planar quads faces we may need to do something smarter,
       // e.g., choosing split direction based on nearby elements.
       bool const odd = (i % 2);
       int j = (odd ? 1 : 2);
