@@ -279,7 +279,11 @@ int main(int argc, char *argv[])
     ;
   // clang-format on
   bpo::variables_map vm;
-  bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
+  bpo::store(bpo::command_line_parser(argc, argv)
+                 .options(desc)
+                 .positional(bpo::positional_options_description{})
+                 .run(),
+             vm);
   bpo::notify(vm);
 
   if (comm_rank == 0)
