@@ -28,6 +28,53 @@
 
 constexpr int workset_size = 128;
 
+class STKMeshFactory : public panzer_stk::STK_ExodusReaderFactory
+{
+  std::string _build_type;
+
+public:
+  STKMeshFactory(std::string const &file_name, std::string const &build_type,
+                 int const restart_index = 0)
+      : panzer_stk::STK_ExodusReaderFactory(file_name, restart_index)
+      , _build_type(build_type)
+  {}
+
+  void
+  completeMeshConstruction(panzer_stk::STK_Interface &mesh,
+                           stk::ParallelMachine parallelMach) const override
+  {
+    if (!mesh.isInitialized())
+      mesh.initialize(parallelMach, true, false);
+
+    stk::mesh::MetaData &metaData = *mesh.getMetaData();
+    stk::io::StkMeshIoBroker *meshData = const_cast<stk::io::StkMeshIoBroker *>(
+        metaData.get_attribute<stk::io::StkMeshIoBroker>());
+    TEUCHOS_ASSERT(metaData.remove_attribute(meshData));
+
+    meshData->populate_bulk_data();
+
+    int restartIndex = restartIndex_;
+    if (restartIndex < 0)
+    {
+      auto lastTimeStep =
+          meshData->get_input_ioss_region()->get_max_time().first;
+      restartIndex = 1 + restartIndex + lastTimeStep;
+    }
+
+    meshData->read_defined_input_fields(restartIndex);
+
+    if (_build_type == "cell")
+      mesh.buildLocalElementIDs();
+
+    mesh.setInitialStateTime(
+        restartIndex > 0
+            ? meshData->get_input_ioss_region()->get_state_time(restartIndex)
+            : 0.0);
+
+    delete meshData;
+  }
+};
+
 Teuchos::RCP<panzer_stk::STK_Interface>
 build_mesh(std::string const &filename, MPI_Comm comm,
            std::vector<std::string> &block_names,
@@ -37,7 +84,8 @@ build_mesh(std::string const &filename, MPI_Comm comm,
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
 
-  panzer_stk::STK_ExodusReaderFactory factory(filename);
+  constexpr int restart_index = -1;
+  STKMeshFactory factory(filename, distance_type, restart_index);
   auto mesh = factory.buildUncommitedMesh(comm);
 
   if (block_names.empty())
@@ -51,7 +99,7 @@ build_mesh(std::string const &filename, MPI_Comm comm,
       mesh->addCellField(distance_field_name, block_name);
   }
 
-  mesh->initialize(comm, false, false);
+  // mesh->initialize(comm, false, false);
   factory.completeMeshConstruction(*mesh, comm);
 
   return mesh;
