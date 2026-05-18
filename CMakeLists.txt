@@ -20,10 +20,10 @@ endif()
 add_library(ArborX INTERFACE)
 target_link_libraries(ArborX INTERFACE Kokkos::kokkos)
 set_target_properties(ArborX PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_20)
-# As all executables using ArborX depend on it, depending on record_hash allows
+# As all executables using ArborX depend on it, depending on ArborX_record_hash allows
 # updating hash each time executable is rebuilt, including when called from
 # within a subdirectory.
-add_dependencies(ArborX record_hash)
+add_dependencies(ArborX ArborX_record_hash)
 
 include(CMakeDependentOption)
 cmake_dependent_option(ARBORX_ENABLE_ROCTHRUST "Enable rocThrust support" ON "Kokkos_ENABLE_HIP" OFF)
@@ -110,7 +110,7 @@ message(STATUS "ArborX version: ${ARBORX_VERSION_STRING}")
 # Make sure that the git hash in ArborX_Version.hpp is considered to be always
 # out of date, and thus is updated every recompile.
 add_custom_target(
-  record_hash ALL VERBATIM
+  ArborX_record_hash ALL VERBATIM
   COMMAND ${CMAKE_COMMAND}
     -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
     -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
