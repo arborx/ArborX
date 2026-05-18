@@ -111,7 +111,11 @@ void getLocalSides(panzer_stk::STK_Interface const &mesh,
     if (std::find(sideset_block_names.begin(), sideset_block_names.end(),
                   wall_name) == sideset_block_names.end())
     {
-      throw std::runtime_error("Sideset " + wall_name + " not found in mesh");
+      std::string error =
+          "Sideset " + wall_name + " not found in mesh. Available sidesets:";
+      for (auto const &side : sideset_block_names)
+        error += " \"" + side + "\"";
+      throw std::runtime_error(error);
     }
 
     std::vector<stk::mesh::Entity> sideset_sides;
