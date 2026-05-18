@@ -28,15 +28,21 @@
 
 constexpr int workset_size = 128;
 
+enum class DistanceType
+{
+  NODE,
+  CELL
+};
+
 class STKMeshFactory : public panzer_stk::STK_ExodusReaderFactory
 {
-  std::string _build_type;
+  DistanceType _distance_type;
 
 public:
-  STKMeshFactory(std::string const &file_name, std::string const &build_type,
-                 int const restart_index = 0)
+  STKMeshFactory(std::string const &file_name, DistanceType distance_type,
+                 int const restart_index)
       : panzer_stk::STK_ExodusReaderFactory(file_name, restart_index)
-      , _build_type(build_type)
+      , _distance_type(distance_type)
   {}
 
   void
@@ -55,15 +61,12 @@ public:
 
     int restartIndex = restartIndex_;
     if (restartIndex < 0)
-    {
-      auto lastTimeStep =
-          meshData->get_input_ioss_region()->get_max_time().first;
-      restartIndex = 1 + restartIndex + lastTimeStep;
-    }
+      restartIndex = 1 + restartIndex +
+                     meshData->get_input_ioss_region()->get_max_time().first;
 
     meshData->read_defined_input_fields(restartIndex);
 
-    if (_build_type == "cell")
+    if (_distance_type == DistanceType::CELL)
       mesh.buildLocalElementIDs();
 
     mesh.setInitialStateTime(
@@ -76,15 +79,14 @@ public:
 };
 
 Teuchos::RCP<panzer_stk::STK_Interface>
-build_mesh(std::string const &filename, MPI_Comm comm,
+build_mesh(MPI_Comm comm, std::string const &filename,
            std::vector<std::string> &block_names,
-           std::string const &distance_field_name,
-           std::string const &distance_type)
+           std::string const &distance_field_name, DistanceType distance_type,
+           int restart_index)
 {
   int comm_rank;
   MPI_Comm_rank(comm, &comm_rank);
 
-  constexpr int restart_index = -1;
   STKMeshFactory factory(filename, distance_type, restart_index);
   auto mesh = factory.buildUncommitedMesh(comm);
 
@@ -93,13 +95,12 @@ build_mesh(std::string const &filename, MPI_Comm comm,
 
   for (auto const &block_name : block_names)
   {
-    if (distance_type == "node")
+    if (distance_type == DistanceType::NODE)
       mesh->addSolutionField(distance_field_name, block_name);
-    else if (distance_type == "cell")
+    else if (distance_type == DistanceType::CELL)
       mesh->addCellField(distance_field_name, block_name);
   }
 
-  // mesh->initialize(comm, false, false);
   factory.completeMeshConstruction(*mesh, comm);
 
   return mesh;
@@ -259,6 +260,7 @@ int main(int argc, char *argv[])
   std::vector<std::string> block_names;
   std::vector<std::string> wall_names;
   std::string distance_type;
+  int restart_index;
   bool verbose;
   std::string distance_field_name;
 
@@ -273,6 +275,7 @@ int main(int argc, char *argv[])
     ("field-name", bpo::value<std::string>(&distance_field_name)->default_value("wall_distance"), "wall distance field name in Exodus")
     ("int-order", bpo::value<int>(&int_order)->default_value(2), "integration order")
     ("output-filename", bpo::value<std::string>(&out_filename)->default_value("output.exo"), "output filename")
+    ("restart-index", bpo::value<int>(&restart_index)->default_value(-1), "restart index")
     ("type", bpo::value<std::string>(&distance_type)->default_value("node"), "type of field to write (node or cell)")
     ("verbose", bpo::bool_switch(&verbose), "verbose")
     ("wall-names", bpo::value<std::vector<std::string>>(&wall_names)->multitoken(), "names of walls")
@@ -339,6 +342,8 @@ int main(int argc, char *argv[])
     printf("filename          : %s\n", filename.c_str());
     printf("integration order : %d\n", int_order);
     printf("distance type     : %s\n", distance_type.c_str());
+    printf("restart index     : %d%s\n", restart_index,
+           (restart_index == -1 ? " (last)" : ""));
     printf("verbose           : %s\n", (verbose ? "true" : "false"));
     printf("wall names        : %s\n", vec2string(wall_names).c_str());
   }
@@ -352,12 +357,14 @@ int main(int argc, char *argv[])
     using MemorySpace = typename ExecutionSpace::memory_space;
 
     // Note: when running in parallel, use
-    //   export IOSS_PROPERTIES="DECOMPOSITION_METHOD=RIB"
+    //   IOSS_PROPERTIES="DECOMPOSITION_METHOD=RIB:MAXIMUM_NAME_LENGTH=64"
     // for automatic mesh decomposition. This requires NetCDF-C compiled
     // with parallel support.
     Kokkos::Timer timer;
-    auto mesh = build_mesh(filename, comm, block_names, distance_field_name,
-                           distance_type);
+    auto mesh = build_mesh(
+        comm, filename, block_names, distance_field_name,
+        (distance_type == "node" ? DistanceType::NODE : DistanceType::CELL),
+        restart_index);
     if (comm_rank == 0)
       std::cout << "Mesh construction time: " << timer.seconds()
                 << " seconds\n";
