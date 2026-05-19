@@ -76,8 +76,11 @@ cmake_dependent_option(ARBORX_ENABLE_GPU_AWARE_MPI
 
 option(ARBORX_ENABLE_TRILINOS "Enable Trilinos support" OFF)
 if(ARBORX_ENABLE_TRILINOS)
-  find_package(Trilinos REQUIRED CONFIG)
-  target_link_libraries(ArborX INTERFACE STK::all_libs PanzerAdaptersSTK::all_libs)
+  set(ARBORX_TRILINOS_COMPONENT_LIST "PanzerAdaptersSTK;PanzerDiscFE")
+  find_package(Trilinos 16.0 REQUIRED CONFIG COMPONENTS ${ARBORX_TRILINOS_COMPONENT_LIST})
+  foreach(component ${ARBORX_TRILINOS_COMPONENT_LIST})
+    target_link_libraries(ArborX INTERFACE ${component}::all_libs)
+  endforeach()
 endif()
 
 target_include_directories(ArborX INTERFACE

@@ -1,3 +1,9 @@
+# More components are needed to read the mesh file and write the output file.
+list(APPEND ARBORX_TRILINOS_COMPONENT_LIST "STKIO;STKMesh;SEACASExodus")
+foreach(component ${ARBORX_TRILINOS_COMPONENT_LIST})
+  target_link_libraries(ArborX INTERFACE ${component}::all_libs)
+endforeach()
+
 set(mesh_file "mesh.exo")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${mesh_file} ${CMAKE_CURRENT_BINARY_DIR}/${mesh_file} COPYONLY)
 
