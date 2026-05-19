@@ -185,9 +185,6 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
     Distances &distances)
 {
   std::string prefix = "ArborX::WallDistance::distance [all nodes]";
-  std::vector<std::string> block_names;
-  mesh.getElementBlockNames(block_names);
-  KOKKOS_ASSERT(!block_names.empty());
 
   auto meta = mesh.getMetaData();
   auto selector = meta->locally_owned_part() | meta->globally_shared_part();
