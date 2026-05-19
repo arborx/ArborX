@@ -22,7 +22,7 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
-#include <sstream>
+#include <numeric> // iota
 #include <vector>
 
 #include <mpi.h>
@@ -450,7 +450,8 @@ private:
     int comm_rank;
     MPI_Comm_rank(_comm, &comm_rank);
 
-    int outdegree = _destinations.size();
+    int const outdegree = _destinations.size();
+
     std::vector<int> dest_weights(outdegree);
     for (int i = 0; i < outdegree; ++i)
       dest_weights[i] = _dest_offsets[i + 1] - _dest_offsets[i];
@@ -464,24 +465,39 @@ private:
     MPI_Dist_graph_neighbors_count(graph_comm, &indegree, &outdegree_check,
                                    &weighted);
     ARBORX_ASSERT(outdegree_check == outdegree);
+    ARBORX_ASSERT(weighted == 1);
 
     // FIXME: it should be possible to call MPI_Dist_graph_neighbors with
     // maxoutdegree = 0. However, running on Frontier results in an error:
     //   Invalid argument for maxoutdegree: value is 0 but must be at least 8
     // So, we provide correct outdegree instead here.
-    _sources.resize(indegree);
+    std::vector<int> sources(indegree);
     std::vector<int> source_weights(indegree);
-    MPI_Dist_graph_neighbors(graph_comm, indegree, _sources.data(),
+    std::vector<int> dummy_destinations(
+        outdegree); // destinations may be reordered by MPI
+    MPI_Dist_graph_neighbors(graph_comm, indegree, sources.data(),
                              source_weights.data(), outdegree,
-                             _destinations.data(), dest_weights.data());
+                             dummy_destinations.data(), dest_weights.data());
 
     MPI_Comm_free(&graph_comm);
 
-    // Reconstruct the sparse offsets
-    _src_offsets.clear();
-    _src_offsets.push_back(0);
-    for (int count : source_weights)
-      _src_offsets.push_back(_src_offsets.back() + count);
+    // Retain the previous behavior of having the sources sorted.
+    // Not strictly neceessary, but it makes testing easier and doesn't have a
+    // significant performance impact.
+    std::vector<int> source_permute(indegree);
+    std::iota(source_permute.begin(), source_permute.end(), 0);
+    std::sort(source_permute.begin(), source_permute.end(),
+              [&](int i, int j) { return sources[i] < sources[j]; });
+
+    _sources.resize(indegree);
+    _src_offsets.resize(indegree + 1);
+    _src_offsets[0] = 0;
+    for (int i = 0; i < indegree; ++i)
+    {
+      auto permuted_i = source_permute[i];
+      _sources[i] = sources[permuted_i];
+      _src_offsets[i + 1] = _src_offsets[i] + source_weights[permuted_i];
+    }
 
     return _src_offsets.back();
   }
