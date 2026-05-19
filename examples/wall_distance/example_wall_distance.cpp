@@ -18,6 +18,12 @@
 #include <string>
 #include <vector>
 
+#include <Ionit_Initializer.h>
+#include <Ioss_DatabaseIO.h>
+#include <Ioss_ElementBlock.h>
+#include <Ioss_IOFactory.h>
+#include <Ioss_Region.h>
+#include <Ioss_SideSet.h>
 #include <Panzer_IntegrationRule.hpp>
 #include <Panzer_STK_ExodusReaderFactory.hpp>
 #include <Panzer_STK_WorksetFactory.hpp>
@@ -77,6 +83,80 @@ public:
     delete meshData;
   }
 };
+
+template <typename T>
+std::string vec2string(std::vector<T> const &s, std::string const &delim = ", ")
+{
+  assert(s.size() > 1);
+
+  std::ostringstream ss;
+  std::copy(s.begin(), s.end(),
+            std::ostream_iterator<std::string>{ss, delim.c_str()});
+  auto delimited_items = ss.str().erase(ss.str().length() - delim.size());
+  return "[" + delimited_items + "]";
+}
+
+bool check_names(MPI_Comm comm, std::string const &filename,
+                 std::vector<std::string> const &block_names,
+                 std::vector<std::string> const &wall_names)
+{
+  Ioss::Init::Initializer ioss_initializer;
+  Ioss::DatabaseIO *ioss_db =
+      Ioss::IOFactory::create("exodus", filename, Ioss::READ_MODEL, comm);
+
+  int comm_rank;
+  MPI_Comm_rank(comm, &comm_rank);
+
+  if (ioss_db == nullptr || !ioss_db->ok(true))
+  {
+    if (comm_rank == 0)
+      std::cerr << "ERROR: Could not open file " << filename << "\n";
+    return false;
+  }
+
+  Ioss::Region region(ioss_db, "mesh_region");
+
+  if (!block_names.empty())
+  {
+    auto const &element_blocks = region.get_element_blocks();
+    std::vector<std::string> element_block_names;
+    for (auto const &block : element_blocks)
+      element_block_names.push_back(block->name());
+
+    for (auto const &block_name : block_names)
+    {
+      if (std::find(element_block_names.begin(), element_block_names.end(),
+                    block_name) != element_block_names.end())
+        continue;
+
+      if (comm_rank == 0)
+        std::cerr << "Element block \"" << block_name
+                  << "\" not found in mesh. Available element blocks: "
+                  << vec2string(element_block_names) << "\n";
+      return false;
+    }
+  }
+
+  auto const &sidesets = region.get_sidesets();
+  std::vector<std::string> sideset_names;
+  for (auto const &sideset : sidesets)
+    sideset_names.push_back(sideset->name());
+
+  for (auto const &wall_name : wall_names)
+  {
+    if (std::find(sideset_names.begin(), sideset_names.end(), wall_name) !=
+        sideset_names.end())
+      continue;
+
+    if (comm_rank == 0)
+      std::cerr << "Sideset \"" << wall_name
+                << "\" not found in mesh. Available sidesets: "
+                << vec2string(sideset_names) << "\n";
+    return false;
+  }
+
+  return true;
+}
 
 Teuchos::RCP<panzer_stk::STK_Interface>
 build_mesh(MPI_Comm comm, std::string const &filename,
@@ -311,7 +391,7 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
       std::cerr << "At least one wall name must be provided\n";
     MPI_Finalize();
-    return 1;
+    return 0;
   }
 
   if (distance_type != "node" && distance_type != "cell")
@@ -320,7 +400,13 @@ int main(int argc, char *argv[])
       std::cerr << "Invalid distance_type: " << distance_type
                 << ". Must be \"node\" or \"cell\".\n";
     MPI_Finalize();
-    return 2;
+    return 0;
+  }
+
+  if (!check_names(comm, filename, block_names, wall_names))
+  {
+    MPI_Finalize();
+    return 0;
   }
 
   auto vec2string = [](std::vector<std::string> const &names) {
@@ -432,8 +518,8 @@ int main(int argc, char *argv[])
     {
       for (auto const &block_name : block_names)
       {
-        // The field is the same on all blocks. But the panzer's interface only
-        // allows to specify one block.
+        // The field is the same on all blocks. But the panzer's interface
+        // only allows to specify one block.
         auto *field = mesh->getCellField(distance_field_name, block_name);
 
         std::vector<stk::mesh::Entity> elements;
