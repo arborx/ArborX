@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_DBSCANVerification.hpp"
+#include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedDBSCAN.hpp>
 #include <ArborX_Version.hpp>
 
@@ -66,10 +67,28 @@ bool run_dist_dbscan(MPI_Comm comm, ExecutionSpace const &exec_space,
                                labels, dbscan_params);
   Kokkos::Profiling::popRegion();
 
-  if (timer_hooks_set_up && comm_rank == 0)
+  if (timer_hooks_set_up)
   {
-    printf("total time          : %10.3f\n",
-           ArborXBenchmark::get_time("ArborX::DistributedDBSCAN::total"));
+    // Copy Kokkos timers to TimeMonitor
+    ArborXBenchmark::TimeMonitor time_monitor;
+    for (auto const &timer_name :
+         std::vector<std::pair<std::string, std::string>>{
+             {"step_1", "step 1: receive global neighbors"},
+             {"step_2", "step 2: local DBSCAN"},
+             {"step_3", "step 3: convert local to global labels"},
+             {"step_4", "step 4: communicate labels back to owning ranks"},
+             {"step_5", "step 5: process multi-labeled indices"},
+             {"step_6", "step 6: communicate merge pairs"},
+             {"step_7", "step 7: flatten labels"}})
+    {
+      auto timer = time_monitor.getNewTimer(timer_name.second);
+      timer->set(ArborXBenchmark::get_time(
+          std::string("ArborX::DistributedDBSCAN::") + timer_name.first));
+    }
+    time_monitor.summarize(comm);
+    if (comm_rank == 0)
+      printf("total time: %10.3f\n",
+             ArborXBenchmark::get_time("ArborX::DistributedDBSCAN::total"));
   }
 
   bool success = true;
@@ -112,7 +131,7 @@ int main(int argc, char *argv[])
     std::cout << "ArborX hash       : " << ArborX::gitCommitHash() << std::endl;
     std::cout << "Kokkos version    : " << ArborX::Details::KokkosExt::version()
               << std::endl;
-    std::cout << "#MPI ranks         : " << comm_size << std::endl;
+    std::cout << "#MPI ranks        : " << comm_size << std::endl;
   }
 
   // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
@@ -128,7 +147,7 @@ int main(int argc, char *argv[])
     --argc;
   }
 
-  Kokkos::ScopeGuard guard(argc, argv);
+  Kokkos::initialize(argc, argv);
 
   namespace bpo = boost::program_options;
   using namespace ArborXBenchmark;
@@ -301,6 +320,7 @@ int main(int argc, char *argv[])
 #undef SWITCH_DIM
   }
 
+  Kokkos::finalize();
   MPI_Finalize();
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;

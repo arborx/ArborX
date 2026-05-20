@@ -66,6 +66,16 @@ public:
       _entry.second = duration.count();
       _started = false;
     }
+    // Explicitly set the duration. This is useful for copying Kokkos timers
+    // we get from hooking Kokkos profiling tools into our own TimeMonitor
+    // timers. In that case, we don't have the start/stop semantics, but we
+    // just want to set the duration of the timer to the value we get from
+    // Kokkos timer.
+    void set(double duration)
+    {
+      assert(!_started);
+      _entry.second = duration;
+    }
   };
   // NOTE Original code had the pointer semantics.  Can change in the future.
   // The smart pointer is a distraction.  The main problem here is that the
