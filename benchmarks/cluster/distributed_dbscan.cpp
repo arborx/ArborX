@@ -261,13 +261,11 @@ int main(int argc, char *argv[])
 
   MPI_Barrier(comm);
 
-  ExecutionSpace exec_space;
-
   if (!params.filename.empty())
   {
 #define SWITCH_DIM(DIM, TYPE)                                                  \
   case DIM:                                                                    \
-    success = run_dist_dbscan(comm, exec_space,                                \
+    success = run_dist_dbscan(comm, ExecutionSpace{},                          \
                               loadData<DIM, TYPE, MemorySpace>(comm, params),  \
                               params);                                         \
     break
@@ -296,7 +294,7 @@ int main(int argc, char *argv[])
 #define SWITCH_DIM(DIM, TYPE)                                                  \
   case DIM:                                                                    \
     success = run_dist_dbscan(                                                 \
-        comm, exec_space,                                                      \
+        comm, ExecutionSpace{},                                                \
         generateDistributedData<DIM, TYPE, MemorySpace>(comm, params),         \
         params);                                                               \
     break
