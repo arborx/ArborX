@@ -93,8 +93,6 @@ WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::WallDistance(
   Kokkos::DynRankView<Coordinate, MemorySpace> local_sides;
   Details::getLocalSides(mesh, wall_names, local_sides);
 
-  auto key = Details::get_topology_key(mesh);
-
   MPI_Comm comm = Teuchos::getRawMpiComm(*mesh.getComm());
   if constexpr (ReplicateSides)
   {
@@ -103,14 +101,13 @@ WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::WallDistance(
     Details::gatherGlobalSides(comm, space, local_sides, global_sides);
 
     _index = BoundingVolumeHierarchy(
-        space,
-        Details::Geometries<DIM, decltype(global_sides)>{key, global_sides});
+        space, Details::Geometries<DIM, decltype(global_sides)>{global_sides});
   }
   else
   {
     _index = DistributedTree(
         comm, space,
-        Details::Geometries<DIM, decltype(local_sides)>{key, local_sides});
+        Details::Geometries<DIM, decltype(local_sides)>{local_sides});
   }
 }
 

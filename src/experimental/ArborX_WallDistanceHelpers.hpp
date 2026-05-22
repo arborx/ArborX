@@ -16,6 +16,7 @@
 #include <ArborX_Triangle.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_Predicates.hpp>
+#include <misc/ArborX_Exception.hpp>
 
 #include <Kokkos_DynRankView.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
@@ -34,7 +35,21 @@ template <int DIM, typename Sides>
 struct Geometries
 {
   static_assert(DIM == 2 || DIM == 3);
-  int _topology_key;
+
+  Geometries(Sides sides)
+      : _sides(sides)
+  {
+    auto const num_nodes_per_side = sides.extent(1);
+
+    if constexpr (DIM == 2)
+    {
+      ARBORX_ASSERT(num_nodes_per_side == 2);
+    }
+    else
+    {
+      ARBORX_ASSERT(num_nodes_per_side == 3 || num_nodes_per_side == 4);
+    }
+  }
   Sides _sides;
 };
 
@@ -48,10 +63,14 @@ struct ArborX::AccessTraits<ArborX::Details::Geometries<DIM, Sides>>
 
   KOKKOS_FUNCTION static auto size(Self const &self)
   {
-    if (self._topology_key == shards::Hexahedron<8>::key)
-      return 2 * self._sides.extent(0);
+    auto const &sides = self._sides;
+    auto const num_sides = sides.extent(0);
+    auto const num_nodes_per_side = sides.extent(1);
+
+    if constexpr (DIM == 2)
+      return num_sides;
     else
-      return self._sides.extent(0);
+      return (num_nodes_per_side == 3) ? num_sides : 2 * num_sides;
   }
 
   KOKKOS_FUNCTION static auto get(Self const &self, size_t i)
@@ -66,15 +85,13 @@ struct ArborX::AccessTraits<ArborX::Details::Geometries<DIM, Sides>>
     }
     else
     {
-      if (self._topology_key == shards::Tetrahedron<4>::key)
-      {
+      auto const num_nodes_per_side = sides.extent(1);
+
+      if (num_nodes_per_side == 3)
         return ArborX::Triangle{
             {sides(i, 0, 0), sides(i, 0, 1), sides(i, 0, 2)},
             {sides(i, 1, 0), sides(i, 1, 1), sides(i, 1, 2)},
             {sides(i, 2, 0), sides(i, 2, 1), sides(i, 2, 2)}};
-      }
-
-      KOKKOS_ASSERT(self._topology_key == shards::Hexahedron<8>::key);
 
       // Split quad side into two triangles
       // NOTE: for non-planar quads faces we may need to do something smarter,
@@ -124,6 +141,7 @@ void getLocalSides(panzer_stk::STK_Interface const &mesh,
                                sideset_sides.end());
   }
 
+  // This will throw if side elements contain different number of nodes
   mesh.getElementVertices(local_side_entities, local_sides);
 }
 
@@ -215,31 +233,6 @@ static void gatherGlobalSides(MPI_Comm comm, ExecutionSpace const &space,
   Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
                  global_sides, num_global, extent1, extent2);
   Kokkos::deep_copy(space, global_sides, global_sides_aux);
-}
-
-// Check that the topologies in all element blocks are the same, and are ones
-// from the list and return the key
-static int get_topology_key(panzer_stk::STK_Interface const &mesh)
-{
-  std::vector<int> accepted_topologies = {
-      shards::Tetrahedron<4>::key, shards::Hexahedron<8>::key,
-      shards::Triangle<3>::key, shards::Quadrilateral<4>::key};
-
-  std::vector<std::string> elem_block_names;
-  mesh.getElementBlockNames(elem_block_names);
-
-  auto key = mesh.getCellTopology(elem_block_names[0])->getKey();
-  if (std::find_if(elem_block_names.begin(), elem_block_names.end(),
-                   [&mesh, key](auto const &name) {
-                     return mesh.getCellTopology(name)->getKey() != key;
-                   }) != elem_block_names.end())
-    throw std::runtime_error("Different topologies in element blocks");
-
-  if (std::find(accepted_topologies.begin(), accepted_topologies.end(), key) ==
-      accepted_topologies.end())
-    throw std::runtime_error(
-        "Block topology is not Tet4, Hex8, Tri3, or Quad4");
-  return key;
 }
 
 struct WallDistanceCallback
