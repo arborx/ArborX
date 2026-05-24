@@ -22,6 +22,8 @@
 #include <misc/ArborX_PriorityQueue.hpp>
 #include <misc/ArborX_Stack.hpp>
 
+#include <cstdlib>
+
 namespace ArborX
 {
 namespace Details
@@ -59,10 +61,21 @@ struct TreeTraversal<BVH, Predicates, Callback, SpatialPredicateTag>
     }
     else
     {
-      Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
-                           Kokkos::RangePolicy<ExecutionSpace, FullTree>(
-                               space, 0, predicates.size()),
-                           *this);
+#if defined(KOKKOS_ENABLE_CUDA)
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Cuda>)
+        Kokkos::parallel_for(
+            "ArborX::TreeTraversal::spatial",
+            Kokkos::Experimental::prefer(
+                Kokkos::RangePolicy<ExecutionSpace, FullTree>(
+                    space, 0, predicates.size()),
+                Kokkos::Experimental::DesiredOccupancy{Kokkos::AUTO}),
+            *this);
+      else
+#endif
+        Kokkos::parallel_for("ArborX::TreeTraversal::spatial",
+                             Kokkos::RangePolicy<ExecutionSpace, FullTree>(
+                                 space, 0, predicates.size()),
+                             *this);
     }
   }
 
@@ -156,9 +169,19 @@ struct TreeTraversal<BVH, Predicates, Callback, NearestPredicateTag>
     {
       _buffer.allocateBuffer(space, predicates);
 
-      Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
-                           Kokkos::RangePolicy(space, 0, predicates.size()),
-                           *this);
+#if defined(KOKKOS_ENABLE_CUDA)
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Cuda>)
+        Kokkos::parallel_for(
+            "ArborX::TreeTraversal::nearest",
+            Kokkos::Experimental::prefer(
+                Kokkos::RangePolicy(space, 0, predicates.size()),
+                Kokkos::Experimental::DesiredOccupancy{Kokkos::AUTO}),
+            *this);
+      else
+#endif
+        Kokkos::parallel_for("ArborX::TreeTraversal::nearest",
+                             Kokkos::RangePolicy(space, 0, predicates.size()),
+                             *this);
     }
   }
 
@@ -364,11 +387,22 @@ struct TreeTraversal<BVH, Predicates, Callback, OrderedSpatialPredicateTag>
     }
     else
     {
-      Kokkos::parallel_for(
-          "ArborX::Experimental::TreeTraversal::OrderedSpatialPredicate",
-          Kokkos::RangePolicy<ExecutionSpace, FullTree>(space, 0,
-                                                        predicates.size()),
-          *this);
+#if defined(KOKKOS_ENABLE_CUDA)
+      if constexpr (std::is_same_v<ExecutionSpace, Kokkos::Cuda>)
+        Kokkos::parallel_for(
+            "ArborX::Experimental::TreeTraversal::OrderedSpatialPredicate",
+            Kokkos::Experimental::prefer(
+                Kokkos::RangePolicy<ExecutionSpace, FullTree>(
+                    space, 0, predicates.size()),
+                Kokkos::Experimental::DesiredOccupancy{Kokkos::AUTO}),
+            *this);
+      else
+#endif
+        Kokkos::parallel_for(
+            "ArborX::Experimental::TreeTraversal::OrderedSpatialPredicate",
+            Kokkos::RangePolicy<ExecutionSpace, FullTree>(space, 0,
+                                                          predicates.size()),
+            *this);
     }
   }
 
