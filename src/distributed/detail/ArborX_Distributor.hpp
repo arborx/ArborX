@@ -13,6 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <detail/ArborX_DistributedUtils.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
 #include <kokkos_ext/ArborX_KokkosExtMinMaxReduce.hpp>
 #include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>
@@ -201,11 +202,11 @@ class Distributor
 {
 public:
   Distributor(MPI_Comm comm)
-      : _comm(comm)
-      , _permute{Kokkos::view_alloc(Kokkos::WithoutInitializing,
-                                    "ArborX::Distributor::permute"),
-                 0}
-  {}
+      : _permute{"ArborX::Distributor::permute", 0}
+  {
+    // Make sure different distributors have different contexts
+    _comm_ptr = makeSharedDuplicateCommunicator(comm);
+  }
 
   template <typename ExecutionSpace, typename View>
   size_t createFromSends(ExecutionSpace const &space,
@@ -329,8 +330,10 @@ public:
                                                permuted_exports);
     }
 
+    auto comm = getComm();
+
     int comm_rank;
-    MPI_Comm_rank(_comm, &comm_rank);
+    MPI_Comm_rank(comm, &comm_rank);
 
     int same_rank_destination = -1;
     int same_rank_source = -1;
@@ -386,7 +389,7 @@ public:
             (_src_offsets[i + 1] - _src_offsets[i]) * sizeof(ValueType);
         requests.emplace_back();
         MPI_Irecv(receive_buffer_ptr, message_size, MPI_BYTE, _sources[i], 123,
-                  _comm, &requests.back());
+                  comm, &requests.back());
       }
     }
 
@@ -401,7 +404,7 @@ public:
         requests.emplace_back();
         MPI_Isend(exports_comm.data() + _dest_offsets[i],
                   (_dest_offsets[i + 1] - _dest_offsets[i]) * sizeof(ValueType),
-                  MPI_BYTE, _destinations[i], 123, _comm, &requests.back());
+                  MPI_BYTE, _destinations[i], 123, comm, &requests.back());
       }
     }
     if (!requests.empty())
@@ -447,8 +450,10 @@ private:
     Kokkos::Profiling::ScopedRegion guard(
         "ArborX::Distributor::preparePointToPointCommunication");
 
+    auto comm = getComm();
+
     int comm_size;
-    MPI_Comm_size(_comm, &comm_size);
+    MPI_Comm_size(comm, &comm_size);
 
     std::vector<int> src_counts_dense(comm_size);
     int const dest_size = _destinations.size();
@@ -458,7 +463,7 @@ private:
           _dest_offsets[i + 1] - _dest_offsets[i];
     }
     MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, src_counts_dense.data(), 1,
-                 MPI_INT, _comm);
+                 MPI_INT, comm);
 
     _src_offsets.push_back(0);
     for (int i = 0; i < comm_size; ++i)
@@ -471,7 +476,11 @@ private:
     return _src_offsets.back();
   }
 
-  MPI_Comm _comm;
+  MPI_Comm getComm() const { return *_comm_ptr; }
+
+  std::shared_ptr<MPI_Comm> _comm_ptr{
+      std::make_unique<MPI_Comm>(MPI_COMM_NULL)};
+
   Kokkos::View<int *, DeviceType> _permute;
   std::vector<int> _dest_offsets;
   std::vector<int> _src_offsets;
