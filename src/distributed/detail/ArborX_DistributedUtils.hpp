@@ -16,8 +16,23 @@
 #include <cassert>
 #include <vector>
 
+#include <mpi.h>
+
 namespace ArborX::Details
 {
+
+inline auto makeSharedDuplicateCommunicator(MPI_Comm comm)
+{
+  auto comm_dup = std::make_unique<MPI_Comm>();
+  MPI_Comm_dup(comm, comm_dup.get());
+  return std::shared_ptr<MPI_Comm>(
+      comm_dup.release(),
+      // custom deleter to mark the communicator object for deallocation
+      [](MPI_Comm *p) {
+        MPI_Comm_free(p);
+        delete p;
+      });
+}
 
 // Find closest DIM factors for a number. The factors are
 // sorted in the descending order.

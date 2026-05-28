@@ -17,6 +17,7 @@
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_DistributedTreeNearest.hpp>
 #include <detail/ArborX_DistributedTreeSpatial.hpp>
+#include <detail/ArborX_DistributedUtils.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
 #include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp>
 
@@ -166,19 +167,7 @@ DistributedTreeBase<BottomTree>::DistributedTreeBase(
 
   // Create new context for the library to isolate library's communication from
   // user's
-  _comm_ptr.reset(
-      // duplicate the communicator and store it in a std::shared_ptr so that
-      // all copies of the distributed tree point to the same object
-      [comm]() {
-        auto p = std::make_unique<MPI_Comm>();
-        MPI_Comm_dup(comm, p.get());
-        return p.release();
-      }(),
-      // custom deleter to mark the communicator object for deallocation
-      [](MPI_Comm *p) {
-        MPI_Comm_free(p);
-        delete p;
-      });
+  _comm_ptr = Details::makeSharedDuplicateCommunicator(comm);
 
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
                                 "bottom_tree_construction");
