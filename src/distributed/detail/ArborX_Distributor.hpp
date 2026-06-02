@@ -447,6 +447,34 @@ private:
     Kokkos::Profiling::ScopedRegion guard(
         "ArborX::Distributor::preparePointToPointCommunication");
 
+#if OPEN_MPI && (OMPI_MAJOR_VERSION * 10000 + OMPI_MINOR_VERSION * 100 +       \
+                     OMPI_RELEASE_VERSION <                                    \
+                 50011)
+    // OpenMPI prior to 5.0.11 has a bug where MPI_Dist_graph_create may hang
+    // when called multiple times with treematch topo. See
+    //   https://github.com/open-mpi/ompi/issues/13918
+    // Use the old algorithm instead.
+    int comm_size;
+    MPI_Comm_size(_comm, &comm_size);
+
+    std::vector<int> src_counts_dense(comm_size);
+    int const dest_size = _destinations.size();
+    for (int i = 0; i < dest_size; ++i)
+    {
+      src_counts_dense[_destinations[i]] =
+          _dest_offsets[i + 1] - _dest_offsets[i];
+    }
+    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, src_counts_dense.data(), 1,
+                 MPI_INT, _comm);
+
+    _src_offsets.push_back(0);
+    for (int i = 0; i < comm_size; ++i)
+      if (src_counts_dense[i] > 0)
+      {
+        _sources.push_back(i);
+        _src_offsets.push_back(_src_offsets.back() + src_counts_dense[i]);
+      }
+#else
     int comm_rank;
     MPI_Comm_rank(_comm, &comm_rank);
 
@@ -498,6 +526,7 @@ private:
       _sources[i] = sources[permuted_i];
       _src_offsets[i + 1] = _src_offsets[i] + source_weights[permuted_i];
     }
+#endif
 
     return _src_offsets.back();
   }
