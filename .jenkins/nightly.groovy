@@ -4,6 +4,10 @@ pipeline {
     }
     agent none
 
+    environment {
+        DOCKER_CREDENTIALS_ID = 'dockerhub'
+    }
+
     stages {
 
         stage('Build') {
@@ -13,6 +17,7 @@ pipeline {
                         docker {
                             image 'nvidia/cuda:12.4.1-devel-ubuntu22.04'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
+                            registryCredentialsId "${env.DOCKER_CREDENTIALS_ID}"
                         }
                     }
                     environment {
@@ -53,6 +58,7 @@ pipeline {
                         docker {
                             image 'nvidia/cuda:12.2.2-devel-ubuntu22.04'
                             label 'NVIDIA_Tesla_V100-PCIE-32GB && nvidia-docker'
+                            registryCredentialsId "${env.DOCKER_CREDENTIALS_ID}"
                         }
                     }
                     environment {
@@ -94,6 +100,7 @@ pipeline {
                             image 'rocm/dev-ubuntu-24.04:6.2.4-complete'
                             label 'AMD_Radeon_Instinct_MI100 && rocm-docker'
                             args '--device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES}'
+                            registryCredentialsId "${env.DOCKER_CREDENTIALS_ID}"
                         }
                     }
                     environment {
@@ -133,6 +140,7 @@ pipeline {
                         docker {
                             image 'gcc:14.2'
                             label 'docker'
+                            registryCredentialsId "${env.DOCKER_CREDENTIALS_ID}"
                         }
                     }
                     environment {
