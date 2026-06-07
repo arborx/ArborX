@@ -216,8 +216,7 @@ struct Parameters
 };
 } // namespace DBSCAN
 
-template <typename ExecutionSpace, Details::Concepts::Primitives Primitives,
-          typename Labels>
+template <typename ExecutionSpace, typename Primitives, typename Labels>
   requires(!std::same_as<Labels, DBSCAN::Parameters>)
 void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
             double user_eps, int core_min_size, Labels &labels,
@@ -235,6 +234,8 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       "Primitives must be accessible from the execution space");
   static_assert(Kokkos::is_view_v<Labels>);
   static_assert(std::is_integral_v<typename Labels::value_type>);
+
+  Details::check_valid_access_traits(primitives);
 
   ARBORX_ASSERT(user_eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
@@ -520,8 +521,7 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
   Kokkos::Profiling::popRegion();
 }
 
-template <typename ExecutionSpace, Details::Concepts::Primitives Primitives,
-          typename Coordinate>
+template <typename ExecutionSpace, typename Primitives, typename Coordinate>
 [[deprecated("Please use dbscan() that takes in labels as an argument")]] auto
 dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
        Coordinate eps, int core_min_size,

@@ -24,8 +24,8 @@
 namespace ArborX::Experimental
 {
 
-template <typename ExecutionSpace, Details::Concepts::Primitives Primitives,
-          typename Coordinate, typename Labels>
+template <typename ExecutionSpace, typename Primitives, typename Coordinate,
+          typename Labels>
 void dbscan(MPI_Comm comm, ExecutionSpace const &space,
             Primitives const &primitives, Coordinate eps, int core_min_size,
             Labels &labels,
@@ -43,6 +43,8 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
   static_assert(
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Primitives must be accessible from the execution space");
+
+  Details::check_valid_access_traits(primitives);
 
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
