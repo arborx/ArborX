@@ -140,10 +140,48 @@ void check_valid_access_traits(Values const &, Tag = {})
         Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, Values>>;
     using PredicateTag =
         Kokkos::detected_t<PredicateTagArchetypeAlias, Predicate>;
-    static_assert(is_valid_predicate_tag<PredicateTag>::value,
+    static_assert(is_valid_predicate_tag<PredicateTag>,
                   "Invalid tag for the predicates");
   }
 }
+
+namespace Concepts
+{
+
+template <typename T>
+concept AccessTraits = requires() {
+  typename ArborX::AccessTraits<T>::memory_space;
+  requires Kokkos::is_memory_space_v<
+      typename ArborX::AccessTraits<T>::memory_space>;
+} && requires(T const &v) {
+  {
+    AccessTraits<T>::size(v)
+  } -> std::integral;
+  // Cannot check return type of get() here as we need to test for non-void, but
+  // there's no not_same_as concept, and !std::same_as<void> does not work
+  AccessTraits<T>::get(v, 0);
+} && !requires(T const &v) {
+  {
+    AccessTraits<T>::get(v, 0)
+  } -> std::same_as<void>;
+};
+
+template <typename T>
+concept HasTag = requires() { typename std::decay_t<T>::Tag; };
+
+template <typename T>
+concept Primitives = AccessTraits<T>;
+
+template <typename T>
+concept Predicates = AccessTraits<T> && requires(T const &v) {
+  {
+    ArborX::AccessTraits<T>::get(v, 0)
+  } -> HasTag;
+  requires Details::is_valid_predicate_tag<
+      typename std::decay_t<decltype(ArborX::AccessTraits<T>::get(v, 0))>::Tag>;
+};
+
+} // namespace Concepts
 
 template <typename Values>
 class AccessValuesI
@@ -157,8 +195,7 @@ public:
       : _values(std::move(values))
   {}
   using memory_space = typename Access::memory_space;
-  using value_type = std::decay_t<
-      Kokkos::detected_t<AccessTraitsGetArchetypeExpression, Access, Values>>;
+  using value_type = std::decay_t<decltype(Access::get(_values, 0))>;
 
   KOKKOS_FUNCTION
   decltype(auto) operator()(int i) const { return Access::get(_values, i); }

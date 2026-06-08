@@ -96,7 +96,7 @@ struct MixedBoxPrimitives
 
 } // namespace Details
 
-template <typename Primitives, typename PermuteFilter>
+template <Details::Concepts::Primitives Primitives, typename PermuteFilter>
 struct AccessTraits<
     Details::PointsWithRadiusReorderedAndFiltered<Primitives, PermuteFilter>>
 {
@@ -234,6 +234,8 @@ void dbscan(ExecutionSpace const &exec_space, Primitives const &primitives,
       "Primitives must be accessible from the execution space");
   static_assert(Kokkos::is_view_v<Labels>);
   static_assert(std::is_integral_v<typename Labels::value_type>);
+
+  Details::check_valid_access_traits(primitives);
 
   ARBORX_ASSERT(user_eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);

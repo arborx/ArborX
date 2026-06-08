@@ -44,6 +44,8 @@ void dbscan(MPI_Comm comm, ExecutionSpace const &space,
       KokkosExt::is_accessible_from<MemorySpace, ExecutionSpace>::value,
       "Primitives must be accessible from the execution space");
 
+  Details::check_valid_access_traits(primitives);
+
   ARBORX_ASSERT(eps > 0);
   ARBORX_ASSERT(core_min_size >= 2);
 
