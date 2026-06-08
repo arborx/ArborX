@@ -12,7 +12,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
         curl \
         git \
         libomp-dev \
-        libopenmpi-dev \
         libbenchmark-dev \
         libboost-program-options-dev \
         libboost-test-dev \
