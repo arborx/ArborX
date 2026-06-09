@@ -22,7 +22,7 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 
-#include <sstream>
+#include <numeric> // iota
 #include <vector>
 
 #include <mpi.h>
@@ -447,6 +447,13 @@ private:
     Kokkos::Profiling::ScopedRegion guard(
         "ArborX::Distributor::preparePointToPointCommunication");
 
+#if OPEN_MPI && (OMPI_MAJOR_VERSION * 10000 + OMPI_MINOR_VERSION * 100 +       \
+                     OMPI_RELEASE_VERSION <                                    \
+                 50011)
+    // OpenMPI prior to 5.0.11 has a bug where MPI_Dist_graph_create may hang
+    // when called multiple times with treematch topo. See
+    //   https://github.com/open-mpi/ompi/issues/13918
+    // Use the old algorithm instead.
     int comm_size;
     MPI_Comm_size(_comm, &comm_size);
 
@@ -467,6 +474,59 @@ private:
         _sources.push_back(i);
         _src_offsets.push_back(_src_offsets.back() + src_counts_dense[i]);
       }
+#else
+    int comm_rank;
+    MPI_Comm_rank(_comm, &comm_rank);
+
+    int const outdegree = _destinations.size();
+
+    std::vector<int> dest_weights(outdegree);
+    for (int i = 0; i < outdegree; ++i)
+      dest_weights[i] = _dest_offsets[i + 1] - _dest_offsets[i];
+
+    MPI_Comm graph_comm;
+    MPI_Dist_graph_create(_comm, (outdegree ? 1 : 0), &comm_rank, &outdegree,
+                          _destinations.data(), dest_weights.data(),
+                          MPI_INFO_NULL, 0 /*reorder*/, &graph_comm);
+
+    int indegree, outdegree_check, weighted;
+    MPI_Dist_graph_neighbors_count(graph_comm, &indegree, &outdegree_check,
+                                   &weighted);
+    ARBORX_ASSERT(outdegree_check == outdegree);
+    ARBORX_ASSERT(weighted == 1);
+
+    // FIXME: it should be possible to call MPI_Dist_graph_neighbors with
+    // maxoutdegree = 0. However, running on Frontier results in an error:
+    //   Invalid argument for maxoutdegree: value is 0 but must be at least 8
+    // So, we provide correct outdegree instead here.
+    std::vector<int> sources(indegree);
+    std::vector<int> source_weights(indegree);
+    std::vector<int> dummy_destinations(
+        outdegree); // destinations may be reordered by MPI
+    MPI_Dist_graph_neighbors(graph_comm, indegree, sources.data(),
+                             source_weights.data(), outdegree,
+                             dummy_destinations.data(), dest_weights.data());
+
+    MPI_Comm_free(&graph_comm);
+
+    // Retain the previous behavior of having the sources sorted.
+    // Not strictly neceessary, but it makes testing easier and doesn't have a
+    // significant performance impact.
+    std::vector<int> source_permute(indegree);
+    std::iota(source_permute.begin(), source_permute.end(), 0);
+    std::sort(source_permute.begin(), source_permute.end(),
+              [&](int i, int j) { return sources[i] < sources[j]; });
+
+    _sources.resize(indegree);
+    _src_offsets.resize(indegree + 1);
+    _src_offsets[0] = 0;
+    for (int i = 0; i < indegree; ++i)
+    {
+      auto permuted_i = source_permute[i];
+      _sources[i] = sources[permuted_i];
+      _src_offsets[i + 1] = _src_offsets[i] + source_weights[permuted_i];
+    }
+#endif
 
     return _src_offsets.back();
   }
