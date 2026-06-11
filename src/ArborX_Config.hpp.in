@@ -16,8 +16,8 @@
 // ARBORX_VERSION / 100 % 100 is the minor version
 // ARBORX_VERSION / 10000 is the major version
 #cmakedefine ARBORX_VERSION @ARBORX_VERSION@
-// not using #cmakedefine below because a "0" version number yields
-// /* #undef KOKKOS_VERSION_X */
+// not using cmakedefine below because a "0" version number yields
+// /* #undef ARBORX_VERSION_X */
 #define ARBORX_VERSION_MAJOR @ARBORX_VERSION_MAJOR@
 #define ARBORX_VERSION_MINOR @ARBORX_VERSION_MINOR@
 #define ARBORX_VERSION_PATCH @ARBORX_VERSION_PATCH@
