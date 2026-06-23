@@ -184,6 +184,8 @@ void dbscan_f(ArborX::DBSCAN::Implementation impl,
   using ArborX::Details::verifyDBSCAN;
   using Point = ArborX::Point<3, Coordinate>;
 
+  constexpr bool verbose = true;
+
   ExecutionSpace space;
 
   ArborX::DBSCAN::Parameters params;
