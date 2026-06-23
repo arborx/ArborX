@@ -13,10 +13,15 @@
 #define ARBORX_MORTON_CODE_UTILS_HPP
 
 #include <ArborX_GeometryTraits.hpp>
+#include <kokkos_ext/ArborX_KokkosExtVersion.hpp>
+#if KOKKOS_VERSION < 50102
+// https://github.com/kokkos/kokkos/pull/9270
+#include <Kokkos_Assert.hpp>
+#endif
 
 #include <Kokkos_Abort.hpp>
+#include <Kokkos_Clamp.hpp>
 #include <Kokkos_Macros.hpp>
-#include <Kokkos_MinMax.hpp>
 
 namespace ArborX
 {
@@ -288,15 +293,22 @@ template <typename Point>
 KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
 {
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
+
   constexpr unsigned N = 1u << (DIM == 1 ? 31 : 32 / DIM);
 
-  using Kokkos::max;
-  using Kokkos::min;
+  // The goal of this complexity is to try to perform the operations in user
+  // precision if possible. This is useful when running ArborX with device
+  // counters.
+  // Compared to morton64, we don't try to use double here, as we will still
+  // have to narrow to 32-bit to return.
+  using Coordinate = GeometryTraits::coordinate_type_t<Point>;
+  using Float = std::conditional_t<std::is_floating_point_v<Coordinate>,
+                                   Coordinate, float>;
 
   unsigned int r = 0;
   for (int d = 0; d < DIM; ++d)
   {
-    auto x = min(max((float)p[d] * N, 0.f), (float)N - 1);
+    float x = Kokkos::clamp(Float(p[d]) * N, Float(0), Float(N - 1));
     r += (expandBitsBy<DIM - 1>((unsigned int)x) << (DIM - d - 1));
   }
 
@@ -304,47 +316,34 @@ KOKKOS_INLINE_FUNCTION unsigned int morton32(Point const &p)
 }
 
 template <typename Point>
-  requires(GeometryTraits::is_point_v<Point> &&
-           GeometryTraits::dimension_v<Point> != 2)
+  requires(GeometryTraits::is_point_v<Point>)
 KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
 {
   constexpr int DIM = GeometryTraits::dimension_v<Point>;
+
   constexpr unsigned long long N = (1llu << (63 / DIM));
 
-  using Kokkos::max;
-  using Kokkos::min;
+  // The goal of this complexity is to try to perform the operations in user
+  // precision if possible. This is useful when running ArborX with device
+  // counters. Two issues complicate it:
+  // 1. the user data type may be integer
+  // 2. float may not represent all integers in the range [0, N] depending on
+  //    dimension, which will result in some missing bins.
+  constexpr bool NeedDouble = N > 16777217; // max int representable by float
+  using DefaultFloat = std::conditional_t<NeedDouble, double, float>;
+  using Coordinate = GeometryTraits::coordinate_type_t<Point>;
+  using Float =
+      std::conditional_t<std::is_floating_point_v<Coordinate> && !NeedDouble,
+                         Coordinate, DefaultFloat>;
 
   unsigned long long r = 0;
   for (int d = 0; d < DIM; ++d)
   {
-    auto x = min(max((float)p[d] * N, 0.f), (float)N - 1);
+    DefaultFloat x = Kokkos::clamp(Float(p[d]) * N, Float(0), Float(N - 1));
     r += (expandBitsBy<DIM - 1>((unsigned long long)x) << (DIM - d - 1));
   }
 
   return r;
-}
-
-// Calculate a 62-bit Morton code for a 2D point located within [0, 1]^2.
-// Special case because it needs double.
-template <typename Point>
-  requires(GeometryTraits::is_point_v<Point> &&
-           GeometryTraits::dimension_v<Point> == 2)
-KOKKOS_INLINE_FUNCTION unsigned long long morton64(Point const &p)
-{
-  // The interval [0,1] is subdivided into 2,147,483,648 bins (in each
-  // direction).
-  constexpr unsigned N = (1u << 31);
-
-  using Kokkos::max;
-  using Kokkos::min;
-
-  // Have to use double as float is not sufficient to represent large
-  // integers, which would result in some missing bins.
-  auto xd = min(max((double)p[0] * N, 0.), (double)N - 1);
-  auto yd = min(max((double)p[1] * N, 0.), (double)N - 1);
-
-  return 2 * expandBitsBy<1>((unsigned long long)xd) +
-         expandBitsBy<1>((unsigned long long)yd);
 }
 
 } // namespace Details
