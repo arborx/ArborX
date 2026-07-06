@@ -155,14 +155,14 @@ concept AccessTraits = requires() {
       typename ArborX::AccessTraits<T>::memory_space>;
 } && requires(T const &v) {
   {
-    AccessTraits<T>::size(v)
+    ArborX::AccessTraits<T>::size(v)
   } -> std::integral;
   // Cannot check return type of get() here as we need to test for non-void, but
   // there's no not_same_as concept, and !std::same_as<void> does not work
-  AccessTraits<T>::get(v, 0);
+  ArborX::AccessTraits<T>::get(v, 0);
 } && !requires(T const &v) {
   {
-    AccessTraits<T>::get(v, 0)
+    ArborX::AccessTraits<T>::get(v, 0)
   } -> std::same_as<void>;
 };
 
