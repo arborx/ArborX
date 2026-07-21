@@ -136,6 +136,8 @@ int main(int argc, char *argv[])
     --argc;
   }
 
+  Kokkos::initialize(argc, argv);
+
   std::string basis_type;
   std::string filename;
   std::string out_filename;
@@ -186,6 +188,7 @@ int main(int argc, char *argv[])
   {
     if (comm_rank == 0)
       std::cout << desc << '\n';
+    Kokkos::finalize();
     MPI_Finalize();
     return 0;
   }
@@ -194,6 +197,7 @@ int main(int argc, char *argv[])
   {
     if (comm_rank == 0)
       std::cerr << "At least one wall name must be provided\n";
+    Kokkos::finalize();
     MPI_Finalize();
     return 0;
   }
@@ -203,12 +207,14 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
       std::cerr << "Invalid distance_type: " << distance_type
                 << ". Must be \"node\" or \"cell\".\n";
+    Kokkos::finalize();
     MPI_Finalize();
     return 0;
   }
 
   if (!check_names(comm, filename, block_names, wall_names))
   {
+    Kokkos::finalize();
     MPI_Finalize();
     return 0;
   }
@@ -241,8 +247,6 @@ int main(int argc, char *argv[])
   constexpr bool ReplicateSides = true;
 
   {
-    Kokkos::ScopeGuard guard(argc, argv);
-
     using ExecutionSpace = Kokkos::DefaultExecutionSpace;
     using MemorySpace = typename ExecutionSpace::memory_space;
 
@@ -341,6 +345,7 @@ int main(int argc, char *argv[])
     mesh->writeToExodus(out_filename);
   }
 
+  Kokkos::finalize();
   MPI_Finalize();
 
   return 0;
