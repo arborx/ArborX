@@ -144,6 +144,7 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
   Kokkos::Profiling::ScopedRegion guard(prefix);
   prefix += "::";
 
+  Kokkos::Profiling::pushRegion(prefix + "get_stk_points");
   auto bulk = mesh.getBulkData();
 
   std::vector<stk::mesh::Entity> nodes;
@@ -168,6 +169,8 @@ void WallDistance<MemorySpace, DIM, Coordinate, ReplicateSides>::distance(
       points_host(i) = {x[0], x[1], x[2]};
   }
   Kokkos::deep_copy(space, points, points_host);
+
+  Kokkos::Profiling::popRegion();
 
   Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
                  distances, num_nodes);
