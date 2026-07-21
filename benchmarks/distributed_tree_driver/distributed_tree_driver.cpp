@@ -278,6 +278,8 @@ int main(int argc, char *argv[])
     }
   }
 
+  Kokkos::ScopeGuard guard(argc, argv);
+
   Parameters params;
   std::string precision;
   bpo::options_description desc("Allowed options");
@@ -329,8 +331,6 @@ int main(int argc, char *argv[])
               << "\ndimension               : " << params.partition_dim
               << "\nshift-queries           : " << params.shift_queries << '\n';
   }
-
-  Kokkos::ScopeGuard guard(argc, argv);
 
   if (precision == "float")
     main_<float>(comm, params);
