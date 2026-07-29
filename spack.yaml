@@ -1,9 +1,9 @@
 spack:
   specs:
   - boost
-  - ninja
-  - openmpi
-  - trilinos@16.2.0 -amesos -amesos2 -belos +exodus -ifpack2 -muelu +mpi +panzer
+  # - ninja
+  # - openmpi
+  # - trilinos@16.2.0 -amesos -amesos2 -belos +exodus -ifpack2 -muelu +mpi +panzer
   concretizer:
     unify: false
   config:
