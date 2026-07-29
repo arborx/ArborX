@@ -1,0 +1,44 @@
+name: CI [Ubuntu 24.04]
+
+on:
+  push:
+    branches:
+  pull_request:
+    branches: [ $default-branch ]
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        path: source
+
+    - name: Set up Spack
+      uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3.0.0
+      with:
+        ref: releases/v1.2.2
+        buildcache: true
+        color: true
+        path: spack
+
+    - name: Install Dependencies
+      run: |
+        spack -e ${{github.workspace}}/source install
+
+    - name: Configure
+      shell: spack-bash {0}
+      run: |
+        spack env activate .
+        cmake -B ${{github.workspace}}/build -GNinja -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -D ARBORX_ENABLE_MPI=ON -D ARBORX_ENABLE_TRILINOS=ON -D ARBORX_ENABLE_EXAMPLES=ON
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Test
+      run: ctest --test-dir ${{github.workspace}}/build -C ${{env.BUILD_TYPE}} --output-on-failure

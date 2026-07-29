@@ -1,0 +1,50 @@
+name: Spack buildcache build
+
+on:
+  workflow_call:
+  push:
+  workflow_dispatch:
+    inputs:
+      fresh:
+        type: boolean
+        description: Create a fresh buildcache
+        default: false
+
+env:
+  SPACK_BACKTRACE: 1
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+    - name: Setup Spack
+      uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3.0.0
+
+    - name: Find compilers
+      run: spack -e . compiler find
+
+    - name: Concretize (fresh)
+      run: spack -e . -v concretize --fresh
+      if: ${{ github.event.inputs.fresh == 'true' }}
+
+    - name: Concretize (reuse)
+      run: spack -e . -v concretize
+      if: ${{ github.event.inputs.fresh == 'false' || github.event_name != 'workflow_dispatch' }}
+
+    - name: Install
+      run: |
+        spack -e . env depfile -o Makefile
+        make -Orecurse -j $(($(nproc) + 1))
+
+    - name: Push packages and update index
+      env:
+        GITHUB_USER: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        spack -e . buildcache push -j $(($(nproc) + 1)) --base-image ubuntu:24.04 --update-index local-buildcache
+      if: ${{ !cancelled() }}
