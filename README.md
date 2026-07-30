@@ -30,7 +30,6 @@ We encourage you to contribute to ArborX! Please check out the
 
 Citing ArborX
 -------------
-## Citing
 
 If you use ArborX in your work, please cite the [TOMS article](CITATION.bib).
 
