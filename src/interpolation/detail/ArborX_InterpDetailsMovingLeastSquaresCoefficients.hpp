@@ -221,12 +221,12 @@ public:
   }
 
   auto makePolicy(ExecutionSpace const &space) const
-
   {
-    Kokkos::TeamPolicy policy(space, 1, Kokkos::AUTO);
-    policy.set_scratch_size(_scratch_level, Kokkos::PerThread(perTargetMem()));
+    Kokkos::TeamPolicy dummy_policy(space, 1, Kokkos::AUTO);
+    dummy_policy.set_scratch_size(_scratch_level,
+                                  Kokkos::PerThread(perTargetMem()));
     int team_size =
-        policy.team_size_recommended(*this, Kokkos::ParallelForTag{});
+        dummy_policy.team_size_recommended(*this, Kokkos::ParallelForTag{});
     int league_size = (_num_targets + team_size - 1) / team_size;
     return Kokkos::TeamPolicy(space, league_size, team_size)
         .set_scratch_size(_scratch_level, Kokkos::PerThread(perTargetMem()));
