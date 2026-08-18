@@ -67,26 +67,20 @@ public:
       , _num_targets(target_access.size())
       , _num_neighbors(source_points.extent_int(1))
   {
-// FIXME_HIP The HIP backend is limited by the small level 0 scratch space since
-// Kokkos through at least version 5.2 requires at least enough scratch memory
-// to run with a workgroup size of 64.
-#ifdef KOKKOS_ENABLE_HIP
     if (perTargetMem() >
         static_cast<std::size_t>(
             Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(1)))
       Kokkos::abort("Can't allocate enough scratch space!");
+
+#ifdef KOKKOS_ENABLE_HIP
+    // FIXME_HIP The HIP backend is limited by the small level 0 scratch space
+    // since Kokkos through at least version 5.2 requires at least enough
+    // scratch memory to run with a workgroup size of 64.
     _scratch_level = 1;
 #else
-    if (perTargetMem() <=
-        static_cast<std::size_t>(
-            Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(0)))
-      _scratch_level = 0;
-    else if (perTargetMem() <=
-             static_cast<std::size_t>(
-                 Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(1)))
-      _scratch_level = 1;
-    else
-      Kokkos::abort("Can't allocate enough scratch space!");
+    std::size_t scratch_0_max_size =
+        Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(0);
+    _scratch_level = (perTargetMem() > scratch_0_max_size);
 #endif
   }
 
