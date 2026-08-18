@@ -66,7 +66,29 @@ public:
       , _coefficients(coefficients)
       , _num_targets(target_access.size())
       , _num_neighbors(source_points.extent_int(1))
-  {}
+  {
+// FIXME_HIP The HIP backend is limited by the small level 0 scratch space since
+// Kokkos through at least version 5.2 requires at least enough scratch memory
+// to run with a workgroup size of 64.
+#ifdef KOKKOS_ENABLE_HIP
+    if (perTargetMem() >
+        static_cast<std::size_t>(
+            Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(1)))
+      Kokkos::abort("Can't allocate enough scratch space!");
+    _scratch_level = 1;
+#else
+    if (perTargetMem() <=
+        static_cast<std::size_t>(
+            Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(0)))
+      _scratch_level = 0;
+    else if (perTargetMem() <=
+             static_cast<std::size_t>(
+                 Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(1)))
+      _scratch_level = 1;
+    else
+      Kokkos::abort("Can't allocate enough scratch space!");
+#endif
+  }
 
   template <typename TeamMember>
   KOKKOS_FUNCTION void operator()(TeamMember const &member) const
@@ -201,25 +223,6 @@ public:
   auto makePolicy(ExecutionSpace const &space) const
 
   {
-// FIXME_HIP The HIP backend is limited by the small level 0 scratch space since
-// Kokkos through at least version 5.2 requires at least enough scratch memory
-// to run with a workgroup size of 64.
-#ifdef KOKKOS_ENABLE_HIP
-    if (perTargetMem() <
-        Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(1))
-      Kokkos::abort("Can't allocate enough scratch space!");
-    _scratch_level = 1;
-#else
-    if (perTargetMem() <
-        Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(0))
-      _scratch_level = 0;
-    else if (perTargetMem() <
-             Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(1))
-      _scratch_level = 1;
-    else
-      Kokkos::abort("Can't allocate enough scratch space!");
-#endif
-
     Kokkos::TeamPolicy policy(space, 1, Kokkos::AUTO);
     policy.set_scratch_size(_scratch_level, Kokkos::PerThread(perTargetMem()));
     int team_size =
@@ -380,7 +383,7 @@ private:
   Coefficients _coefficients;
   int _num_targets;
   int _num_neighbors;
-  mutable int _scratch_level;
+  int _scratch_level;
 };
 
 template <typename CRBFunc, typename PolynomialDegree,
