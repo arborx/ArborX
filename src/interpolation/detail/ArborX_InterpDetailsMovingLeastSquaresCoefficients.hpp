@@ -66,12 +66,28 @@ public:
       , _coefficients(coefficients)
       , _num_targets(target_access.size())
       , _num_neighbors(source_points.extent_int(1))
-  {}
+  {
+    if (perTargetMem() >
+        static_cast<std::size_t>(
+            Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(1)))
+      Kokkos::abort("Can't allocate enough scratch space!");
+
+#ifdef KOKKOS_ENABLE_HIP
+    // FIXME_HIP The HIP backend is limited by the small level 0 scratch space
+    // since Kokkos through at least version 5.2 requires at least enough
+    // scratch memory to run with a workgroup size of 64.
+    _scratch_level = 1;
+#else
+    std::size_t scratch_0_max_size =
+        Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(0);
+    _scratch_level = (perTargetMem() > scratch_0_max_size);
+#endif
+  }
 
   template <typename TeamMember>
   KOKKOS_FUNCTION void operator()(TeamMember const &member) const
   {
-    auto const &scratch = member.thread_scratch(0);
+    auto const &scratch = member.thread_scratch(_scratch_level);
 
     int target = member.league_rank() * member.team_size() + member.team_rank();
     if (target >= _num_targets)
@@ -201,17 +217,13 @@ public:
   auto makePolicy(ExecutionSpace const &space) const
   {
     Kokkos::TeamPolicy dummy_policy(space, 1, Kokkos::AUTO);
-    dummy_policy.set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
+    dummy_policy.set_scratch_size(_scratch_level,
+                                  Kokkos::PerThread(perTargetMem()));
     int team_size =
         dummy_policy.team_size_recommended(*this, Kokkos::ParallelForTag{});
-    if (team_size != 0)
-    {
-      int league_size = (_num_targets + team_size - 1) / team_size;
-      return Kokkos::TeamPolicy(space, league_size, team_size)
-          .set_scratch_size(0, Kokkos::PerThread(perTargetMem()));
-    }
-    return Kokkos::TeamPolicy(space, _num_targets, 1, 1)
-        .set_scratch_size(0, Kokkos::PerTeam(perTargetMem()));
+    int league_size = (_num_targets + team_size - 1) / team_size;
+    return Kokkos::TeamPolicy(space, league_size, team_size)
+        .set_scratch_size(_scratch_level, Kokkos::PerThread(perTargetMem()));
   }
 
 private:
@@ -365,6 +377,7 @@ private:
   Coefficients _coefficients;
   int _num_targets;
   int _num_neighbors;
+  int _scratch_level;
 };
 
 template <typename CRBFunc, typename PolynomialDegree,
