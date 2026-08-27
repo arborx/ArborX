@@ -67,6 +67,28 @@ public:
   constexpr Vector const &direction() const { return _direction; }
 };
 
+} // namespace ArborX::Experimental
+
+template <typename Coordinate>
+struct ArborX::GeometryTraits::dimension<ArborX::Experimental::Ray<Coordinate>>
+{
+  static constexpr int value = 3;
+};
+template <typename Coordinate>
+struct ArborX::GeometryTraits::tag<ArborX::Experimental::Ray<Coordinate>>
+{
+  using type = RayTag;
+};
+template <typename Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::Experimental::Ray<Coordinate>>
+{
+  using type = Coordinate;
+};
+
+namespace ArborX::Experimental
+{
+
 // The ray-box intersection algorithm is based on [1]. Their 'efficient slag'
 // algorithm checks the intersections both in front and behind the ray.
 //
@@ -508,22 +530,5 @@ KOKKOS_INLINE_FUNCTION auto overlapDistance(Ray<Coordinate> const &ray,
 }
 
 } // namespace ArborX::Experimental
-
-template <typename Coordinate>
-struct ArborX::GeometryTraits::dimension<ArborX::Experimental::Ray<Coordinate>>
-{
-  static constexpr int value = 3;
-};
-template <typename Coordinate>
-struct ArborX::GeometryTraits::tag<ArborX::Experimental::Ray<Coordinate>>
-{
-  using type = RayTag;
-};
-template <typename Coordinate>
-struct ArborX::GeometryTraits::coordinate_type<
-    ArborX::Experimental::Ray<Coordinate>>
-{
-  using type = Coordinate;
-};
 
 #endif
