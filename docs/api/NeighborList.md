@@ -11,7 +11,7 @@ ArborX provides two functions for computing **all pairs of points** within a giv
 
 | Function | Description |
 |----------|-------------|
-| `findHalfNeighborList` | Each pair `(i, j)` with `i < j` is stored **once** (under index `j`). |
+| `findHalfNeighborList` | For each pair `(i, j)` with `i < j`, only `i` is stored in `j`'s neighbour list (the pair is recorded once, under the **larger** index). |
 | `findFullNeighborList` | Each pair is stored **twice**: `j` appears in `i`'s list and `i` appears in `j`'s list. |
 
 Both functions output a **CSR (Compressed Sparse Row)** data structure consisting of an offset array and an index array.
@@ -72,7 +72,7 @@ After a successful call:
 
 ### Half list
 
-Point `j` appears in the neighbour list of `i` **only when `j < i`** (upper triangle is omitted). This is the efficient representation for symmetric algorithms such as force calculations in molecular dynamics.
+For each pair `(i, j)` with `i < j`, only `i` is stored in `j`'s neighbour list. When iterating over the neighbours of point `i`, you will find only indices `j < i` (the smaller-index partner of each pair). This is the efficient representation for symmetric algorithms such as force calculations in molecular dynamics.
 
 ### Full list
 

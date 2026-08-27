@@ -142,7 +142,7 @@ ArborX ships the following types with pre-registered traits:
 | `ArborX::Box<DIM, C>` | `DIM` | `BoxTag` | `C` |
 | `ArborX::Sphere<DIM, C>` | `DIM` | `SphereTag` | `C` |
 | `ArborX::Triangle<DIM, C>` | `DIM` | `TriangleTag` | `C` |
-| `ArborX::KDOP<DIM, k, C>` | `DIM` | `KDOPTag` | `C` |
+| `ArborX::Experimental::KDOP<DIM, k, C>` | `DIM` | `KDOPTag` | `C` |
 | `ArborX::ExperimentalHyperGeometry::Tetrahedron<C>` | 3 | `TetrahedronTag` | `C` |
 | `ArborX::Experimental::Ray<C>` | 3 | `RayTag` | `C` |
 | `ArborX::Experimental::Segment<DIM, C>` | `DIM` | `SegmentTag` | `C` |
