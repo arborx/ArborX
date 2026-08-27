@@ -142,16 +142,6 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray<Coordinate> const &ray,
   return (tmin <= tmax);
 }
 
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION bool intersects(Ray<Coordinate> const &ray,
-                                       Box<3, Coordinate> const &box)
-{
-  Coordinate tmin;
-  Coordinate tmax;
-  // intersects only if box is in front of the ray
-  return intersection(ray, box, tmin, tmax) && (tmax >= 0);
-}
-
 // The function returns the index of the largest
 // component of the direction vector.
 template <typename Coordinate>
@@ -401,16 +391,6 @@ intersection(Ray<Coordinate> const &ray,
 
   return false;
 } // namespace Experimental
-
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION bool intersects(Ray<Coordinate> const &ray,
-                                       Triangle<3, Coordinate> const &triangle)
-{
-  Coordinate tmin;
-  Coordinate tmax;
-  // intersects only if triangle is in front of the ray
-  return intersection(ray, triangle, tmin, tmax) && (tmax >= 0);
-}
 
 // Returns the first positive value for t such that ray.origin + t * direction
 // intersects the given box. If no such value exists, returns inf.
