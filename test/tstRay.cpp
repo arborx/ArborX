@@ -109,29 +109,6 @@ BOOST_AUTO_TEST_CASE(ray_box_intersection, *boost::unit_test::tolerance(1e-6f))
 #undef ARBORX_TEST_RAY_BOX_INTERSECTION
 #undef ARBORX_TEST_RAY_BOX_NO_INTERSECTION
 
-BOOST_AUTO_TEST_CASE(ray_box_distance)
-{
-  using ArborX::Experimental::Ray;
-  // use const instead of constexpr because MSVC shows error(error:expression
-  // must have a constant value)
-  constexpr ArborX::Box unit_box{{0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}};
-
-  namespace KokkosExt = ArborX::Details::KokkosExt;
-#ifdef _MSC_VER
-  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
-#else
-  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
-#endif
-
-  // clang-format off
-  // origin is within the box
-  BOOST_TEST(distance(Ray{{.5, .5, .5}, {1, 0, 0}}, unit_box) == 0.f);
-  // origin outside box, ray hitting box
-  BOOST_TEST(distance(Ray{{.5, .5, -.5}, {0, 0, 1}}, unit_box) == .5f);
-  // origin outside box, ray missing box
-  BOOST_TEST(distance(Ray{{.5, .5, -.5}, {0, 0, -1}}, unit_box) == inf);
-}
-
 // NOTE until boost 1.70 need to cast both operands when comparing floating
 // points
 BOOST_AUTO_TEST_CASE(overlap_distance_sphere,

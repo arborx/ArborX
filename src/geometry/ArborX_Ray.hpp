@@ -392,23 +392,6 @@ intersection(Ray<Coordinate> const &ray,
   return false;
 } // namespace Experimental
 
-// Returns the first positive value for t such that ray.origin + t * direction
-// intersects the given box. If no such value exists, returns inf.
-// Note that this definiton is different from the standard
-// "smallest distance between a point on the ray and a point in the box"
-// so we can use nearest queries for ray tracing.
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION auto distance(Ray<Coordinate> const &ray,
-                                     Box<3, Coordinate> const &box)
-{
-  Coordinate tmin;
-  Coordinate tmax;
-  bool intersects = intersection(ray, box, tmin, tmax) && (tmax >= 0);
-  return intersects ? Kokkos::max(tmin, (Coordinate)0)
-                    : Details::KokkosExt::ArithmeticTraits::infinity<
-                          Coordinate>::value;
-}
-
 // Solves a*x^2 + b*x + c = 0.
 // If a solution exists, return true and stores roots at x1, x2.
 // If a solution does not exist, returns false.
