@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborXBenchmark_MPIKokkosScopeGuard.hpp>
 #include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedTree.hpp>
 #include <ArborX_Point.hpp>
@@ -25,8 +26,6 @@
 #include <vector>
 
 #include <mpi.h>
-
-namespace bpo = boost::program_options;
 
 struct Parameters
 {
@@ -250,7 +249,7 @@ void main_(MPI_Comm comm, Parameters const &params)
 
 int main(int argc, char *argv[])
 {
-  MPI_Init(&argc, &argv);
+  ArborXBenchmark::MPIKokkosScopeGuard guard(argc, argv);
 
   MPI_Comm const comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -263,22 +262,7 @@ int main(int argc, char *argv[])
               << std::endl;
   }
 
-  // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
-  // are not on MPI rank 0 to prevent Kokkos from printing the help message
-  // multiply.
-  if (comm_rank != 0)
-  {
-    auto *help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
-      return x == "--help" || x == "--kokkos-help";
-    });
-    if (help_it != argv + argc)
-    {
-      std::swap(*help_it, *(argv + argc - 1));
-      --argc;
-    }
-  }
-
-  Kokkos::ScopeGuard guard(argc, argv);
+  namespace bpo = boost::program_options;
 
   Parameters params;
   std::string precision;
@@ -336,8 +320,6 @@ int main(int argc, char *argv[])
     main_<float>(comm, params);
   else
     main_<double>(comm, params);
-
-  MPI_Finalize();
 
   return EXIT_SUCCESS;
 }

@@ -9,8 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include "../../benchmarks/utils/ArborXBenchmark_TimeMonitor.hpp"
+#include "ArborXBenchmark_TimeMonitor.hpp"
 #include "ArborX_WallDistance.hpp"
+#include <ArborXBenchmark_MPIKokkosScopeGuard.hpp>
 #include <ArborX_Version.hpp>
 
 #include <boost/program_options.hpp>
@@ -111,7 +112,7 @@ void main_(MPI_Comm comm, ExecutionSpace const &space,
 
 int main(int argc, char *argv[])
 {
-  MPI_Init(&argc, &argv);
+  ArborXBenchmark::MPIKokkosScopeGuard guard(argc, argv);
 
   MPI_Comm const comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -122,21 +123,6 @@ int main(int argc, char *argv[])
   using Coordinate = double;
 
   namespace bpo = boost::program_options;
-
-  // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if
-  // we are not on MPI rank 0 to prevent Kokkos from printing the help
-  // message multiply.
-  auto *help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
-    return x == "--help" || x == "--kokkos-help";
-  });
-  bool is_help_present = (help_it != argv + argc);
-  if (is_help_present && comm_rank != 0)
-  {
-    std::swap(*help_it, *(argv + argc - 1));
-    --argc;
-  }
-
-  Kokkos::initialize(argc, argv);
 
   std::string basis_type;
   std::string filename;
@@ -184,12 +170,10 @@ int main(int argc, char *argv[])
     std::cout << "#MPI ranks        : " << comm_size << std::endl;
   }
 
-  if (is_help_present)
+  if (vm.count("help") > 0)
   {
     if (comm_rank == 0)
       std::cout << desc << '\n';
-    Kokkos::finalize();
-    MPI_Finalize();
     return 0;
   }
 
@@ -197,9 +181,7 @@ int main(int argc, char *argv[])
   {
     if (comm_rank == 0)
       std::cerr << "At least one wall name must be provided\n";
-    Kokkos::finalize();
-    MPI_Finalize();
-    return 0;
+    return 1;
   }
 
   if (distance_type != "node" && distance_type != "cell")
@@ -207,16 +189,12 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
       std::cerr << "Invalid distance_type: " << distance_type
                 << ". Must be \"node\" or \"cell\".\n";
-    Kokkos::finalize();
-    MPI_Finalize();
-    return 0;
+    return 2;
   }
 
   if (!check_names(comm, filename, block_names, wall_names))
   {
-    Kokkos::finalize();
-    MPI_Finalize();
-    return 0;
+    return 3;
   }
 
   auto vec2string = [](std::vector<std::string> const &names) {
@@ -344,9 +322,6 @@ int main(int argc, char *argv[])
 
     mesh->writeToExodus(out_filename);
   }
-
-  Kokkos::finalize();
-  MPI_Finalize();
 
   return 0;
 }

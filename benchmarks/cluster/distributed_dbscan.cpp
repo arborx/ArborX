@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "ArborX_DBSCANVerification.hpp"
+#include <ArborXBenchmark_MPIKokkosScopeGuard.hpp>
 #include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedDBSCAN.hpp>
 #include <ArborX_Version.hpp>
@@ -118,7 +119,7 @@ std::string vec2string(std::vector<T> const &s, std::string const &delim = ", ")
 
 int main(int argc, char *argv[])
 {
-  MPI_Init(&argc, &argv);
+  ArborXBenchmark::MPIKokkosScopeGuard guard(argc, argv);
 
   MPI_Comm const comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -133,21 +134,6 @@ int main(int argc, char *argv[])
               << std::endl;
     std::cout << "#MPI ranks        : " << comm_size << std::endl;
   }
-
-  // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
-  // are not on MPI rank 0 to prevent Kokkos from printing the help message
-  // multiply.
-  auto *help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
-    return x == "--help" || x == "--kokkos-help";
-  });
-  bool is_help_present = (help_it != argv + argc);
-  if (is_help_present && comm_rank != 0)
-  {
-    std::swap(*help_it, *(argv + argc - 1));
-    --argc;
-  }
-
-  Kokkos::initialize(argc, argv);
 
   namespace bpo = boost::program_options;
   using namespace ArborXBenchmark;
@@ -182,7 +168,7 @@ int main(int argc, char *argv[])
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
   bpo::notify(vm);
 
-  if (is_help_present)
+  if (vm.count("help") > 0)
   {
     if (comm_rank == 0)
     {
@@ -193,7 +179,6 @@ int main(int argc, char *argv[])
                    "all the clusters will be merged together.\n"
                 << std::endl;
     }
-    MPI_Finalize();
     return 0;
   }
 
@@ -206,7 +191,6 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
       std::cerr << "Implementation must be one of " << vec2string(allowed_impls)
                 << "\n";
-    MPI_Finalize();
     return 2;
   }
   if (!found(allowed_precisions, precision))
@@ -214,14 +198,12 @@ int main(int argc, char *argv[])
     if (comm_rank == 0)
       std::cerr << "Precision must be one of " << vec2string(allowed_precisions)
                 << "\n";
-    MPI_Finalize();
     return 2;
   }
   if (!params.filename.empty() && precision != "float")
   {
     if (comm_rank == 0)
       std::cerr << "Data loading only supports \"float\"\n";
-    MPI_Finalize();
     return 3;
   }
 
@@ -232,7 +214,6 @@ int main(int argc, char *argv[])
   {
     if (comm_rank == 0)
       std::cerr << "Error: dimension " << dim << " not allowed\n" << std::endl;
-    MPI_Finalize();
     return 4;
   }
 
@@ -317,9 +298,6 @@ int main(int argc, char *argv[])
     }
 #undef SWITCH_DIM
   }
-
-  Kokkos::finalize();
-  MPI_Finalize();
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
