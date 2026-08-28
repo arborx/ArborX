@@ -144,12 +144,12 @@ int main(int argc, char *argv[])
   float angle;
   // clang-format off
   desc.add_options()
-      ( "help", "help message" )
-      ( "angle", bpo::value<float>(&angle)->default_value(0), "Angle (degrees)" )
-      ( "geometry", bpo::value<std::string>(&params.type)->default_value("ball"), ("geometry " + vec2string(allowed_geometries, " | ")).c_str() )
-      ( "n", bpo::value<int>(&n)->default_value(-1), "number of query points" )
-      ( "radius", bpo::value<float>(&params.radius)->default_value(1.f), "sphere radius" )
-      ( "refinements", bpo::value<int>(&params.num_refinements)->default_value(5), "number of icosahedron refinements" )
+      ( "help,h", "help message" )
+      ( "angle,a", bpo::value<float>(&angle)->default_value(0), "Angle (degrees)" )
+      ( "geometry,g", bpo::value<std::string>(&params.type)->default_value("ball"), ("geometry " + vec2string(allowed_geometries, " | ")).c_str() )
+      ( "n,n", bpo::value<int>(&n)->default_value(-1), "number of query points" )
+      ( "radius,r", bpo::value<float>(&params.radius)->default_value(1.f), "sphere radius" )
+      ( "refinements,R", bpo::value<int>(&params.num_refinements)->default_value(5), "number of icosahedron refinements" )
       ( "vtk-filename", bpo::value<std::string>(&vtk_filename), "filename to dump mesh to in VTK format" )
       ;
   // clang-format on

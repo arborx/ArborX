@@ -108,11 +108,11 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   // clang-format off
     desc.add_options()
-        ( "help", "produce help message" )
+        ( "help,h", "produce help message" )
         ( "num-spaces", bpo::value<int>(&num_exec_spaces)->default_value(1), "Number of execution space instances." )
         ( "num-problems", bpo::value<int>(&num_problems)->default_value(1), "Number of subproblems." )
-        ( "values", bpo::value<int>(&num_primitives)->default_value(20000), "Number of indexable values (source) per subproblem." )
-        ( "queries", bpo::value<int>(&num_predicates)->default_value(5000), "Number of queries (target) per subproblem." )
+        ( "predicates,m", bpo::value<int>(&num_predicates)->default_value(5000), "Number of predicates per subproblem." )
+        ( "primitives,n", bpo::value<int>(&num_primitives)->default_value(20000), "Number of primitives per subproblem." )
         ;
   // clang-format on
   bpo::variables_map vm;

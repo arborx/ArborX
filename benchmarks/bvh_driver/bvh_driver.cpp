@@ -169,12 +169,12 @@ int main(int argc, char *argv[])
   std::vector<std::string> exact_specs;
   // clang-format off
     desc.add_options()
-        ( "help", "produce help message" )
-        ( "values", bpo::value<int>(&single_spec.n_values)->default_value(50000), "number of indexable values (source)" )
-        ( "queries", bpo::value<int>(&single_spec.n_queries)->default_value(20000), "number of queries (target)" )
-        ( "predicate-sort", bpo::value<bool>(&single_spec.sort_predicates)->default_value(true), "sort predicates" )
+        ( "help,h", "produce help message" )
+        ( "predicates,m", bpo::value<int>(&single_spec.n_queries)->default_value(20000), "number of predicates" )
+        ( "primitives,n", bpo::value<int>(&single_spec.n_values)->default_value(50000), "number of primitives" )
+        ( "predicate-sort,s", bpo::value<bool>(&single_spec.sort_predicates)->default_value(true), "sort predicates" )
         ( "neighbors", bpo::value<int>(&single_spec.n_neighbors)->default_value(10), "desired number of results per query" )
-        ( "buffer", bpo::value<int>(&single_spec.buffer_size)->default_value(0), "size for buffer optimization in radius search" )
+        ( "buffer,b", bpo::value<int>(&single_spec.buffer_size)->default_value(0), "size for buffer optimization in radius search" )
         ( "source-point-cloud-type", bpo::value<std::string>(&source_pt_cloud)->default_value("filled_box"), "shape of the source point cloud"  )
         ( "target-point-cloud-type", bpo::value<std::string>(&target_pt_cloud)->default_value("filled_box"), "shape of the target point cloud"  )
         ( "exact-spec", bpo::value<std::vector<std::string>>(&exact_specs)->multitoken(), "exact specification (can be specified multiple times for batch)" )
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
   if (vm.count("exact-spec") > 0)
   {
     for (std::string option :
-         {"values", "queries", "predicate-sort", "neighbors", "buffer",
+         {"predicates", "primitives", "predicate-sort", "neighbors", "buffer",
           "source-point-cloud-type", "target-point-cloud-type"})
     {
       if (!vm[option].defaulted())
