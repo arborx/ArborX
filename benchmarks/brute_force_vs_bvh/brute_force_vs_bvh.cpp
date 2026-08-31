@@ -29,11 +29,11 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
-      ( "help", "help message" )
-      ( "dimension", bpo::value<int>(&dim)->default_value(3), "dimension" )
-      ( "predicates", bpo::value<int>(&nqueries)->default_value(5), "number of predicates" )
-      ( "primitives", bpo::value<int>(&nprimitives)->default_value(5), "number of primitives" )
-      ( "repetitions", bpo::value<int>(&nrepeats)->default_value(1), "number of repetitions" )
+      ( "help,h", "help message" )
+      ( "dimension,d", bpo::value<int>(&dim)->default_value(3), "dimension" )
+      ( "predicates,m", bpo::value<int>(&nqueries)->default_value(5), "number of predicates" )
+      ( "primitives,n", bpo::value<int>(&nprimitives)->default_value(5), "number of primitives" )
+      ( "repetitions,r", bpo::value<int>(&nrepeats)->default_value(1), "number of repetitions" )
       ;
   // clang-format on
   bpo::variables_map vm;

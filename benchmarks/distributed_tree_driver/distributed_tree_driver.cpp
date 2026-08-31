@@ -285,9 +285,9 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
-      ( "help", "produce help message" )
-      ( "values", bpo::value<int>(&params.n_values)->default_value(20000), "Number of indexable values (source) per MPI rank." )
-      ( "queries", bpo::value<int>(&params.n_queries)->default_value(5000), "Number of queries (target) per MPI rank." )
+      ( "help,h", "produce help message" )
+      ( "predicates,m", bpo::value<int>(&params.n_queries)->default_value(5000), "Number of predicates per MPI rank." )
+      ( "primitives,n", bpo::value<int>(&params.n_values)->default_value(20000), "Number of primitives per MPI rank." )
       ( "neighbors", bpo::value<int>(&params.n_neighbors)->default_value(10), "Desired number of results per query." )
       ( "shift", bpo::value<float>(&params.shift)->default_value(1.f), "Shift of the point clouds. '0' means the clouds are built "
                                                                        "at the same place, while '1' places the clouds next to each"
@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
       ( "partition_dim", bpo::value<int>(&params.partition_dim)->default_value(3), "Number of dimension used by the partitioning of the global "
                                                                                    "point cloud. 1 -> local clouds are aligned on a line, 2 -> "
                                                                                    "local clouds form a board, 3 -> local clouds form a box." )
-      ( "precision", bpo::value<std::string>(&precision)->default_value("float"), "Precision (float | double)" )
+      ( "precision,p", bpo::value<std::string>(&precision)->default_value("float"), "Precision (float | double)" )
       ( "do-not-perform-knn-search", "skip kNN search" )
       ( "do-not-perform-radius-search", "skip radius search" )
       ( "shift-queries" , "By default, points are reused for the queries. Enabling this option shrinks the local box queries are created "

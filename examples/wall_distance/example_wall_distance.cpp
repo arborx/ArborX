@@ -153,18 +153,18 @@ int main(int argc, char *argv[])
   bpo::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
-    ("help", "help message" )
+    ("help,h", "help message" )
     ("basis-order", bpo::value<int>(&basis_order)->default_value(1), "basis order")
-    ("basis-distance_type", bpo::value<std::string>(&basis_type)->default_value("HGrad"), "basis distance_type")
-    ("block-names", bpo::value<std::vector<std::string>>(&block_names)->multitoken(), "block names to compute distances for")
-    ("filename", bpo::value<std::string>(&filename)->default_value("mesh.exo"), "mesh filename")
-    ("field-name", bpo::value<std::string>(&distance_field_name)->default_value("wall_distance"), "wall distance field name in Exodus")
+    ("basis-type", bpo::value<std::string>(&basis_type)->default_value("HGrad"), "basis type")
+    ("block-names,b", bpo::value<std::vector<std::string>>(&block_names)->multitoken(), "block names to compute distances for")
+    ("filename,f", bpo::value<std::string>(&filename)->default_value("mesh.exo"), "mesh filename")
+    ("field-name,F", bpo::value<std::string>(&distance_field_name)->default_value("wall_distance"), "wall distance field name in Exodus")
     ("int-order", bpo::value<int>(&int_order)->default_value(2), "integration order")
-    ("output-filename", bpo::value<std::string>(&out_filename)->default_value("output.exo"), "output filename")
-    ("restart-index", bpo::value<int>(&restart_index)->default_value(-1), "restart index")
-    ("type", bpo::value<std::string>(&distance_type)->default_value("node"), "type of field to write (node or cell)")
-    ("verbose", bpo::bool_switch(&verbose), "verbose")
-    ("wall-names", bpo::value<std::vector<std::string>>(&wall_names)->multitoken(), "names of walls")
+    ("output-filename,o", bpo::value<std::string>(&out_filename)->default_value("output.exo"), "output filename")
+    ("restart-index,r", bpo::value<int>(&restart_index)->default_value(-1), "restart index")
+    ("type,t", bpo::value<std::string>(&distance_type)->default_value("node"), "type of field to write (node or cell)")
+    ("verbose,v", bpo::bool_switch(&verbose), "verbose")
+    ("wall-names,w", bpo::value<std::vector<std::string>>(&wall_names)->multitoken(), "names of walls")
     ;
   // clang-format on
   bpo::variables_map vm;

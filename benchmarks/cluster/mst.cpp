@@ -82,16 +82,16 @@ int main(int argc, char *argv[])
   bool ascii;
   // clang-format off
   desc.add_options()
-      ( "help", "help message" )
+      ( "help,h", "help message" )
       ( "ascii", bpo::bool_switch(&ascii), "ascii file indicator")
-      ( "core-min-size", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
-      ( "dimension", bpo::value<int>(&params.dim)->default_value(-1), "dimension of points to generate" )
-      ( "filename", bpo::value<std::string>(&params.filename), "filename containing data" )
-      ( "max-num-points", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
-      ( "n", bpo::value<int>(&params.n)->default_value(10), "number of points to generate" )
-      ( "samples", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
+      ( "core-min-size,m", bpo::value<int>(&params.core_min_size)->default_value(2), "DBSCAN min_pts")
+      ( "dimension,d", bpo::value<int>(&params.dim)->default_value(-1), "dimension of points to generate" )
+      ( "filename,f", bpo::value<std::string>(&params.filename), "filename containing data" )
+      ( "max-num-points,N", bpo::value<int>(&params.max_num_points)->default_value(-1), "max number of points to read in")
+      ( "n,n", bpo::value<int>(&params.n)->default_value(10), "number of points to generate" )
+      ( "samples,s", bpo::value<int>(&params.num_samples)->default_value(-1), "number of samples" )
       ( "variable-density", bpo::bool_switch(&params.variable_density), "type of cluster density to generate" )
-      ( "verbose", bpo::bool_switch(&params.verbose), "verbose")
+      ( "verbose,v", bpo::bool_switch(&params.verbose), "verbose")
       ;
   // clang-format on
   bpo::variables_map vm;
