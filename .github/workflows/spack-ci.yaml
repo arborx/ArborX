@@ -2,9 +2,8 @@ name: CI [Ubuntu 24.04]
 
 on:
   push:
-    branches:
+    branches: [ master ]
   pull_request:
-    branches: [ $default-branch ]
 
 env:
   BUILD_TYPE: Debug
