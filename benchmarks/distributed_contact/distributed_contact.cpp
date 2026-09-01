@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <ArborXBenchmark_MPIKokkosScopeGuard.hpp>
 #include <ArborXBenchmark_TimeMonitor.hpp>
 #include <ArborX_DistributedTree.hpp>
 #include <ArborX_Triangle.hpp>
@@ -203,7 +204,7 @@ int main_(MPI_Comm const comm)
 
 int main(int argc, char *argv[])
 {
-  MPI_Init(&argc, &argv);
+  ArborXBenchmark::MPIKokkosScopeGuard guard(argc, argv);
 
   MPI_Comm const comm = MPI_COMM_WORLD;
   int comm_rank;
@@ -218,26 +219,7 @@ int main(int argc, char *argv[])
               << ArborX::Details::KokkosExt::version() << std::endl;
   }
 
-  // Strip "--help" and "--kokkos-help" from the flags passed to Kokkos if we
-  // are not on MPI rank 0 to prevent Kokkos from printing the help message
-  // multiple times.
-  if (comm_rank != 0)
-  {
-    auto *help_it = std::find_if(argv, argv + argc, [](std::string const &x) {
-      return x == "--help" || x == "--kokkos-help";
-    });
-    if (help_it != argv + argc)
-    {
-      std::swap(*help_it, *(argv + argc - 1));
-      --argc;
-    }
-  }
-
-  Kokkos::ScopeGuard guard(argc, argv);
-
   main_<float>(comm);
-
-  MPI_Finalize();
 
   return EXIT_SUCCESS;
 }
