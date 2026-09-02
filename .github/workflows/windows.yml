@@ -12,15 +12,17 @@ jobs:
     runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v7
+    - name: Checkout
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     - name: Install dependencies via vcpkg
-      uses: johnwason/vcpkg-action@v8
+      uses: johnwason/vcpkg-action@04c68c847bf5196ecaa72331ecf51208583916ef # v8.0.0
       id: vcpkg
       with:
         pkgs: boost-test boost-program-options boost-geometry benchmark
         triplet: x64-windows-release
         token: ${{ github.token }}
-    - uses: actions/checkout@v7
+    - name: Checkout Kokkos
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         repository: kokkos/kokkos
         ref: 4.6.00
