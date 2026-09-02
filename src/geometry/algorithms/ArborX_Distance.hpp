@@ -218,6 +218,28 @@ struct distance<PointTag, SegmentTag, Point, Segment>
   }
 };
 
+template <typename Ray, typename Box>
+struct distance<RayTag, BoxTag, Ray, Box>
+{
+  // Returns the first positive value for t such that ray.origin + t * direction
+  // intersects the given box. If no such value exists, returns inf.
+  // Note that this definiton is different from the standard
+  // "smallest distance between a point on the ray and a point in the box"
+  // so we can use nearest queries for ray tracing.
+  KOKKOS_FUNCTION static auto apply(Ray const &ray, Box const &box)
+  {
+    static_assert(GeometryTraits::dimension_v<Ray> == 3);
+    using Coordinate = GeometryTraits::coordinate_type_t<Ray>;
+
+    Coordinate tmin;
+    Coordinate tmax;
+    bool intersects = intersection(ray, box, tmin, tmax) && (tmax >= 0);
+    return intersects ? Kokkos::max(tmin, (Coordinate)0)
+                      : Details::KokkosExt::ArithmeticTraits::infinity<
+                            Coordinate>::value;
+  }
+};
+
 } // namespace Details::Dispatch
 
 } // namespace ArborX

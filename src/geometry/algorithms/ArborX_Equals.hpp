@@ -72,6 +72,17 @@ struct equals<SphereTag, Sphere>
   }
 };
 
+// equals sphere-sphere
+template <typename Ray>
+struct equals<RayTag, Ray>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ray const &l, Ray const &r)
+  {
+    return Details::equals(l.centroid(), r.centroid()) &&
+           l.direction() == r.direction();
+  }
+};
+
 } // namespace Dispatch
 
 } // namespace ArborX::Details

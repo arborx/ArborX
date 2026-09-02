@@ -504,6 +504,37 @@ struct intersects<SegmentTag, TriangleTag, Segment, Triangle>
   }
 };
 
+template <typename Ray, typename Box>
+struct intersects<RayTag, BoxTag, Ray, Box>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ray const &ray, Box const &box)
+  {
+    static_assert(GeometryTraits::dimension_v<Ray> == 3);
+    using Coordinate = GeometryTraits::coordinate_type_t<Ray>;
+
+    Coordinate tmin;
+    Coordinate tmax;
+    // intersects only if box is in front of the ray
+    return intersection(ray, box, tmin, tmax) && (tmax >= 0);
+  }
+};
+
+template <typename Ray, typename Triangle>
+struct intersects<RayTag, TriangleTag, Ray, Triangle>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(Ray const &ray,
+                                              Triangle const &triangle)
+  {
+    static_assert(GeometryTraits::dimension_v<Ray> == 3);
+    using Coordinate = GeometryTraits::coordinate_type_t<Ray>;
+
+    Coordinate tmin;
+    Coordinate tmax;
+    // intersects only if triangle is in front of the ray
+    return intersection(ray, triangle, tmin, tmax) && (tmax >= 0);
+  }
+};
+
 namespace
 {
 // Computes x^t R y
