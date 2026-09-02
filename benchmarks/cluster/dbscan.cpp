@@ -134,8 +134,7 @@ void sortAndFilterClusters(ExecutionSpace const &exec_space,
         auto offset_pos = map_cluster_to_offset_position(labels(i));
         if (offset_pos != IGNORED_CLUSTER)
         {
-          auto position =
-              Kokkos::atomic_fetch_add(&cluster_starts(offset_pos), 1);
+          auto position = Kokkos::atomic_fetch_inc(&cluster_starts(offset_pos));
           cluster_indices(position) = i;
         }
       });

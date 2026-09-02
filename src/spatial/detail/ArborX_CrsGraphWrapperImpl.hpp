@@ -84,7 +84,7 @@ struct InsertGenerator
       auto const buffer_size = *(&offset + 1) - offset;
 
       return _callback(raw_predicate, value, [&](ValueType const &v) {
-        int count_old = Kokkos::atomic_fetch_add(&count, 1);
+        int count_old = Kokkos::atomic_fetch_inc(&count);
         if (count_old < buffer_size)
           _out(offset + count_old) = v;
       });
@@ -106,7 +106,7 @@ struct InsertGenerator
       // offset is problematic for OpenMP as you potentially constantly steal
       // cache lines.
       return _callback(raw_predicate, value, [&](ValueType const &v) {
-        _out(Kokkos::atomic_fetch_add(&offset, 1)) = v;
+        _out(Kokkos::atomic_fetch_inc(&offset)) = v;
       });
     }
   }
