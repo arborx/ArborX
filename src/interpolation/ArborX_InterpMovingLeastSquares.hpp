@@ -47,7 +47,7 @@ struct MLSSearchNeighborsCallback
   {
     int const target = getData(predicate);
     int const source = primitive.index;
-    auto count = Kokkos::atomic_fetch_add(&counter(target), 1);
+    auto count = Kokkos::atomic_fetch_inc(&counter(target));
     indices(target, count) = source;
     source_view(target, count) = primitive.value;
   }
