@@ -13,7 +13,6 @@
 #include <ArborX_KDOP.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
-#include <detail/ArborX_Iota.hpp>
 
 #include <Kokkos_Core.hpp>
 
@@ -46,8 +45,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_kdop, DeviceType, ARBORX_DEVICE_TYPES)
       {{0, 0, 2}}, // 11
       {{0, 0, 3}}, // 12
   };
-  ArborX::BoundingVolumeHierarchy const tree(
-      ExecutionSpace{}, ArborX::Details::Iota<MemorySpace>(primitives.size()),
+  auto tree = ArborX::create_index<ArborX::BoundingVolumeHierarchy>(
+      ExecutionSpace{}, primitives.size(),
       Kokkos::create_mirror_view_and_copy(
           MemorySpace{},
           Kokkos::View<Point *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(
