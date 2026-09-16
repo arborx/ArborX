@@ -67,19 +67,27 @@ public:
   constexpr Vector const &direction() const { return _direction; }
 };
 
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION constexpr bool equals(Ray<Coordinate> const &l,
-                                             Ray<Coordinate> const &r)
-{
-  using ArborX::Details::equals;
-  return equals(l.origin(), r.origin()) && l.direction() == r.direction();
-}
+} // namespace ArborX::Experimental
 
 template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION auto returnCentroid(Ray<Coordinate> const &ray)
+struct ArborX::GeometryTraits::dimension<ArborX::Experimental::Ray<Coordinate>>
 {
-  return ray.origin();
-}
+  static constexpr int value = 3;
+};
+template <typename Coordinate>
+struct ArborX::GeometryTraits::tag<ArborX::Experimental::Ray<Coordinate>>
+{
+  using type = RayTag;
+};
+template <typename Coordinate>
+struct ArborX::GeometryTraits::coordinate_type<
+    ArborX::Experimental::Ray<Coordinate>>
+{
+  using type = Coordinate;
+};
+
+namespace ArborX::Experimental
+{
 
 // The ray-box intersection algorithm is based on [1]. Their 'efficient slag'
 // algorithm checks the intersections both in front and behind the ray.
@@ -154,16 +162,6 @@ KOKKOS_INLINE_FUNCTION bool intersection(Ray<Coordinate> const &ray,
       tmax = tdmax;
   }
   return (tmin <= tmax);
-}
-
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION bool intersects(Ray<Coordinate> const &ray,
-                                       Box<3, Coordinate> const &box)
-{
-  Coordinate tmin;
-  Coordinate tmax;
-  // intersects only if box is in front of the ray
-  return intersection(ray, box, tmin, tmax) && (tmax >= 0);
 }
 
 // The function returns the index of the largest
@@ -416,33 +414,6 @@ intersection(Ray<Coordinate> const &ray,
   return false;
 } // namespace Experimental
 
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION bool intersects(Ray<Coordinate> const &ray,
-                                       Triangle<3, Coordinate> const &triangle)
-{
-  Coordinate tmin;
-  Coordinate tmax;
-  // intersects only if triangle is in front of the ray
-  return intersection(ray, triangle, tmin, tmax) && (tmax >= 0);
-}
-
-// Returns the first positive value for t such that ray.origin + t * direction
-// intersects the given box. If no such value exists, returns inf.
-// Note that this definiton is different from the standard
-// "smallest distance between a point on the ray and a point in the box"
-// so we can use nearest queries for ray tracing.
-template <typename Coordinate>
-KOKKOS_INLINE_FUNCTION auto distance(Ray<Coordinate> const &ray,
-                                     Box<3, Coordinate> const &box)
-{
-  Coordinate tmin;
-  Coordinate tmax;
-  bool intersects = intersection(ray, box, tmin, tmax) && (tmax >= 0);
-  return intersects ? Kokkos::max(tmin, (Coordinate)0)
-                    : Details::KokkosExt::ArithmeticTraits::infinity<
-                          Coordinate>::value;
-}
-
 // Solves a*x^2 + b*x + c = 0.
 // If a solution exists, return true and stores roots at x1, x2.
 // If a solution does not exist, returns false.
@@ -559,22 +530,5 @@ KOKKOS_INLINE_FUNCTION auto overlapDistance(Ray<Coordinate> const &ray,
 }
 
 } // namespace ArborX::Experimental
-
-template <typename Coordinate>
-struct ArborX::GeometryTraits::dimension<ArborX::Experimental::Ray<Coordinate>>
-{
-  static constexpr int value = 3;
-};
-template <typename Coordinate>
-struct ArborX::GeometryTraits::tag<ArborX::Experimental::Ray<Coordinate>>
-{
-  using type = RayTag;
-};
-template <typename Coordinate>
-struct ArborX::GeometryTraits::coordinate_type<
-    ArborX::Experimental::Ray<Coordinate>>
-{
-  using type = Coordinate;
-};
 
 #endif

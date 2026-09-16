@@ -12,6 +12,7 @@
 #include <ArborX_Box.hpp>
 #include <ArborX_Ellipsoid.hpp>
 #include <ArborX_KDOP.hpp>
+#include <ArborX_Ray.hpp>
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Tetrahedron.hpp>
 #include <ArborX_Triangle.hpp>
@@ -569,4 +570,210 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_point_kdop, KDOP_t, KDOP_3D_types)
     // with some point outside the unit cube
     BOOST_TEST(!sym_intersects(Point{1, 2, 3}, x));
   }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_ray_box, Coordinate, CoordinatesList)
+{
+  using Ray = ArborX::Experimental::Ray<Coordinate>;
+  using Box = ArborX::Box<3, Coordinate>;
+
+  constexpr Box unit_box{{0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}};
+
+  // origin is within the box
+  BOOST_TEST(intersects(Ray{{.5, .5, .5}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{.5, .5, .5}, {0, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{.5, .5, .5}, {0, 0, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{.5, .5, .5}, {1, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{.5, .5, .5}, {1, 1, 1}}, unit_box));
+
+  // origin is outside the box
+  // hit the center of the face
+  BOOST_TEST(intersects(Ray{{-1, .5, .5}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, .5, .5}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, .5, .5}, {0, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{2, .5, .5}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, .5, .5}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, .5, .5}, {0, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{-1, 1.5, .5}, {1, -1, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, 1.5, .5}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{-1, 1.5, 1.5}, {1, -1, -1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, 1.5, 1.5}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, 1.5, 1.5}, {1, -1, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, 1.5, 1.5}, {1, 0, -1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{2, -.5, .5}, {-1, 1, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, -.5, .5}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{2, -.5, 1.5}, {-1, 1, -1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, -.5, 1.5}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, -.5, 1.5}, {-1, 1, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, -.5, 1.5}, {-1, 0, -1}}, unit_box));
+
+  // hit the center of an edge
+  BOOST_TEST(intersects(Ray{{-1, 0, .5}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, 0, .5}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, 0, .5}, {0, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{2, 0, .5}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, 0, .5}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, 0, .5}, {0, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{-1, -1, .5}, {1, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{-1, 1, .5}, {1, -1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{-1, -2, .5}, {1, 2, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{2, 2, .5}, {-1, -1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{2, -1, .5}, {-1, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{2, 1, .5}, {-1, -1, 0}}, unit_box));
+
+  // hit a corner
+  BOOST_TEST(intersects(Ray{{-0.5, 1.5, 1.5}, {1, -1, -1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, 1, 1}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{-1, 1, 1}, {0, 1, 1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, 1, 1}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{2, 1, 1}, {0, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{-1, -1, -1}, {1, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{2, 2, 2}, {-1, -1, -1}}, unit_box));
+
+  BOOST_TEST(!intersects(Ray{{1, 2, 3}, {4, 5, 6}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 2, 3}, {-1, -2, -3}}, unit_box));
+
+  // origin is on the box (no 0*inf).
+  BOOST_TEST(intersects(Ray{{0, 0, 0}, {1, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 0, 0}, {-1, -1, -1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, 1}, {-1, -1, -1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, 1}, {1, 1, 1}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{1, .5, .5}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, .5, .5}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{.5, 1, .5}, {0, -1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{.5, 1, .5}, {0, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{.5, .5, 1}, {0, 0, -1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{.5, .5, 1}, {0, 0, 1}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{0, 0, .5}, {1, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 0, .5}, {-1, -1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, .5}, {-1, -1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, .5}, {1, 1, 0}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{0, 0.5, 0}, {-1, -2, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0.5, 0, 0.5}, {2, 0, -1}}, unit_box));
+
+  // origin is on the box (with 0*inf).
+  BOOST_TEST(intersects(Ray{{0, 0, 0}, {0, 1, -1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 0, 0}, {-1, 0, -1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 0, 0}, {-1, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 0, 0}, {0, 0, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 0, 0}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 0, 0}, {0, -1, 0}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{1, 1, 1}, {0, -1, -1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, 1}, {1, 0, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, 1}, {-1, -1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, 1}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, 1}, {0, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, 1}, {0, 0, -1}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{0, 1, 1}, {0, 0, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 0, 1}, {1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1, 0}, {0, 1, 0}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{0, 0, 1}, {-1, 0, -1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 0, 1}, {0, 0, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 0, 0}, {0, 1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 0, 0}, {-1, 0, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 1, 0}, {0, 0, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 1, 0}, {0, 0, -1}}, unit_box));
+
+  // more cases with 0*inf:
+  BOOST_TEST(intersects(Ray{{0, 1.5, 1.5}, {0, -1, -1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{0, 1.5, 1.5}, {0, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1.5, 0, 1.5}, {-1, 0, -1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1.5, 0, 1.5}, {1, 0, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1.5, 1.5, 0}, {-1, -1, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1.5, 1.5, 0}, {1, 1, 0}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{1, 1.5, 1.5}, {0, -1, -1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1, 1.5, 1.5}, {0, 1, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1.5, 1, 1.5}, {-1, 0, -1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1.5, 1, 1.5}, {1, 0, 1}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1.5, 1.5, 1}, {-1, -1, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1.5, 1.5, 1}, {1, 1, 0}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{1.5, 0, 0}, {-1, 0, 2}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1.5, 0, 0}, {-1, 2, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1.5, 0, 0}, {-1, 0, 2.1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1.5, 0, 0}, {-1, 2.1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1.5, 1, 1}, {-1, 0, -2}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1.5, 1, 1}, {-1, -2, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1.5, 1, 1}, {-1, 0, -2.1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1.5, 1, 1}, {-1, -2.1, 0}}, unit_box));
+
+  BOOST_TEST(intersects(Ray{{0, 1.5, 0}, {0, -1, 2}}, unit_box));
+  BOOST_TEST(intersects(Ray{{0, 1.5, 0}, {2, -1, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{0, 1.5, 0}, {0, -1, 2.1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{0, 1.5, 0}, {2.1, -1, 0}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1.5, 1}, {0, -1, -2}}, unit_box));
+  BOOST_TEST(intersects(Ray{{1, 1.5, 1}, {-2, -1, 0}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1, 1.5, 1}, {0, -1, -2.1}}, unit_box));
+  BOOST_TEST(!intersects(Ray{{1, 1.5, 1}, {-2.1, -1, 0}}, unit_box));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(intersects_ray_triangle, Coordinate,
+                              CoordinatesList)
+{
+  using Ray = ArborX::Experimental::Ray<Coordinate>;
+  using Triangle = ArborX::Triangle<3, Coordinate>;
+
+  constexpr Triangle unit_triangle{
+      {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}};
+
+  BOOST_TEST(intersects(Ray{{.1, .2, .3}, {0, 0, -1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1.1, 1.2, 1}, {-1, -1, -1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{-1.9, 3.2, -1}, {2, -3, 1}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{1, 2, 3}, {1, 1, 0}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{1, 2, 3}, {1, 0, 0}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{1, 2, 3}, {0, 1, 0}}, unit_triangle));
+
+  // ray origin on the triangle
+  BOOST_TEST(intersects(Ray{{.1, .2, 0}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{.1, .2, 0}, {0, 0, -1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{.1, .2, 0}, {1, 2, 3}}, unit_triangle));
+
+  // ray directed away from the triangle
+  BOOST_TEST(!intersects(Ray{{.1, .2, .3}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{1.0, 1.0, 0.0}, {0, 1, 0}}, unit_triangle));
+
+  // ray in the same plane as the triangle
+  BOOST_TEST(intersects(Ray{{.3, .3, 0}, {1, 1, 0}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{-0.1, 0, 0}, {1, 0, 0}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{0.1, -0.2, 0}, {0, 1, 0}}, unit_triangle));
+  BOOST_TEST(!intersects(Ray{{-1, -1, 0}, {0, 1, 0}}, unit_triangle));
+
+  BOOST_TEST(intersects(Ray{{1.0, 0.0, 0.0}, {-1, 1, 0}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1.0, 0.0, 0.0}, {1, 2, 3}}, unit_triangle));
+
+  // ray misses the triangle
+  BOOST_TEST(!intersects(Ray{{-1, 2, -3}, {0, 0, 1}}, unit_triangle));
+
+  // ray hits vertices
+  BOOST_TEST(intersects(Ray{{0, 0, -1}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1, 0, -2}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{0, 1, -3}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1, 2, 3}, {-1, -2, -3}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1, 2, 3}, {0, -2, -3}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{1, 2, 3}, {-1, -1, -3}}, unit_triangle));
+
+  // ray hits edges
+  BOOST_TEST(intersects(Ray{{.1, 0, -1}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{0, .2, -2}, {0, 0, 1}}, unit_triangle));
+  BOOST_TEST(intersects(Ray{{.5, .5, -3}, {0, 0, 1}}, unit_triangle));
+
+  // ray in a plane parallel to the triangle
+  BOOST_TEST(!intersects(Ray{{-0.1, 0, 1}, {1, 0, 0}}, unit_triangle));
+
+  constexpr Triangle tilted_triangle{
+      {0.f, 0.f, 0.f}, {2.f, 0.f, 1.f}, {0.f, 2.f, 1.f}};
+
+  // ray in the same plane as the triangle
+  BOOST_TEST(!intersects(Ray{{10, 0, 0}, {1, 1, 1}}, tilted_triangle));
+  BOOST_TEST(intersects(Ray{{3, 3, 3}, {-1, -1, -1}}, tilted_triangle));
+
+  // ray in a plane parallel to the triangle
+  BOOST_TEST(!intersects(Ray{{0., 0., 0.1}, {1, 1, 1}}, tilted_triangle));
 }

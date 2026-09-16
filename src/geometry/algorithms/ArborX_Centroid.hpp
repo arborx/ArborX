@@ -133,6 +133,12 @@ struct centroid<EllipsoidTag, Ellipsoid>
   }
 };
 
+template <typename Ray>
+struct centroid<RayTag, Ray>
+{
+  KOKKOS_FUNCTION static auto apply(Ray const &ray) { return ray.origin(); }
+};
+
 } // namespace Dispatch
 
 } // namespace ArborX::Details
