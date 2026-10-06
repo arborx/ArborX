@@ -13,15 +13,14 @@
 #define ARBORX_MORTON_CODE_UTILS_HPP
 
 #include <ArborX_GeometryTraits.hpp>
-#include <kokkos_ext/ArborX_KokkosExtVersion.hpp>
-#if KOKKOS_VERSION < 50102
+
+#include <Kokkos_Abort.hpp>
+#include <Kokkos_Macros.hpp>
+#if KOKKOS_VERSION_LESS(5, 1, 2)
 // https://github.com/kokkos/kokkos/pull/9270
 #include <Kokkos_Assert.hpp>
 #endif
-
-#include <Kokkos_Abort.hpp>
 #include <Kokkos_Clamp.hpp>
-#include <Kokkos_Macros.hpp>
 
 namespace ArborX
 {
