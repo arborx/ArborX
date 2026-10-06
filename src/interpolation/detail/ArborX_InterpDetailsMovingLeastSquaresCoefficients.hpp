@@ -18,6 +18,7 @@
 #include <detail/ArborX_InterpDetailsCompactRadialBasisFunction.hpp>
 #include <detail/ArborX_InterpDetailsPolynomialBasis.hpp>
 #include <kokkos_ext/ArborX_KokkosExtAccessibilityTraits.hpp>
+#include <kokkos_ext/ArborX_KokkosExtVersion.hpp>
 #include <misc/ArborX_SymmetricSVD.hpp>
 
 #include <Kokkos_Core.hpp>
@@ -72,9 +73,9 @@ public:
             Kokkos::TeamPolicy<ExecutionSpace>::scratch_size_max(1)))
       Kokkos::abort("Can't allocate enough scratch space!");
 
-#ifdef KOKKOS_ENABLE_HIP
+#if defined(KOKKOS_ENABLE_HIP) && KOKKOS_VERSION < 50300
     // FIXME_HIP The HIP backend is limited by the small level 0 scratch space
-    // since Kokkos through at least version 5.2 requires at least enough
+    // since Kokkos through version 5.2 requires at least enough
     // scratch memory to run with a workgroup size of 64.
     _scratch_level = 1;
 #else
