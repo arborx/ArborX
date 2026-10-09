@@ -11,6 +11,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_Ellipsoid.hpp>
+#include <ArborX_Ray.hpp>
 #include <ArborX_Segment.hpp>
 #include <ArborX_Sphere.hpp>
 #include <ArborX_Tetrahedron.hpp>
@@ -291,4 +292,29 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(distance_sphere_sphere, Coordinate,
   BOOST_TEST(sym_distance(Sphere{{0, 0}, 1}, Sphere{{2, 2}, 5}) == 0);
   BOOST_TEST(sym_distance(Sphere{{-1, -1}, 0.5}, Sphere{{1, -1}, 0.5}) == 1.0);
   BOOST_TEST(sym_distance(Sphere{{-1, 1}, 1}, Sphere{{2, -3}, 1}) == 3);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(distance_ray_box, Coordinate, CoordinatesList)
+{
+  using Ray = ArborX::Experimental::Ray<Coordinate>;
+  using Box = ArborX::Box<3, Coordinate>;
+
+  // use const instead of constexpr because MSVC shows error(error:expression
+  // must have a constant value)
+  constexpr Box unit_box{{0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}};
+
+  namespace KokkosExt = ArborX::Details::KokkosExt;
+#ifdef _MSC_VER
+  auto const inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#else
+  constexpr auto inf = KokkosExt::ArithmeticTraits::infinity<float>::value;
+#endif
+
+  // clang-format off
+  // origin is within the box
+  BOOST_TEST(distance(Ray{{.5, .5, .5}, {1, 0, 0}}, unit_box) == 0.f);
+  // origin outside box, ray hitting box
+  BOOST_TEST(distance(Ray{{.5, .5, -.5}, {0, 0, 1}}, unit_box) == .5f);
+  // origin outside box, ray missing box
+  BOOST_TEST(distance(Ray{{.5, .5, -.5}, {0, 0, -1}}, unit_box) == inf);
 }
