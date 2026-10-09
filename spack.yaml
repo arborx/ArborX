@@ -12,7 +12,7 @@ spack:
       padded_length: 128
   mirrors:
     local-buildcache:
-      url: oci://ghcr.io/arborx/spack-buildcache
+      url: oci://ghcr.io/kokkos/arborx-spack-buildcache
       signed: false
       access_pair:
         id_variable: GITHUB_USER
