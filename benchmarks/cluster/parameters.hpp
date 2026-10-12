@@ -20,7 +20,6 @@ struct Parameters
 {
   std::string algorithm;
   bool binary;
-  int cluster_min_size;
   int core_min_size;
   std::string dendrogram;
   int dim;
