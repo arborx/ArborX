@@ -1,6 +1,6 @@
 # Algorithm
 
-This example considers the DBSCAN algorithm [1]. DBSCAN algorithm computes
+This benchmark considers the DBSCAN algorithm [1]. DBSCAN algorithm computes
 clusters based on two parameters, `minPts` (number of neighbors required to be
 considered a core point) and `eps` (radius).
 
@@ -31,8 +31,10 @@ on GPUs." arXiv preprint arXiv:2103.05162.
 
 # Input
 
-The example controls its input through command-line options:
-- `--binary`
+The benchmark controls its input through command-line options. Here are some of them:
+- `--algorithm`
+  Switch between DBSCAN and DBSCAN*.
+- `--ascii`
   Indicator whether the data provided through `--filename` option is text or
   binary. If the data is binary, it is expected that number of points is an
   4-byte integer, and each coordinate is a 4-byte floating point number.
@@ -40,7 +42,6 @@ The example controls its input through command-line options:
   `minPts` parameter of the DBSCAN algorithm
 - `--eps`
   `eps` parameter of the DBSCAN algorithm
-- `--cluster-min-size`
 - `--filename`
   The data is expected to be provided as an argument to the `--filename`
   option.
@@ -62,14 +63,12 @@ The example controls its input through command-line options:
 
 # Output
 
-The example produces clusters in CSR (compressed sparse row) format
-consisting of two arrays `(cluster_indices, cluster_offset)`, with indices for
-a cluster `i` being entries
-`cluster_indices(cluster_offset(i):cluster_offset(i+1)`.
+The benchmark produces cluster labels array non-negative values indicating
+the cluster index, and -1 indicating noise.
 
-# Running the example with the HACC data
+# Running the benchmark with the HACC data
 
-The example is often used in ArborX to make sure no performance regressions
+The benchmark is often used in ArborX to make sure no performance regressions
 were introduced into the codebase. The experiments are usually run with the
 data from a HACC cosmology simulation, obtained from a single run. A physically
 meaningful value of `eps` is derived from the simulation parameters. The two
@@ -84,7 +83,7 @@ data files commonly used are:
 For example, to run the smaller 37M HACC problem in Friends-of-Friends mode
 (`minPts = 2`), use the following command:
 ```shell
-./ArborX_Benchmark_DBSCAN.exe --eps 0.042 --binary --filename hacc_37M.arborx --core-min-size 2 --verbose
+./ArborX_Benchmark_DBSCAN.exe --eps 0.042 --filename hacc_37M.arborx --core-min-size 2 --verbose
 ```
 which would produce an output similar to this:
 ```text
@@ -93,7 +92,6 @@ ArborX hash       : 170bae34
 Kokkos version    : 3.7.0
 algorithm         : dbscan
 eps               : 0.042000
-cluster min size  : 1
 implementation    : fdbscan
 verify            : false
 minpts            : 2
@@ -104,7 +102,6 @@ Reading in "hacc_37M.arborx" in binary mode...done
 Read in 36902719 3D points
 -- construction     :      0.025
 -- query+cluster    :      0.186
--- postprocess      :      0.018
 total time          :      0.229
 
 #clusters       : 2763469
