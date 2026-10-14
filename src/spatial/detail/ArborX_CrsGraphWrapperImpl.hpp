@@ -390,8 +390,17 @@ void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
 
   std::string profiling_prefix =
       "ArborX::CrsGraphWrapper::query::" + Details::toString(Tag{});
+  Kokkos::Profiling::ScopedRegion guard(profiling_prefix);
 
-  Kokkos::Profiling::pushRegion(profiling_prefix);
+  if (tree.empty() || predicates.size() == 0)
+  {
+    Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                   offset, predicates.size() + 1);
+    Kokkos::deep_copy(space, offset, 0);
+    Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), out,
+                   0);
+    return;
+  }
 
   Kokkos::Profiling::pushRegion(profiling_prefix + "::init_and_alloc");
 
@@ -427,8 +436,6 @@ void queryDispatch(Tag, Tree const &tree, ExecutionSpace const &space,
     queryImpl(space, tree, predicates, callback, out, offset, permute,
               buffer_status);
   }
-
-  Kokkos::Profiling::popRegion();
 }
 
 template <typename Tag, typename Tree, typename ExecutionSpace,
