@@ -13,6 +13,7 @@
 
 #include <ArborX_Config.hpp>
 
+#include <algorithms/ArborX_Equals.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_Distributor.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
@@ -29,6 +30,34 @@
 
 namespace ArborX::Details::DistributedTree
 {
+
+template <typename ExecutionSpace, typename Volumes, typename AttachedVolumes>
+void filterOutEmptyRanks(ExecutionSpace const &space, Volumes const &volumes,
+                         AttachedVolumes &attached_volumes)
+{
+  using BoundingVolume = typename Volumes::value_type;
+
+  auto const n = volumes.extent(0);
+  Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                 attached_volumes, n);
+
+  int num_nonempty;
+  Kokkos::parallel_scan(
+      "ArborX::DistributedTree::DistributedTree::top_tree_skip_empty_ranks",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      KOKKOS_LAMBDA(int i, int &update, bool const final_pass) {
+        // Check whether rank's tree is empty by checking whether
+        // the rank tree's bounding volume is default constructed.
+        if (!Details::equals(volumes(i), BoundingVolume{}))
+        {
+          if (final_pass)
+            attached_volumes(update) = {volumes(i), i};
+          ++update;
+        }
+      },
+      num_nonempty);
+  Kokkos::resize(space, attached_volumes, num_nonempty);
+}
 
 template <typename ExecutionSpace, typename QueryIdsView, typename OffsetView>
 void countResults(ExecutionSpace const &space, int n_queries,

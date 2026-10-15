@@ -223,8 +223,14 @@ DistributedTreeBase<BottomTree>::DistributedTreeBase(
   Kokkos::deep_copy(space, volumes, volumes_host);
 #endif
 
+  Kokkos::View<PairValueIndex<BoundingVolume, int> *, MemorySpace>
+      attached_volumes("ArborX::DistributedTree::DistributedTree::predicates",
+                       0);
+  Details::DistributedTree::filterOutEmptyRanks(space, volumes,
+                                                attached_volumes);
+
   // Build top tree with attached ranks
-  _top_tree = TopTree{space, Experimental::attach_indices<int>(volumes)};
+  _top_tree = TopTree{space, attached_volumes};
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
@@ -232,7 +238,7 @@ DistributedTreeBase<BottomTree>::DistributedTreeBase(
 
   _bottom_tree_sizes = Kokkos::View<size_type *, MemorySpace>(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::DistributedTree::"
+                         "ArborX::DistributedTree::DistributedTree::"
                          "leave_count_in_local_trees"),
       comm_size);
   auto bottom_tree_sizes_host = Kokkos::create_mirror_view(
