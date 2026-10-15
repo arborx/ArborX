@@ -53,13 +53,14 @@ struct isValid<PointTag, Point>
 template <typename Box>
 struct isValid<BoxTag, Box>
 {
-  KOKKOS_FUNCTION static constexpr bool apply(Box const &b)
+  KOKKOS_FUNCTION static constexpr bool apply(Box const &box)
   {
     constexpr int DIM = GeometryTraits::dimension_v<Box>;
     for (int d = 0; d < DIM; ++d)
     {
-      auto const r_d = b.maxCorner()[d] - b.minCorner()[d];
-      if (r_d <= 0 || !Kokkos::isfinite(r_d))
+      auto const &a = box.minCorner()[d];
+      auto const &b = box.maxCorner()[d];
+      if (!Kokkos::isfinite(a) || !Kokkos::isfinite(b) || a >= b)
         return false;
     }
     return true;
