@@ -279,14 +279,15 @@ void BoundingVolumeHierarchy<
   Predicates predicates{user_predicates}; // NOLINT
 
   using Tag = typename Predicates::value_type::Tag;
-  std::string profiling_prefix =
-      "ArborX::BVH::query::" + Details::toString(Tag{});
+  std::string prefix = "ArborX::BVH::query::" + Details::toString(Tag{});
+  Kokkos::Profiling::ScopedRegion guard(prefix);
 
-  Kokkos::Profiling::pushRegion(profiling_prefix);
+  if (empty() || predicates.size() == 0)
+    return;
 
   if (policy._sort_predicates)
   {
-    Kokkos::Profiling::pushRegion(profiling_prefix + "::compute_permutation");
+    Kokkos::Profiling::pushRegion(prefix + "::compute_permutation");
     using Details::expand;
     Box<GeometryTraits::dimension_v<bounding_volume_type>,
         typename GeometryTraits::coordinate_type_t<bounding_volume_type>>
@@ -308,8 +309,6 @@ void BoundingVolumeHierarchy<
   {
     Details::traverse(space, *this, predicates, callback);
   }
-
-  Kokkos::Profiling::popRegion();
 }
 
 } // namespace ArborX
