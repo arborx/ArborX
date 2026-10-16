@@ -11,7 +11,6 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_BruteForce.hpp>
-#include <ArborX_DistributedTree.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
