@@ -125,3 +125,53 @@ void check_hierarchy_for_custom_types()
       "primitives", 0);
   ArborX::BoundingVolumeHierarchy tree(ExecutionSpace{}, primitives);
 }
+
+namespace Test
+{
+
+struct NonDefaultConstructibleValue
+{
+  ArborX::Point<3> point;
+  int id;
+
+  KOKKOS_FUNCTION NonDefaultConstructibleValue(ArborX::Point<3> p, int i)
+      : point(p)
+      , id(i)
+  {}
+  NonDefaultConstructibleValue() = delete;
+};
+
+struct NonDefaultConstructibleValueIndexableGetter
+{
+  KOKKOS_FUNCTION ArborX::Point<3>
+  operator()(NonDefaultConstructibleValue const &value) const
+  {
+    return value.point;
+  }
+};
+
+} // namespace Test
+
+// Compile-only
+void check_query_with_values_that_are_not_default_constructible()
+{
+  using ExecutionSpace = Kokkos::DefaultExecutionSpace;
+  using MemorySpace = ExecutionSpace::memory_space;
+  using Value = Test::NonDefaultConstructibleValue;
+  static_assert(!std::is_default_constructible_v<Value>);
+
+  using Tree = ArborX::BoundingVolumeHierarchy<
+      MemorySpace, Value, Test::NonDefaultConstructibleValueIndexableGetter>;
+
+  Kokkos::View<Value *, MemorySpace> primitives(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "primitives"), 0);
+  Tree tree(ExecutionSpace{}, primitives);
+
+  using Predicate = decltype(ArborX::intersects(ArborX::Box<3>{}));
+  Kokkos::View<Predicate *, MemorySpace> predicates("predicates", 0);
+
+  Kokkos::View<Value *, MemorySpace> values(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, "values"), 0);
+  Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
+  tree.query(ExecutionSpace{}, predicates, values, offsets);
+}
