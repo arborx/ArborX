@@ -161,7 +161,7 @@ struct KDOP : public Details::KDOP_Directions<DIM, k, Coordinate>
   Kokkos::Array<Coordinate, n_directions> _min_values;
   Kokkos::Array<Coordinate, n_directions> _max_values;
 
-  KOKKOS_FUNCTION KDOP()
+  KOKKOS_FUNCTION constexpr KDOP()
   {
     for (int i = 0; i < n_directions; ++i)
     {
