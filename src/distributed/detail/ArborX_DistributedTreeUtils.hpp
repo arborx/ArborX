@@ -13,7 +13,6 @@
 
 #include <ArborX_Config.hpp>
 
-#include <algorithms/ArborX_Equals.hpp>
 #include <detail/ArborX_AccessTraits.hpp>
 #include <detail/ArborX_Distributor.hpp>
 #include <detail/ArborX_PairValueIndex.hpp>
