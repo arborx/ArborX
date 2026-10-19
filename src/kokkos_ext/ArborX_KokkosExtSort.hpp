@@ -15,6 +15,8 @@
 #include <ArborX_Config.hpp> // ARBORX_ENABLE_ROCTHRUST
 
 #include <kokkos_ext/ArborX_KokkosExtMinMaxReduce.hpp>
+#include <kokkos_ext/ArborX_KokkosExtStdAlgorithms.hpp> // iota
+#include <kokkos_ext/ArborX_KokkosExtViewHelpers.hpp>   // clone
 
 #include <Kokkos_Profiling_ScopedRegion.hpp>
 #include <Kokkos_Sort.hpp>
@@ -112,6 +114,7 @@ void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
 #if defined(KOKKOS_ENABLE_CUDA) ||                                             \
     (defined(KOKKOS_ENABLE_HIP) && defined(ARBORX_ENABLE_ROCTHRUST))
 template <typename Keys, typename Values>
+  requires(std::is_default_constructible_v<typename Values::value_type>)
 void sortByKey(
 #if defined(KOKKOS_ENABLE_CUDA)
     Kokkos::Cuda const &space,
@@ -182,6 +185,32 @@ void sortByKey(Kokkos::SYCL const &space, Keys &keys, Values &values)
 #endif
 }
 #endif
+
+template <typename ExecutionSpace, typename Keys, typename Values>
+  requires(!std::is_default_constructible_v<typename Values::value_type>)
+void sortByKey(ExecutionSpace const &space, Keys &keys, Values &values)
+{
+  std::string prefix =
+      "ArborX::KokkosExt::sortByKey::non-default-constructible";
+  Kokkos::Profiling::ScopedRegion guard(prefix);
+  prefix += "::";
+
+  auto const n = keys.size();
+  ARBORX_ASSERT(values.size() == n);
+
+  Kokkos::View<unsigned int *, typename Keys::memory_space> permute(
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
+                         prefix + "permute"),
+      n);
+  iota(space, permute);
+
+  sortByKey(space, keys, permute);
+
+  auto values_clone = KokkosExt::clone(space, values);
+  Kokkos::parallel_for(
+      prefix + "permute_values", Kokkos::RangePolicy(space, 0, n),
+      KOKKOS_LAMBDA(int i) { values(i) = values_clone(permute(i)); });
+}
 
 } // namespace ArborX::Details::KokkosExt
 
