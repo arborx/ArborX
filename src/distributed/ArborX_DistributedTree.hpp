@@ -194,37 +194,48 @@ DistributedTreeBase<BottomTree>::DistributedTreeBase(
   int comm_size;
   MPI_Comm_size(getComm(), &comm_size);
 
-  Kokkos::View<BoundingVolume *, MemorySpace> volumes(
+  using PairVolumeSize =
+      Kokkos::pair<BoundingVolume, typename BottomTree::size_type>;
+  Kokkos::View<PairVolumeSize *, MemorySpace> volumes_and_sizes(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
                          "ArborX::DistributedTree::DistributedTree::"
-                         "rank_bounding_volumes"),
+                         "rank_bounding_volumes_and_sizes"),
       comm_size);
 
   Kokkos::DefaultHostExecutionSpace host_exec;
 #ifdef ARBORX_ENABLE_GPU_AWARE_MPI
-  Kokkos::deep_copy(space, Kokkos::subview(volumes, comm_rank),
-                    _bottom_tree.bounds());
+  Kokkos::deep_copy(space, Kokkos::subview(volumes_and_sizes, comm_rank),
+                    Kokkos::pair(_bottom_tree.bounds(), _bottom_tree.size()));
   space.fence("ArborX::DistributedTree::DistributedTree"
               " (fill on device done before MPI_Allgather)");
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                static_cast<void *>(volumes.data()), sizeof(BoundingVolume),
-                MPI_BYTE, getComm());
+                static_cast<void *>(volumes_and_sizes.data()),
+                sizeof(PairVolumeSize), MPI_BYTE, getComm());
 #else
-  auto volumes_host = Kokkos::create_mirror_view(
-      Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing), volumes);
+  auto volumes_and_sizes_host = Kokkos::create_mirror_view(
+      Kokkos::view_alloc(host_exec, Kokkos::WithoutInitializing),
+      volumes_and_sizes);
   host_exec.fence();
-  volumes_host(comm_rank) = _bottom_tree.bounds();
+  volumes_and_sizes_host(comm_rank) = {_bottom_tree.bounds(),
+                                       _bottom_tree.size()};
 
   MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                static_cast<void *>(volumes_host.data()),
-                sizeof(BoundingVolume), MPI_BYTE, getComm());
+                static_cast<void *>(volumes_and_sizes_host.data()),
+                sizeof(PairVolumeSize), MPI_BYTE, getComm());
 
-  Kokkos::deep_copy(space, volumes, volumes_host);
+  Kokkos::deep_copy(space, volumes_and_sizes, volumes_and_sizes_host);
 #endif
 
-  // Build top tree with attached ranks
-  _top_tree = TopTree{space, Experimental::attach_indices<int>(volumes)};
+  // Filter out empty ranks
+  Kokkos::View<PairValueIndex<BoundingVolume, int> *, MemorySpace>
+      attached_volumes("ArborX::DistributedTree::DistributedTree::predicates",
+                       0);
+  Details::DistributedTree::filterOutEmptyRanks(space, volumes_and_sizes,
+                                                attached_volumes);
+
+  // Build top tree with only non-empty ranks
+  _top_tree = TopTree{space, attached_volumes};
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion("ArborX::DistributedTree::DistributedTree::"
@@ -232,7 +243,7 @@ DistributedTreeBase<BottomTree>::DistributedTreeBase(
 
   _bottom_tree_sizes = Kokkos::View<size_type *, MemorySpace>(
       Kokkos::view_alloc(space, Kokkos::WithoutInitializing,
-                         "ArborX::DistributedTree::"
+                         "ArborX::DistributedTree::DistributedTree::"
                          "leave_count_in_local_trees"),
       comm_size);
   auto bottom_tree_sizes_host = Kokkos::create_mirror_view(

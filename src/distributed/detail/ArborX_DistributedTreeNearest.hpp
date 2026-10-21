@@ -189,7 +189,14 @@ void DistributedTreeImpl::queryDispatch2RoundImpl(
   Kokkos::Profiling::ScopedRegion guard(prefix);
 
   static_assert(is_constrained_callback_v<Callback>);
-  KOKKOS_ASSERT(!tree.empty());
+
+  if (tree.empty())
+  {
+    KokkosExt::reallocWithoutInitializing(space, offset, predicates.size() + 1);
+    Kokkos::deep_copy(space, offset, 0);
+    KokkosExt::reallocWithoutInitializing(space, values, 0);
+    return;
+  }
 
   // Set the type for the distances to be that of the distance to a leaf node.
   // It is possible that that is a higher precision compared to internal nodes,

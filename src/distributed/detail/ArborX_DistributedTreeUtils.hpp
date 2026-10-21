@@ -30,6 +30,32 @@
 namespace ArborX::Details::DistributedTree
 {
 
+template <typename ExecutionSpace, typename VolumesAndSizes,
+          typename AttachedVolumes>
+void filterOutEmptyRanks(ExecutionSpace const &space,
+                         VolumesAndSizes const &volumes_and_sizes,
+                         AttachedVolumes &attached_volumes)
+{
+  auto const n = volumes_and_sizes.extent(0);
+  Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                 attached_volumes, n);
+
+  int num_nonempty;
+  Kokkos::parallel_scan(
+      "ArborX::DistributedTree::DistributedTree::top_tree_skip_empty_ranks",
+      Kokkos::RangePolicy<ExecutionSpace>(space, 0, n),
+      KOKKOS_LAMBDA(int i, int &update, bool const final_pass) {
+        if (volumes_and_sizes(i).second > 0)
+        {
+          if (final_pass)
+            attached_volumes(update) = {volumes_and_sizes(i).first, i};
+          ++update;
+        }
+      },
+      num_nonempty);
+  Kokkos::resize(space, attached_volumes, num_nonempty);
+}
+
 template <typename ExecutionSpace, typename QueryIdsView, typename OffsetView>
 void countResults(ExecutionSpace const &space, int n_queries,
                   QueryIdsView const &query_ids, OffsetView &offset)
