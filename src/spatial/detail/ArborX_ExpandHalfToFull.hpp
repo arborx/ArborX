@@ -34,10 +34,15 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
   Kokkos::parallel_for(
       "ArborX::Experimental::HalfToFull::count",
       Kokkos::RangePolicy(space, 0, n), KOKKOS_LAMBDA(int i) {
-        for (int j = offsets_orig(i); j < offsets_orig(i + 1); ++j)
+        auto const start = offsets_orig(i);
+        auto const end = offsets_orig(i + 1);
+        if (start == end)
+          return;
+
+        Kokkos::atomic_add(&offsets(i), end - start);
+        for (auto j = start; j < end; ++j)
         {
-          int const k = indices_orig(j);
-          Kokkos::atomic_inc(&offsets(i));
+          auto const k = indices_orig(j);
           Kokkos::atomic_inc(&offsets(k));
         }
       });
@@ -55,13 +60,17 @@ void expandHalfToFull(ExecutionSpace const &space, Offsets &offsets,
           typename Kokkos::TeamPolicy<ExecutionSpace>::member_type const
               &member) {
         auto const i = member.league_rank();
-        auto const first = offsets_orig(i);
-        auto const last = offsets_orig(i + 1);
+        auto const start = offsets_orig(i);
+        auto const end = offsets_orig(i + 1);
+        if (start == end)
+          return;
+
+        auto const offset = offsets(i);
         Kokkos::parallel_for(
-            Kokkos::TeamVectorRange(member, last - first), [&](int j) {
-              int const k = indices_orig(first + j);
-              indices(Kokkos::atomic_fetch_inc(&counts(i))) = k;
-              indices(Kokkos::atomic_fetch_inc(&counts(k))) = i;
+            Kokkos::TeamVectorRange(member, end - start), [&](int j) {
+              auto const k = indices_orig(start + j);
+              indices(offset + j) = k;
+              indices(Kokkos::atomic_dec_fetch(&counts(k + 1))) = i;
             });
       });
   Kokkos::Profiling::popRegion();
