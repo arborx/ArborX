@@ -11,6 +11,7 @@
 
 #include <ArborX_Box.hpp>
 #include <ArborX_Ellipsoid.hpp>
+#include <ArborX_KDOP.hpp>
 #include <ArborX_Point.hpp>
 #include <ArborX_Segment.hpp>
 #include <ArborX_Sphere.hpp>
@@ -18,6 +19,7 @@
 #include <ArborX_Triangle.hpp>
 #include <algorithms/ArborX_Convert.hpp>
 #include <algorithms/ArborX_Equals.hpp>
+#include <algorithms/ArborX_Expand.hpp>
 #include <algorithms/ArborX_Valid.hpp>
 #include <kokkos_ext/ArborX_KokkosExtArithmeticTraits.hpp>
 
@@ -29,24 +31,41 @@
 using Point = ArborX::Point<3>;
 using Box = ArborX::Box<3>;
 using Sphere = ArborX::Sphere<3>;
+using KDOP = ArborX::Experimental::KDOP<3, 6>;
 using Triangle = ArborX::Triangle<3>;
 using Tetrahedron = ArborX::ExperimentalHyperGeometry::Tetrahedron<>;
 
 BOOST_AUTO_TEST_CASE(equals)
 {
   using ArborX::Details::equals;
+  using ArborX::Details::expand;
+
   // points
-  static_assert(equals(Point{{0., 0., 0.}}, {{0., 0., 0.}}));
-  static_assert(!equals(Point{{0., 0., 0.}}, {{1., 1., 1.}}));
+  static_assert(equals(Point{}, Point{}));
+  static_assert(equals(Point{{0, 0, 0}}, {{0, 0, 0}}));
+  static_assert(!equals(Point{{0, 0, 0}}, {{1, 1, 1}}));
+
   // boxes
-  static_assert(equals(Box{{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}},
-                       {{{0.0, 0.0, 0.0}}, {{1.0, 1.0, 1.0}}}));
-  static_assert(!equals(Box{{{0.0, 0.0, 0.0}}, {{1.0, 0.0, 1.0}}},
-                        {{{-1.0, -1.0, -1.0}}, {{1.0, 1.0, 1.0}}}));
+  static_assert(equals(Box{}, Box{}));
+  static_assert(
+      equals(Box{{{0, 0, 0}}, {{1, 1, 1}}}, {{{0, 0, 0}}, {{1, 1, 1}}}));
+  static_assert(
+      !equals(Box{{{0, 0, 0}}, {{1, 0, 1}}}, {{{-1, -1, -1}}, {{1, 1, 1}}}));
+
   // spheres
-  static_assert(equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 1.}));
-  static_assert(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 1., 2.}}, 1.}));
-  static_assert(!equals(Sphere{{{0., 0., 0.}}, 1.}, {{{0., 0., 0.}}, 2.}));
+  static_assert(equals(Sphere{}, Sphere{}));
+  static_assert(equals(Sphere{{{0, 0, 0}}, 1}, {{{0, 0, 0}}, 1}));
+  static_assert(!equals(Sphere{{{0, 0, 0}}, 1}, {{{0, 1, 2}}, 1}));
+  static_assert(!equals(Sphere{{{0, 0, 0}}, 1}, {{{0, 0, 0}}, 2}));
+
+  // kdop
+  KDOP a, b, c;
+  expand(a, Point{0, 0, 0});
+  expand(b, Point{0, 0, 0});
+  expand(c, Point{0, 0, 1});
+  static_assert(equals(KDOP{}, KDOP{}));
+  BOOST_TEST(equals(a, b));
+  BOOST_TEST(!equals(a, c));
 }
 
 BOOST_AUTO_TEST_CASE(convert)

@@ -72,6 +72,20 @@ struct equals<SphereTag, Sphere>
   }
 };
 
+// equals kdop-kdop
+template <typename KDOP>
+struct equals<KDOPTag, KDOP>
+{
+  KOKKOS_FUNCTION static constexpr bool apply(KDOP const &l, KDOP const &r)
+  {
+    for (int i = 0; i < KDOP::n_directions; ++i)
+      if (l._min_values[i] != r._min_values[i] ||
+          l._max_values[i] != r._max_values[i])
+        return false;
+    return true;
+  }
+};
+
 } // namespace Dispatch
 
 } // namespace ArborX::Details
