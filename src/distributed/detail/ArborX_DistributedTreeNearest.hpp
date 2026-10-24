@@ -51,7 +51,7 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
 
   auto comm = tree.getComm();
 
-  // Find the k nearest local trees.
+  // Find the k nearest local trees
   Kokkos::View<int *, MemorySpace> offset(prefix + "::offset", 0);
   Kokkos::View<int *, MemorySpace> nearest_ranks(prefix + "::nearest_ranks", 0);
   tree._top_tree.query(space, predicates,
@@ -59,45 +59,39 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
                        offset);
 
   // Accumulate total leave count in the local trees until it reaches k which
-  // is the number of neighbors queried for.  Stop if local trees get
-  // empty because it means that there are no more leaves and there is no point
-  // in forwarding predicates to leafless trees.
-  auto const n_predicates = predicates.size();
-  auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
-  Kokkos::View<int *, MemorySpace> new_offset(
-      Kokkos::view_alloc(space, offset.label()), n_predicates + 1);
-  Kokkos::parallel_for(
-      "ArborX::DistributedTree::query::nearest::"
-      "bottom_trees_with_required_cumulated_leaves_count",
-      Kokkos::RangePolicy(space, 0, n_predicates), KOKKOS_LAMBDA(int i) {
-        int leaves_count = 0;
-        int const n_nearest_neighbors = getK(predicates(i));
-        for (int j = offset(i); j < offset(i + 1); ++j)
-        {
-          int const bottom_tree_size = bottom_tree_sizes(nearest_ranks(j));
-          if ((bottom_tree_size == 0) || (leaves_count >= n_nearest_neighbors))
-            break;
-          leaves_count += bottom_tree_size;
-          ++new_offset(i);
-        }
-      });
-
-  KokkosExt::exclusive_scan(space, new_offset, new_offset, 0);
-
-  // Truncate results so that predicates will only be forwarded to as many local
-  // trees as necessary to find k neighbors.
-  Kokkos::View<int *, MemorySpace> new_nearest_ranks(
-      Kokkos::view_alloc(space, nearest_ranks.label()),
-      KokkosExt::lastElement(space, new_offset));
-  Kokkos::parallel_for(
-      prefix + "::truncate_before_forwarding",
-      Kokkos::RangePolicy(space, 0, n_predicates), KOKKOS_LAMBDA(int i) {
-        for (int j = 0; j < new_offset(i + 1) - new_offset(i); ++j)
-          new_nearest_ranks(new_offset(i) + j) = nearest_ranks(offset(i) + j);
-      });
-
-  offset = new_offset;
-  nearest_ranks = new_nearest_ranks;
+  // is the number of neighbors queried for
+  {
+    auto const n_predicates = predicates.size();
+    auto const &bottom_tree_sizes = tree._bottom_tree_sizes;
+    Kokkos::View<int *, MemorySpace> new_offset(
+        Kokkos::view_alloc(space, offset.label()), n_predicates + 1);
+    auto new_nearest_ranks =
+        KokkosExt::cloneWithoutInitializingNorCopying(space, nearest_ranks);
+    // Initialize num_new_nearest_ranks to work around the fact that
+    // Kokkos::parallel_scan does not initialize it if n_predicates = 0.
+    int num_new_nearest_ranks = 0;
+    Kokkos::parallel_scan(
+        prefix + "::bottom_trees_with_required_accumulated_leaves_count",
+        Kokkos::RangePolicy(space, 0, n_predicates),
+        KOKKOS_LAMBDA(int i, int &update, bool final_pass) {
+          auto const k = getK(predicates(i));
+          for (int j = offset(i), leaves_count = 0;
+               j < offset(i + 1) && leaves_count < k; ++j, ++update)
+          {
+            auto const rank = nearest_ranks(j);
+            leaves_count += bottom_tree_sizes(rank);
+            if (final_pass)
+              new_nearest_ranks(update) = rank;
+          }
+          if (final_pass)
+            new_offset(i + 1) = update;
+        },
+        num_new_nearest_ranks);
+    Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                   new_nearest_ranks, num_new_nearest_ranks);
+    nearest_ranks = new_nearest_ranks;
+    offset = new_offset;
+  }
 
   auto const &bottom_tree = tree._bottom_tree;
   using BottomTree = std::decay_t<decltype(bottom_tree)>;
