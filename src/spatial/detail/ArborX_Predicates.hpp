@@ -51,6 +51,11 @@ std::string toString(PredicateTag)
   {
     static_assert(std::is_void_v<PredicateTag>, "ArborX implementation bug");
   }
+#ifdef KOKKOS_COMPILER_NVCC
+  // FIXME_NVCC: silence compiler warning
+  // "#940-D: missing return statement at end of non-void function"
+  return "";
+#endif
 }
 } // namespace Details
 
