@@ -60,7 +60,7 @@ struct isValid<BoxTag, Box>
     {
       auto const &a = box.minCorner()[d];
       auto const &b = box.maxCorner()[d];
-      if (!Kokkos::isfinite(a) || !Kokkos::isfinite(b) || a >= b)
+      if (!Kokkos::isfinite(a) || !Kokkos::isfinite(b) || a > b)
         return false;
     }
     return true;
