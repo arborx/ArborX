@@ -12,9 +12,16 @@
 #ifndef ARBORX_CRS_GRAPH_WRAPPER_HPP
 #define ARBORX_CRS_GRAPH_WRAPPER_HPP
 
+#include <ArborX_Config.hpp>
+
 #include <detail/ArborX_AccessTraits.hpp>
+#include <detail/ArborX_Iota.hpp>
 
 #include <Kokkos_Core.hpp>
+
+#ifdef ARBORX_ENABLE_MPI
+#include <mpi.h>
+#endif
 
 namespace ArborX
 {
@@ -32,6 +39,62 @@ inline void query(Tree const &tree, ExecutionSpace const &space,
   tree.query(space, predicates, std::forward<CallbackOrView>(callback_or_view),
              std::forward<View>(view), std::forward<Args>(args)...);
 }
+
+template <template <typename...> class Index, typename MemorySpace,
+          typename ExecutionSpace, typename IndexableGetter>
+auto create_index(ExecutionSpace const &space, int size,
+                  IndexableGetter &&indexable_getter)
+{
+  return Index<MemorySpace, int, IndexableGetter>(
+      space, Details::Iota<MemorySpace>(size),
+      std::forward<IndexableGetter>(indexable_getter));
+}
+
+template <template <typename...> class Index, typename ExecutionSpace,
+          typename IndexableGetter>
+auto create_index(ExecutionSpace const &space, int size,
+                  IndexableGetter &&indexable_getter)
+{
+  return create_index<Index, typename ExecutionSpace::memory_space>(
+      space, size, std::forward<IndexableGetter>(indexable_getter));
+}
+
+template <typename Index, typename ExecutionSpace, typename IndexableGetter>
+auto create_index(ExecutionSpace const &space, int size,
+                  IndexableGetter &&indexable_getter)
+{
+  return Index(space, Details::Iota<typename Index::memory_space>(size),
+               std::forward<IndexableGetter>(indexable_getter));
+}
+
+#ifdef ARBORX_ENABLE_MPI
+template <template <typename...> class Index, typename MemorySpace,
+          typename ExecutionSpace, typename IndexableGetter>
+auto create_index(MPI_Comm comm, ExecutionSpace const &space, int size,
+                  IndexableGetter &&indexable_getter)
+{
+  return Index<MemorySpace, int, IndexableGetter>(
+      comm, space, Details::Iota<MemorySpace>(size),
+      std::forward<IndexableGetter>(indexable_getter));
+}
+
+template <template <typename...> class Index, typename ExecutionSpace,
+          typename IndexableGetter>
+auto create_index(MPI_Comm comm, ExecutionSpace const &space, int size,
+                  IndexableGetter &&indexable_getter)
+{
+  return create_index<Index, typename ExecutionSpace::memory_space>(
+      comm, space, size, std::forward<IndexableGetter>(indexable_getter));
+}
+
+template <typename Index, typename ExecutionSpace, typename IndexableGetter>
+auto create_index(MPI_Comm comm, ExecutionSpace const &space, int size,
+                  IndexableGetter &&indexable_getter)
+{
+  return Index(comm, space, Details::Iota<typename Index::memory_space>(size),
+               std::forward<IndexableGetter>(indexable_getter));
+}
+#endif
 
 } // namespace ArborX
 
