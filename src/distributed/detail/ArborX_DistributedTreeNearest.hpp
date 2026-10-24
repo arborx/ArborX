@@ -67,7 +67,9 @@ void DistributedTreeImpl::phaseI(ExecutionSpace const &space, Tree const &tree,
         Kokkos::view_alloc(space, offset.label()), n_predicates + 1);
     auto new_nearest_ranks =
         KokkosExt::cloneWithoutInitializingNorCopying(space, nearest_ranks);
-    int num_new_nearest_ranks;
+    // Initialize num_new_nearest_ranks to work around the fact that
+    // Kokkos::parallel_scan does not initialize it if n_predicates = 0.
+    int num_new_nearest_ranks = 0;
     Kokkos::parallel_scan(
         prefix + "::bottom_trees_with_required_accumulated_leaves_count",
         Kokkos::RangePolicy(space, 0, n_predicates),
