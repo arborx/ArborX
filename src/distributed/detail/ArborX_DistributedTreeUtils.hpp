@@ -317,7 +317,8 @@ void filterResults(ExecutionSpace const &space, Predicates const &queries,
 
   int const n_truncated_results = KokkosExt::lastElement(space, new_offset);
   Kokkos::View<Value *, MemorySpace> new_values(
-      Kokkos::view_alloc(space, values.label()), n_truncated_results);
+      Kokkos::view_alloc(space, Kokkos::WithoutInitializing, values.label()),
+      n_truncated_results);
 
   using PairValueDistance = Kokkos::pair<Value, typename Distances::value_type>;
   struct CompareDistance

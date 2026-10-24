@@ -149,7 +149,9 @@ void DistributedTreeImpl::phaseII(ExecutionSpace const &space, Tree const &tree,
   // rather than nearest predicates.
   Kokkos::View<PairValueDistance<typename Values::value_type, Coordinate> *,
                MemorySpace>
-      out(prefix + "::pairs_value_distance", 0);
+      out(Kokkos::view_alloc(Kokkos::WithoutInitializing,
+                             prefix + "::pairs_value_distance"),
+          0);
   DistributedTree::forwardQueriesAndCommunicateResults(
       tree.getComm(), space, bottom_tree, predicates,
       CallbackWithDistance<BottomTree, Callback, typename Values::value_type,
@@ -268,9 +270,12 @@ void DistributedTreeImpl::queryDispatch3RoundImpl(
 
   // Find the ranks and index values for each predicate
   Kokkos::View<int *, MemorySpace> ranks(prefix + "ranks", 0);
-  Kokkos::View<Value *, MemorySpace> index_values(prefix + "index_values", 0);
+  Kokkos::View<Value *, MemorySpace> index_values(
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, prefix + "index_values"),
+      0);
   Kokkos::View<PairValueIndex<Value, int> *, MemorySpace> aux(
-      prefix + "index_values", 0);
+      Kokkos::view_alloc(Kokkos::WithoutInitializing, prefix + "index_values"),
+      0);
   queryDispatch2RoundImpl(NearestPredicateTag{}, tree, space, predicates,
                           Experimental::declare_callback_constrained(
                               DefaultCallbackWithRank{comm_rank}),
@@ -289,7 +294,8 @@ void DistributedTreeImpl::queryDispatch3RoundImpl(
         index_values(i) = aux(i).value;
         ranks(i) = aux(i).index;
       });
-  Kokkos::resize(Kokkos::view_alloc(space), aux, 0); // free space
+  Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing), aux,
+                 0); // free space
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion(prefix + "scatter");
@@ -320,7 +326,8 @@ void DistributedTreeImpl::queryDispatch3RoundImpl(
                          prefix + "imports"),
       n_imports);
   distributor.doPostsAndWaits(space, exports, imports);
-  Kokkos::resize(Kokkos::view_alloc(space), exports, 0); // free space
+  Kokkos::resize(Kokkos::view_alloc(space, Kokkos::WithoutInitializing),
+                 exports, 0); // free space
 
   Kokkos::Profiling::popRegion();
   Kokkos::Profiling::pushRegion(prefix + "execute_callback");

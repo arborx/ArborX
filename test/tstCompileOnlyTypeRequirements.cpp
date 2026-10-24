@@ -10,11 +10,16 @@
  ****************************************************************************/
 
 #include <ArborX_Box.hpp>
+#include <ArborX_BruteForce.hpp>
 #include <ArborX_GeometryTraits.hpp>
 #include <ArborX_LinearBVH.hpp>
 #include <ArborX_Point.hpp>
 
 #include <Kokkos_Core.hpp>
+
+#ifdef ARBORX_ENABLE_MPI
+#include <ArborX_DistributedTree.hpp>
+#endif
 
 namespace Test
 {
@@ -152,26 +157,69 @@ struct NonDefaultConstructibleValueIndexableGetter
 
 } // namespace Test
 
+struct DummyCallback
+{
+  template <typename Predicate, typename Value, typename OutputFunctor>
+  KOKKOS_FUNCTION void operator()(Predicate const &, Value const &value,
+                                  OutputFunctor const &out) const
+  {
+    out(value);
+  }
+};
+
 // Compile-only
-void check_query_with_values_that_are_not_default_constructible()
+template <typename Tree, typename... Args>
+void check_query_with_values_that_are_not_default_constructible_tmpl(
+    Tree, Args &&...args)
 {
   using ExecutionSpace = Kokkos::DefaultExecutionSpace;
   using MemorySpace = ExecutionSpace::memory_space;
+
+  ExecutionSpace space{};
+
   using Value = Test::NonDefaultConstructibleValue;
   static_assert(!std::is_default_constructible_v<Value>);
 
-  using Tree = ArborX::BoundingVolumeHierarchy<
-      MemorySpace, Value, Test::NonDefaultConstructibleValueIndexableGetter>;
+  using IntersectsPredicate = decltype(ArborX::intersects(ArborX::Box<3>{}));
+  using NearestPredicate = decltype(ArborX::nearest(ArborX::Box<3>{}, 1));
 
   Kokkos::View<Value *, MemorySpace> primitives(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "primitives"), 0);
-  Tree tree(ExecutionSpace{}, primitives);
-
-  using Predicate = decltype(ArborX::intersects(ArborX::Box<3>{}));
-  Kokkos::View<Predicate *, MemorySpace> predicates("predicates", 0);
-
+  Kokkos::View<IntersectsPredicate *, MemorySpace> intersects_predicates(
+      "predicates", 0);
+  Kokkos::View<NearestPredicate *, MemorySpace> nearest_predicates("predicates",
+                                                                   0);
   Kokkos::View<Value *, MemorySpace> values(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "values"), 0);
   Kokkos::View<int *, MemorySpace> offsets("offsets", 0);
-  tree.query(ExecutionSpace{}, predicates, values, offsets);
+
+  Tree tree(args..., space, primitives);
+  tree.query(space, intersects_predicates, values, offsets);
+  // For distributed tree, this will use the 2-phase query
+  tree.query(space, nearest_predicates, values, offsets);
+  tree.query(space, intersects_predicates, DummyCallback{}, values, offsets);
+  // For distributed tree, this will use the 3-phase query
+  tree.query(space, nearest_predicates, DummyCallback{}, values, offsets);
+}
+
+void check_query_with_values_that_are_not_default_constructible()
+{
+  check_query_with_values_that_are_not_default_constructible_tmpl(
+      ArborX::BoundingVolumeHierarchy<
+          typename Kokkos::DefaultExecutionSpace::memory_space,
+          Test::NonDefaultConstructibleValue,
+          Test::NonDefaultConstructibleValueIndexableGetter>());
+
+  check_query_with_values_that_are_not_default_constructible_tmpl(
+      ArborX::BruteForce<typename Kokkos::DefaultExecutionSpace::memory_space,
+                         Test::NonDefaultConstructibleValue,
+                         Test::NonDefaultConstructibleValueIndexableGetter>());
+#ifdef ARBORX_ENABLE_MPI
+  check_query_with_values_that_are_not_default_constructible_tmpl(
+      ArborX::DistributedTree<
+          typename Kokkos::DefaultExecutionSpace::memory_space,
+          Test::NonDefaultConstructibleValue,
+          Test::NonDefaultConstructibleValueIndexableGetter>(),
+      MPI_COMM_WORLD);
+#endif
 }

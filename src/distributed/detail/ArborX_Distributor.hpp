@@ -316,7 +316,10 @@ public:
                      typename ExportView::array_layout,
                      typename ExportView::device_type>;
     ExportViewWithoutMemoryTraits permuted_exports_storage(
-        "ArborX::Distributor::doPostsAndWaits::permuted_exports", 0);
+        Kokkos::view_alloc(
+            Kokkos::WithoutInitializing,
+            "ArborX::Distributor::doPostsAndWaits::permuted_exports"),
+        0);
 
     auto permuted_exports = exports;
     if (permutation_necessary)

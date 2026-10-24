@@ -202,10 +202,9 @@ struct CallbackWithDistance
   {
     if constexpr (UseValues)
     {
-      OutValue out_value;
       [[maybe_unused]] int count = 0;
       _callback(query, value, [&](OutValue const &ov) {
-        out_value = ov;
+        out({ov, distance(getGeometry(query), _tree.indexable_get()(value))});
         // NOTE: this will break if we are running multiple threads per query.
         // It could happen that the callback is called by different threads,
         // resulting in multiple outputs while having count = 1 in each thread.
@@ -219,8 +218,6 @@ struct CallbackWithDistance
       // break our communication routines and filtering. We rely on 3-phase
       // nearest implementation for these cases.
       KOKKOS_ASSERT(count == 1);
-      out({out_value,
-           distance(getGeometry(query), _tree.indexable_get()(value))});
     }
     else
       out(distance(getGeometry(query), _tree.indexable_get()(value)));
